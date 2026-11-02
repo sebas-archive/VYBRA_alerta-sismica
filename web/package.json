@@ -1,0 +1,10 @@
+{
+  "name": "detector-sismos-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "start": "node server.js",
+    "fake": "node fake/cluster-falso.js"
+  }
+}
