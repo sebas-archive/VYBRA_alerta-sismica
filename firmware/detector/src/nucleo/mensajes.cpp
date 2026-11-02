@@ -1,6 +1,9 @@
 #include "mensajes.h"
 #include <ArduinoJson.h>
 
+// Las horas (t, t_lider) son ms epoch de 64 bits: no deben truncarse en el ESP32.
+static_assert(ARDUINOJSON_USE_LONG_LONG == 1, "ArduinoJson debe guardar enteros de 64 bits");
+
 namespace nucleo {
 
 // Claves: k tipo, d de, T término, li/lt último idx/term, g concedido,

@@ -1,0 +1,25 @@
+// JSON de la API HTTP de cada nodo: /estado, /log, /sucesos y /alertas (contrato con web/).
+#pragma once
+#include <cstdint>
+#include <string>
+#include "raft.h"
+
+namespace nucleo {
+
+// Datos de la red que el núcleo no conoce (los pone detector.ino).
+struct InfoRed {
+  std::string ip;
+  int rssi;
+  uint64_t uptimeMs;
+  bool conHora;  // NTP ya sincronizó
+};
+
+// Tamaño de página de /log.
+constexpr uint32_t kPaginaLog = 50;
+
+std::string jsonEstado(const Raft& r, int nodo, const InfoRed& red);  // < 1 KB
+std::string jsonLog(const Raft& r, uint32_t desde);      // entradas [desde, desde+49], 1-based
+std::string jsonSucesos(const Raft& r, uint32_t desde);  // sucesos con seq > desde
+std::string jsonAlertas(const Raft& r);
+
+}  // namespace nucleo
