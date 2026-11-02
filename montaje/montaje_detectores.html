@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Montaje de detectores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #eef1f2; --surface: #fff; --surface-2: #f5f7f8; --border: #dbe2e6; --border-strong: #b9c4ca;
+    --text: #17212a; --text-2: #4d5b66; --text-3: #6b7883; --brand: #0e6a76; --brand-soft: #dcefef;
+    --w-gnd: #1b1f23; --w-sig: #2f6fd6;
+    --board: #1f3b57; --board-ink: #e8f0f7; --bb: #f3f1ea; --bb-hole: #c9c4b5;
+    --warn: #9a5b00; --warn-bg: #fbecd0; --ok: #2b7a4b; --ok-bg: #dbefe2;
+    --font: "Inter", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    color-scheme: dark; --bg: #0e1418; --surface: #151d23; --surface-2: #1a242b; --border: #2a3740; --border-strong: #3b4a54;
+    --text: #e5ecef; --text-2: #a7b4bc; --text-3: #8695a0; --brand: #3fb3c1; --brand-soft: #173a40;
+    --w-gnd: #c9d3d9; --board: #24476a; --bb: #23292e; --bb-hole: #3b444b;
+    --warn: #e6a74a; --warn-bg: #36260c; --ok: #6cc08f; --ok-bg: #17301f;
+  } }
+  :root[data-theme="dark"] {
+    color-scheme: dark; --bg: #0e1418; --surface: #151d23; --surface-2: #1a242b; --border: #2a3740; --border-strong: #3b4a54;
+    --text: #e5ecef; --text-2: #a7b4bc; --text-3: #8695a0; --brand: #3fb3c1; --brand-soft: #173a40;
+    --w-gnd: #c9d3d9; --board: #24476a; --bb: #23292e; --bb-hole: #3b444b;
+    --warn: #e6a74a; --warn-bg: #36260c; --ok: #6cc08f; --ok-bg: #17301f;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 var(--font); }
+  header.top { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .top-in { max-width: 1100px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .top h1 { font-size: 18px; margin: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: var(--surface); color: var(--text-2); padding: 7px 14px; font: 500 14px var(--font); cursor: pointer; min-height: 36px; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button[aria-pressed="true"] { background: var(--brand-soft); color: var(--text); font-weight: 700; }
+  .top .spacer { flex: 1; }
+  .btn { border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); border-radius: 8px; padding: 0 14px; min-height: 36px; font: 500 14px var(--font); cursor: pointer; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 20px 60px; display: grid; gap: 20px; }
+  main > *, .grid2 > * { min-width: 0; }
+  section.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; }
+  h2 { font-size: 18px; margin: 0 0 4px; }
+  .lead { color: var(--text-2); margin: 0 0 14px; max-width: 75ch; }
+  .meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .meta div { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+  .meta span { display: block; font-size: 12.5px; color: var(--text-2); }
+  .meta b { font-size: 16px; font-family: var(--mono); font-weight: 600; }
+  .diagram { width: 100%; height: auto; display: block; max-width: 860px; margin: 0 auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--text-2); margin-top: 10px; }
+  .legend i { display: inline-block; width: 22px; height: 0; border-top: 4px solid; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 13px; color: var(--text-2); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--border-strong); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--mono); font-size: 13px; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+  ol.steps { margin: 0; padding-left: 1.3em; display: grid; gap: 10px; }
+  ol.steps b { display: block; }
+  .note { background: var(--warn-bg); border-left: 4px solid var(--warn); border-radius: 6px; padding: 10px 14px; font-size: 14px; margin-top: 14px; }
+  .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .checks label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 6px 0; }
+  .checks input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--brand); flex-shrink: 0; }
+  .checks input:checked + span { color: var(--text-3); text-decoration: line-through; }
+  .progress { font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+  pre { background: #0f1720; color: #dbe6ee; border-radius: 10px; padding: 16px; overflow: auto; font: 12.5px/1.5 var(--mono); max-height: 560px; margin: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .lbl { font: 600 13px var(--font); fill: var(--text); }
+  .lbl-s { font: 500 12px var(--font); fill: var(--text-2); }
+  .pin-t { font: 600 10.5px var(--mono); fill: var(--board-ink); }
+  .wire { fill: none; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .meta { grid-template-columns: 1fr; } .top-in { padding: 10px 16px; } main { padding: 16px 16px 48px; } }
+  @media print {
+    header.top .btn, header.top .seg { display: none; }
+    header.top { position: static; }
+    body { background: #fff; }
+    section.card { break-inside: avoid; border-color: #ccc; }
+    pre { max-height: none; white-space: pre-wrap; background: #f4f4f4; color: #111; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <h1>Montaje de detectores</h1>
+    <div class="seg" role="group" aria-label="Detector" id="seg-det">
+      <button type="button" data-n="1" aria-pressed="true">Detector 1</button>
+      <button type="button" data-n="2" aria-pressed="false">Detector 2</button>
+      <button type="button" data-n="3" aria-pressed="false">Detector 3</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" type="button" onclick="window.print()">Imprimir plano</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2 id="title">Detector 1 · nodo-1</h2>
+    <p class="lead">Los tres detectores se arman igual: un ESP32 y un pulsador B3F sobre una protoboard MB102, alimentados por el cable micro USB. Solo cambia el identificador del nodo y el servidor al que reporta primero. Elige el detector arriba y esta hoja se ajusta.</p>
+    <div class="meta">
+      <div><span>Identificador</span><b id="m-id">nodo-1</b></div>
+      <div><span>Reporta primero a</span><b id="m-srv">Servidor 1</b></div>
+      <div><span>Etiqueta</span><b id="m-tag">SIS-D1</b></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Plano en la protoboard MB102</h2>
+    <p class="lead">Vista desde arriba de las primeras 30 columnas de la protoboard de 830 puntos. Cada agujero se nombra con su fila (a–j) y su columna (1–63), como viene impreso en la placa. Los tres detectores van idénticos.</p>
+    <svg class="diagram" viewBox="0 0 900 470" role="img" aria-labelledby="svg-t" id="plan">
+      <title id="svg-t">ESP32 en las columnas 1 a 15, filas a e i, con el USB hacia la columna 1 en el borde izquierdo. Pulsador en d24, d26, g24 y g26. Cable azul de j5 a j26 y cable negro de j2 a a24.</title>
+      <g id="bb"></g>
+    </svg>
+    <div class="legend">
+      <span><i style="border-color:var(--w-gnd)"></i>Cable negro: GND · j2 → a24</span>
+      <span><i style="border-color:var(--w-sig)"></i>Cable azul: D4 · j5 → j26</span>
+      <span><i style="border-color:#3a4148"></i>Micro USB 30 cm: energía y carga del código</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Dónde va cada cosa</h2>
+    <p class="lead">Igual en las 3 protoboards. Si tu protoboard tiene la fila j arriba en vez de la a, no importa: guíate por las letras y números impresos.</p>
+    <table>
+      <thead><tr><th>Paso</th><th>Pieza</th><th>Agujeros</th><th>Detalle</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>ESP32</td><td class="mono">a1–a15 e i1–i15</td><td>Chip hacia arriba y USB hacia la columna 1, en el borde izquierdo, para que el cable entre sin estorbar. La fila de pines con D4 y GND queda en i, junto a la única fila libre (j).</td></tr>
+        <tr><td>2</td><td>Pulsador B3F</td><td class="mono">d24 · d26 · g24 · g26</td><td>Encima del canal central, con las patas largas cruzándolo.</td></tr>
+        <tr><td>3</td><td><span class="sw" style="background:var(--w-sig)"></span>Jumper azul</td><td class="mono">j5 → j26</td><td>j5 está en la columna del pin D4 (i5). j26 queda unido con la pata g26, en diagonal a d24.</td></tr>
+        <tr><td>4</td><td><span class="sw" style="background:var(--w-gnd)"></span>Jumper negro</td><td class="mono">j2 → a24</td><td>j2 está en la columna del pin GND (i2). a24 queda unido con la pata d24. El cable rodea el pulsador por la derecha.</td></tr>
+        <tr><td>5</td><td>Cable micro USB</td><td class="mono">puerto del ESP32</td><td>Al PC para cargar el código, después a un cargador de 5 V.</td></tr>
+      </tbody>
+    </table>
+    <p class="note">El pulsador se conecta por patas en diagonal (d24 y g26): así funciona sin importar cuáles patas vienen unidas por dentro. No lleva resistencia: el código activa la interna del ESP32.</p>
+  </section>
+
+  <section class="card">
+    <h2>Orientación del pulsador</h2>
+    <p class="lead">El B3F-4055 tiene las patas en dos lados opuestos: 2 patas por lado, separadas 5 mm. Entre un lado y el otro hay 12,5 mm, justo lo que mide el salto de la fila d a la fila g por encima del canal.</p>
+    <div class="grid2" style="align-items:center">
+      <svg viewBox="0 0 420 300" role="img" aria-labelledby="btn-t" style="width:100%;max-width:420px">
+        <title id="btn-t">Pulsador visto desde arriba: patas superiores en d24 y d26, patas inferiores en g24 y g26, lados sin patas hacia las columnas</title>
+        <rect x="0" y="0" width="420" height="300" rx="10" fill="var(--bb)"/>
+        <rect x="0" y="136" width="420" height="28" fill="var(--border)"/>
+        <text x="410" y="182" class="lbl-s" text-anchor="end">canal central</text>
+        <text x="40" y="74" class="lbl-s">fila d</text><text x="40" y="234" class="lbl-s">fila g</text>
+        <text x="150" y="28" class="lbl-s" text-anchor="middle">col 24</text><text x="270" y="28" class="lbl-s" text-anchor="middle">col 26</text>
+        <rect x="128" y="88" width="164" height="124" rx="8" fill="#2a2f35"/>
+        <circle cx="210" cy="150" r="40" fill="#111"/><circle cx="210" cy="150" r="28" fill="#3a4148"/>
+        <path d="M150 88 V70 M270 88 V70 M150 212 V230 M270 212 V230" stroke="#9aa5ad" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="150" cy="70" r="9" fill="#ffd23f" stroke="var(--text)" stroke-width="2"/>
+        <circle cx="270" cy="70" r="8" fill="#9aa5ad"/>
+        <circle cx="150" cy="230" r="8" fill="#9aa5ad"/>
+        <circle cx="270" cy="230" r="9" fill="#ffd23f" stroke="var(--text)" stroke-width="2"/>
+        <text x="150" y="58" class="lbl" text-anchor="middle">d24 · GND</text>
+        <text x="270" y="256" class="lbl" text-anchor="middle">g26 · D4</text>
+        <text x="110" y="154" class="lbl-s" text-anchor="end">lado liso</text>
+        <text x="310" y="154" class="lbl-s">lado liso</text>
+        <path d="M150 70 L270 230" stroke="var(--brand)" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="236" y="120" class="lbl-s" style="fill:var(--brand)">diagonal</text>
+      </svg>
+      <div>
+        <table>
+          <thead><tr><th>Cómo lo pongas</th><th>¿Funciona?</th></tr></thead>
+          <tbody>
+            <tr><td>Patas en filas d y g, lados lisos hacia las columnas (como el dibujo)</td><td>Sí</td></tr>
+            <tr><td>Igual pero girado 180°</td><td>Sí, da lo mismo: la diagonal sigue siendo d24–g26</td></tr>
+            <tr><td>Girado 90° (patas hacia las columnas)</td><td>No: las patas no alcanzan a cruzar el canal y el botón no encaja</td></tr>
+          </tbody>
+        </table>
+        <p class="note">Regla simple: si el botón entró firme cruzando el canal, está bien puesto. Las dos formas en que encaja funcionan, porque los cables van en diagonal.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Lo que compraste</h2>
+      <p class="lead">Alcanza para los 3 detectores con repuestos.</p>
+      <table>
+        <thead><tr><th>Pieza</th><th class="n">Compra</th><th class="n">Usa</th><th class="n">Sobra</th><th class="n">Precio</th></tr></thead>
+        <tbody>
+          <tr><td>ESP32 WiFi BLE CP2102, 30 pines</td><td class="n">3</td><td class="n">3</td><td class="n">0</td><td class="n">$113.190</td></tr>
+          <tr><td>Protoboard adhesiva MB102, 830 puntos</td><td class="n">3</td><td class="n">3</td><td class="n">0</td><td class="n">$41.700</td></tr>
+          <tr><td>Jumpers dupont macho-macho 20 cm</td><td class="n">40</td><td class="n">6</td><td class="n">34</td><td class="n">$9.900</td></tr>
+          <tr><td>Cable micro USB 30 cm blindado</td><td class="n">3</td><td class="n">3</td><td class="n">0</td><td class="n">$12.900</td></tr>
+          <tr><td>Pulsador B3F-4055, 12×12 mm</td><td class="n">4</td><td class="n">3</td><td class="n">1</td><td class="n">$1.724</td></tr>
+          <tr><td><b>Total</b></td><td></td><td></td><td></td><td class="n"><b>$179.414</b></td></tr>
+        </tbody>
+      </table>
+      <p class="note">El cable USB mide 30 cm: deja cada detector cerca del cargador o del PC. El CP2102 necesita su driver en Windows (en Linux y macOS ya viene).</p>
+    </section>
+
+    <section class="card">
+      <h2>Las 3 protoboards</h2>
+      <p class="lead">Mismo montaje, distinto código. Marca cada una para no confundirlas.</p>
+      <table>
+        <thead><tr><th>Etiqueta</th><th>Nodo</th><th>Reporta primero a</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">SIS-D1</td><td class="mono">nodo-1</td><td>Servidor 1</td></tr>
+          <tr><td class="mono">SIS-D2</td><td class="mono">nodo-2</td><td>Servidor 2</td></tr>
+          <tr><td class="mono">SIS-D3</td><td class="mono">nodo-3</td><td>Servidor 3</td></tr>
+        </tbody>
+      </table>
+      <p class="note">La protoboard es adhesiva: pégala a la base o caja solo cuando el detector ya funcione, porque después no se despega fácil.</p>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Pasos de montaje</h2>
+      <ol class="steps">
+        <li><b>Monta el ESP32</b>Chip hacia arriba y USB hacia el borde izquierdo. Pines en a1–a15 e i1–i15 (3V3 en i1, GND en i2, D4 en i5). Queda libre la fila j. Presiona parejo con los dos pulgares para no doblar pines.</li>
+        <li><b>Pon el pulsador</b>En d24, d26, g24 y g26, cruzando el canal central. Debe entrar firme.</li>
+        <li><b>Jumper azul</b>De j5 a j26.</li>
+        <li><b>Jumper negro</b>De j2 a a24, rodeando el pulsador por la derecha.</li>
+        <li><b>Conecta el USB</b>Del ESP32 al PC. Debe encender la luz roja de energía.</li>
+        <li><b>Carga el código</b>Elige el detector arriba, copia el firmware, pon la red WiFi y las IP de los servidores, y súbelo con Arduino IDE (placa “ESP32 Dev Module”). Si no sube, mantén el botón BOOT al empezar la carga.</li>
+        <li><b>Etiqueta y pega</b>Marca la protoboard con <b class="mono" data-f="tag" style="display:inline">SIS-D1</b>, despega el adhesivo y fíjala en su sitio cerca de un cargador de 5 V.</li>
+        <li><b>Repite</b>Haz lo mismo con las otras dos protoboards, cambiando de detector arriba antes de copiar el código.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Verificación</h2>
+      <p class="progress" id="progress"></p>
+      <ul class="checks" id="checks">
+        <li><label><input type="checkbox"><span>Al enchufarlo, el LED azul parpadea y queda fijo al conectarse al WiFi.</span></label></li>
+        <li><label><input type="checkbox"><span>El monitor serie (115200) muestra el nodo y su IP.</span></label></li>
+        <li><label><input type="checkbox"><span>Mientras mantienes el pulsador, el LED azul parpadea más rápido.</span></label></li>
+        <li><label><input type="checkbox"><span>Al soltar, el monitor serie dice “reporte aceptado por Servidor N”.</span></label></li>
+        <li><label><input type="checkbox"><span>El evento aparece en el panel de operación con el nodo correcto.</span></label></li>
+        <li><label><input type="checkbox"><span>Con el servidor preferido apagado, el reporte llega a otro servidor.</span></label></li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="code-head">
+      <div><h2>Firmware del detector</h2><p class="lead" style="margin:0">Arduino IDE con el soporte de placas ESP32. No necesita librerías extra.</p></div>
+      <button class="btn" type="button" id="copy-btn">Copiar código</button>
+    </div>
+    <pre id="code" tabindex="0"></pre>
+    <p class="note">La ruta <span class="mono">/eventos</span> y el formato JSON son una propuesta: ajústalos al endpoint real de tus servidores. El nivel usa la misma regla del panel: 1 más un nivel cada 450 ms presionado, máximo 10.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const DET = {
+    1: { id: 'nodo-1', srv: 0, tag: 'SIS-D1' },
+    2: { id: 'nodo-2', srv: 1, tag: 'SIS-D2' },
+    3: { id: 'nodo-3', srv: 2, tag: 'SIS-D3' },
+  };
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (parent, tag, attrs, text) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); if (text) el.textContent = text; parent.appendChild(el); };
+
+  // Protoboard MB102 vista desde arriba: columnas 1–30, filas a–j
+  const bb = document.getElementById('bb');
+  const P = 25, X = c => 70 + (c - 1) * P;
+  const ROW = { a: 95, b: 120, c: 145, d: 170, e: 195, f: 255, g: 280, h: 305, i: 330, j: 355 };
+  mk(bb, 'rect', { x: 30, y: 10, width: 850, height: 450, rx: 12, fill: 'var(--bb)', stroke: 'var(--border-strong)' });
+  mk(bb, 'rect', { x: 30, y: 213, width: 850, height: 24, fill: 'var(--border)' });
+  [[30, '−', '#1d4ed8'], [52, '+', '#c0352b'], [398, '−', '#1d4ed8'], [420, '+', '#c0352b']].forEach(([y, s, col]) => {
+    mk(bb, 'line', { x1: 60, y1: y + (s === '−' ? -9 : 9), x2: 860, y2: y + (s === '−' ? -9 : 9), stroke: col, 'stroke-width': 1.5, opacity: .6 });
+    for (let c = 1; c <= 30; c++) if (c % 6) mk(bb, 'circle', { cx: X(c), cy: y, r: 3, fill: 'var(--bb-hole)' });
+  });
+  for (const r in ROW) {
+    mk(bb, 'text', { x: 46, y: ROW[r] + 4, class: 'lbl-s', 'text-anchor': 'middle' }, r);
+    for (let c = 1; c <= 30; c++) mk(bb, 'circle', { cx: X(c), cy: ROW[r], r: 3.2, fill: 'var(--bb-hole)' });
+  }
+  for (let c = 1; c <= 30; c++) if (c === 1 || c % 5 === 0) {
+    mk(bb, 'text', { x: X(c), y: 77, class: 'lbl-s', 'text-anchor': 'middle' }, c);
+    mk(bb, 'text', { x: X(c), y: 381, class: 'lbl-s', 'text-anchor': 'middle' }, c);
+  }
+
+  // ESP32: USB hacia el borde izquierdo (columna 1), antena hacia la columna 15. Pines en a1–a15 e i1–i15; queda libre la fila j.
+  const B0 = X(1) - 30, B1 = X(15) + 40;
+  mk(bb, 'rect', { x: B0, y: ROW.a - 14, width: B1 - B0, height: ROW.i - ROW.a + 28, rx: 8, fill: 'var(--board)', opacity: .93 });
+  mk(bb, 'rect', { x: B0 - 22, y: 200, width: 30, height: 24, rx: 3, fill: '#b5bdc3' });
+  mk(bb, 'rect', { x: B1 - 34, y: 160, width: 28, height: 106, rx: 3, fill: '#c8ced3', opacity: .85 });
+  mk(bb, 'path', { d: `M${B1 - 28} 168h16v10h-16v10h16v10h-16v10h16v10h-16v10h16v10h-16v10h16v10h-16`, fill: 'none', stroke: '#6b7781', 'stroke-width': 2 });
+  mk(bb, 'rect', { x: X(7), y: 182, width: 70, height: 60, rx: 4, fill: '#9aa5ad' });
+  mk(bb, 'text', { x: X(7) + 35, y: 216, 'text-anchor': 'middle', style: 'font:700 12px var(--mono);fill:#1f2a33' }, 'ESP32');
+  mk(bb, 'circle', { cx: X(4), cy: 212, r: 5, fill: '#3b82f6' });
+  mk(bb, 'text', { x: X(4), y: 235, 'text-anchor': 'middle', class: 'pin-t', style: 'font-size:9px' }, 'LED GPIO2');
+  const TOP = ['VIN', 'GND', 'D13', 'D12', 'D14', 'D27', 'D26', 'D25', 'D33', 'D32', 'D35', 'D34', 'VN', 'VP', 'EN'];
+  const BOT = ['3V3', 'GND', 'D15', 'D2', 'D4', 'RX2', 'TX2', 'D5', 'D18', 'D19', 'D21', 'RX0', 'TX0', 'D22', 'D23'];
+  const USED = { i2: 1, i5: 1 };
+  TOP.forEach((p, k) => { const c = k + 1; mk(bb, 'circle', { cx: X(c), cy: ROW.a, r: 4, fill: '#c8ced3' }); mk(bb, 'text', { x: X(c), y: ROW.a + 22, class: 'pin-t', 'text-anchor': 'middle', style: 'font-size:9px' }, p); });
+  BOT.forEach((p, k) => { const c = k + 1, on = USED['i' + c]; mk(bb, 'circle', { cx: X(c), cy: ROW.i, r: on ? 6 : 4, fill: on ? '#ffd23f' : '#c8ced3' }); mk(bb, 'text', { x: X(c), y: ROW.i - 14, class: 'pin-t', 'text-anchor': 'middle', style: 'font-size:9px' }, p); });
+
+  // Cable micro USB: sale por el borde izquierdo
+  mk(bb, 'path', { d: `M${B0 - 22} 212 C ${B0 - 40} 212, 14 240, 10 300`, stroke: '#3a4148', 'stroke-width': 10, 'stroke-linecap': 'round', fill: 'none' });
+
+  // Pulsador B3F 12x12 en d24, d26, g24, g26
+  mk(bb, 'rect', { x: X(24) - 16, y: ROW.d - 16, width: X(26) - X(24) + 32, height: ROW.g - ROW.d + 32, rx: 6, fill: '#2a2f35' });
+  mk(bb, 'circle', { cx: X(25), cy: 225, r: 24, fill: '#111' });
+  mk(bb, 'circle', { cx: X(25), cy: 225, r: 17, fill: '#3a4148' });
+  [['d', 24, 1], ['d', 26, 0], ['g', 24, 0], ['g', 26, 1]].forEach(([r, c, on]) => mk(bb, 'circle', { cx: X(c), cy: ROW[r], r: on ? 6 : 4, fill: on ? '#ffd23f' : '#9aa5ad' }));
+  mk(bb, 'text', { x: X(25), y: ROW.d - 24, class: 'lbl', 'text-anchor': 'middle' }, 'Pulsador');
+
+  // Jumpers: todo sale por la fila j
+  mk(bb, 'path', { class: 'wire', stroke: 'var(--w-sig)', d: `M${X(5)} ${ROW.j} V${ROW.j + 14} H${X(26)} V${ROW.j}` });
+  mk(bb, 'path', { class: 'wire', stroke: 'var(--w-gnd)', d: `M${X(2)} ${ROW.j} V${ROW.j + 30} H${X(29)} Q${X(29.6)} ${ROW.j + 30} ${X(29.6)} ${ROW.j + 18} V${ROW.a - 22} Q${X(29.6)} ${ROW.a - 34} ${X(29)} ${ROW.a - 34} H${X(24)} V${ROW.a}` });
+  [['j', 2], ['j', 5], ['j', 26], ['a', 24]].forEach(([r, c]) => mk(bb, 'circle', { cx: X(c), cy: ROW[r], r: 5, fill: '#fff', stroke: 'var(--text)', 'stroke-width': 2 }));
+  [[X(16.5), ROW.a - 46, 'negro: j2 → a24 (GND)'], [X(9), ROW.j + 46, 'azul: j5 → j26 (D4)']].forEach(([x, y, t]) => {
+    mk(bb, 'rect', { x: x, y: y - 11, width: 162, height: 22, rx: 4, fill: 'var(--surface)', stroke: 'var(--border-strong)' });
+    mk(bb, 'text', { x: x + 8, y: y + 4, class: 'lbl' }, t);
+  });
+  mk(bb, 'text', { x: 870, y: 445, class: 'lbl-s', 'text-anchor': 'end' }, 'continúa hasta la columna 63 →');
+
+  const code = d => `// Detector sísmico ${d.id} (${d.tag})
+// Hardware: ESP32 DevKit V1 + pulsador entre D4 y GND. LED azul integrado en GPIO 2.
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+// ---------- Configuración de este detector ----------
+const char* WIFI_SSID = "TU_RED";
+const char* WIFI_PASS = "TU_CLAVE";
+const char* NODO_ID   = "${d.id}";
+const char* SERVIDORES[3] = {
+  "http://192.168.1.11:8000",   // Servidor 1
+  "http://192.168.1.12:8000",   // Servidor 2
+  "http://192.168.1.13:8000"    // Servidor 3
+};
+const int SERVIDOR_PREFERIDO = ${d.srv};   // reporta primero al Servidor ${d.srv + 1}
+
+const int PIN_BOTON = 4;
+const int PIN_LED   = 2;    // LED azul de la placa
+
+bool pulsando = false;
+unsigned long tPulso = 0;
+
+int nivelPorTiempo(unsigned long ms) { return min(10, 1 + (int)(ms / 450)); }
+
+bool reportar(int nivel, unsigned long ms) {
+  if (WiFi.status() != WL_CONNECTED) { Serial.println("sin WiFi, reporte perdido"); return false; }
+  float pga = 0.028 * nivel + 0.015;   // misma escala que el panel
+  String json = String("{\\"nodo\\":\\"") + NODO_ID + "\\",\\"nivel\\":" + nivel +
+                ",\\"pga\\":" + String(pga, 3) + ",\\"duracion_ms\\":" + ms + "}";
+  for (int i = 0; i < 3; i++) {   // si el preferido no responde, prueba los otros dos
+    int s = (SERVIDOR_PREFERIDO + i) % 3;
+    HTTPClient http;
+    http.begin(String(SERVIDORES[s]) + "/eventos");
+    http.addHeader("Content-Type", "application/json");
+    http.setTimeout(1500);
+    int code = http.POST(json);
+    http.end();
+    if (code >= 200 && code < 300) {
+      Serial.printf("reporte aceptado por Servidor %d (nivel %d)\\n", s + 1, nivel);
+      return true;
+    }
+    Serial.printf("Servidor %d no respondió (%d)\\n", s + 1, code);
+  }
+  return false;
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(PIN_BOTON, INPUT_PULLUP);
+  pinMode(PIN_LED, OUTPUT);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  while (WiFi.status() != WL_CONNECTED) { digitalWrite(PIN_LED, !digitalRead(PIN_LED)); delay(250); }
+  digitalWrite(PIN_LED, HIGH);
+  Serial.printf("%s conectado, IP %s\\n", NODO_ID, WiFi.localIP().toString().c_str());
+}
+
+void loop() {
+  unsigned long ahora = millis();
+  bool abajo = digitalRead(PIN_BOTON) == LOW;
+
+  if (abajo && !pulsando) {                 // inicio de pulsación (con antirrebote)
+    delay(20);
+    if (digitalRead(PIN_BOTON) == LOW) { pulsando = true; tPulso = ahora; }
+  }
+  if (pulsando) {
+    int nivel = nivelPorTiempo(ahora - tPulso);
+    digitalWrite(PIN_LED, (ahora / (300 / nivel + 30)) % 2);   // más nivel, parpadeo más rápido
+    if (!abajo) {                            // al soltar se envía el reporte
+      pulsando = false;
+      unsigned long ms = ahora - tPulso;
+      reportar(nivelPorTiempo(ms), ms);
+      digitalWrite(PIN_LED, HIGH);
+    }
+  }
+  delay(5);
+}
+`;
+
+  let cur = 1;
+  const boxes = [...document.querySelectorAll('#checks input')];
+  function loadChecks(n) {
+    let saved = []; try { saved = JSON.parse(localStorage.getItem('montaje-checks-' + n) || '[]'); } catch (e) {}
+    boxes.forEach((b, i) => b.checked = !!saved[i]);
+    updProgress();
+  }
+  function updProgress() {
+    const done = boxes.filter(b => b.checked).length;
+    document.getElementById('progress').textContent = `${done} de ${boxes.length} comprobaciones hechas para este detector`;
+  }
+  function show(n) {
+    const d = DET[n]; cur = n;
+    document.querySelectorAll('#seg-det button').forEach(b => b.setAttribute('aria-pressed', b.dataset.n === String(n)));
+    document.getElementById('title').textContent = `Detector ${n} · ${d.id}`;
+    document.getElementById('m-id').textContent = d.id;
+    document.getElementById('m-srv').textContent = `Servidor ${d.srv + 1}`;
+    document.getElementById('m-tag').textContent = d.tag;
+    document.querySelectorAll('[data-f="tag"]').forEach(el => el.textContent = d.tag);
+    document.getElementById('code').textContent = code(d);
+    loadChecks(n);
+    try { localStorage.setItem('montaje-det', n); } catch (e) {}
+  }
+  boxes.forEach(b => b.addEventListener('change', () => {
+    try { localStorage.setItem('montaje-checks-' + cur, JSON.stringify(boxes.map(x => x.checked))); } catch (e) {}
+    updProgress();
+  }));
+  document.getElementById('seg-det').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(+b.dataset.n); });
+  document.getElementById('copy-btn').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(document.getElementById('code').textContent); e.target.textContent = 'Copiado'; }
+    catch (err) { e.target.textContent = 'Selecciona y copia a mano'; }
+    setTimeout(() => e.target.textContent = 'Copiar código', 2000);
+  });
+  let start = 1; try { start = +localStorage.getItem('montaje-det') || 1; } catch (e) {}
+  show(DET[start] ? start : 1);
+})();
+</script>
+</body>
+</html>

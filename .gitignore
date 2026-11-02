@@ -1,0 +1,8 @@
+# Claves locales
+firmware/detector/secretos.h
+# Compilación
+firmware/build/
+firmware/test/bin/
+node_modules/
+# Espacio de trabajo de los agentes
+.superpowers/

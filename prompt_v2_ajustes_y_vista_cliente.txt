@@ -1,0 +1,259 @@
+PROMPT v2: AJUSTES AL PANEL DE OPERACIÓN + NUEVA VISTA DE CLIENTE
+====================================================================
+
+Contexto
+--------
+Sistema de detección de sismos distribuido: detectores ESP32 (o virtuales)
+reportan a 3 servidores que se coordinan con Raft. Una alerta se emite cuando 2
+detectores distintos reportan dentro de una ventana de 10 s y la mayoría de
+servidores confirma los eventos.
+
+Ya existe un PANEL DE OPERACIÓN con top bar y 6 pestañas (Panorama,
+Sismógrafos, Clúster Raft, Detectores, Alertas, Registros). Está bien resuelto.
+Esta tarea tiene dos partes:
+
+  PARTE A: pulir el panel de operación (ajustes concretos, no rediseño).
+  PARTE B: crear una VISTA DE CLIENTE nueva, independiente, para el público.
+
+Mantén el stack, la lógica, los tokens de diseño y los componentes existentes.
+No cambies la lógica de Raft ni el cálculo de intensidad.
+
+
+====================================================================
+PARTE A: AJUSTES AL PANEL DE OPERACIÓN
+====================================================================
+
+A1. Móvil: top bar
+- Los chips "Alerta alta" y "Sin quórum, 1/3" se superponen con el botón de
+  tema y quedan cortados ("Alerta a…"). En < 480 px mostrar como máximo 2
+  chips (quórum + alerta) y reservar el espacio del botón de tema/ayuda; si no
+  caben, el chip de alerta pasa a solo icono + número con aria-label.
+
+A2. Móvil: barra de pestañas
+- Hace scroll horizontal pero no se nota que hay más pestañas. Añadir un
+  degradado de desvanecimiento en el borde con contenido oculto y hacer
+  scrollIntoView de la pestaña activa al cambiar (hoy "Clúster Raft" queda
+  cortado a la izquierda).
+
+A3. Móvil: banners
+- El banner de alerta ocupa ~1/4 de pantalla y con "Sin quórum" se apilan dos.
+  En móvil: versión compacta de una línea (icono + "Alerta alta · 13:34:44" +
+  "Ver") expandible al tocar. Si hay varios banners, apilarlos compactos y
+  ordenarlos por gravedad (sin quórum primero).
+
+A4. Móvil: tabla "Últimos eventos" (Panorama)
+- Se cortan las columnas PGA y Hora y el badge "Moderad…". En móvil convertir
+  cada fila en una lista de 2 líneas: "nodo-2 (virtual) · 13:31:21" arriba y el
+  badge de Mercalli + PGA abajo. Nunca truncar badges.
+
+A5. Sismógrafos
+- La etiqueta del eje "Hora (24 h)" se corta a la derecha en escritorio; moverla
+  bajo el eje o como título del eje.
+- En móvil las etiquetas del marcador tapan la traza y se cortan ("nivel 1" →
+  "niv"). En móvil mostrar solo "VI–VII · 5" junto al marcador y el detalle al
+  tocarlo.
+- En el modo "Sin reportes" la traza debe verse distinta (gris, discontinua).
+
+A6. Detectores
+- Los botones de pulsación son rojos: el rojo está reservado para "Severo".
+  Usar un color neutro/de marca para el botón y que el anillo de progreso tome
+  el color de la severidad que se va a enviar (eso ya lo hace bien).
+- Hay mucho espacio vacío entre "Listo para pulsar" y "Aceptado por…"; reducir
+  la altura fija de la zona del botón.
+- Mientras se pulsa, el badge dice "Sin reportes": cambiarlo a "Pulsando…".
+
+A7. Alertas
+- Los recortes de sismograma del detalle no tienen eje de tiempo; añadir marcas
+  de hora (al menos inicio, fin de ventana y el instante de cada reporte).
+- Estado vacío del detalle cuando no hay alerta seleccionada.
+
+A8. Registros
+- Alinear la columna Índice a la derecha (igual que Término) con cifras
+  tabulares; hoy Índice está centrado y Término a la derecha.
+- Añadir estados "Pendiente (1/3 copias)" y "No replicada" con color propio,
+  no solo "Confirmada por mayoría".
+
+A9. Coherencia en "Sin quórum"
+- En Panorama, con 1/3 servidores, los eventos nuevos que lleguen deben
+  marcarse "Pendiente de confirmación" (no pueden confirmarse sin mayoría). La
+  tarjeta "Última alerta" debe aclarar que no se emitirán alertas nuevas.
+
+A10. Verificar tema oscuro en las 6 pestañas (no hay capturas de él) y foco de
+     teclado visible debajo de la top bar fija.
+
+A11. Añadir en la top bar (o en el menú de ayuda) un enlace "Abrir vista
+     pública" que lleve a la vista de cliente.
+
+
+====================================================================
+PARTE B: VISTA DE CLIENTE (PÚBLICA)
+====================================================================
+
+Qué es
+------
+Una aplicación web separada del panel de operación, para cualquier persona de
+la zona cubierta. Su trabajo es responder tres preguntas, en este orden:
+  1. ¿Está temblando / hay una alerta ahora? ¿Qué hago?
+  2. ¿Dónde ocurrió y qué tan fuerte fue? ¿Qué tan lejos de mí?
+  3. ¿Qué sismos ha habido últimamente?
+
+NO muestra nada de Raft, líderes, términos, logs, quórum, detectores
+individuales ni botones de simulación. Lenguaje llano, sin jerga técnica.
+Vive en su propia ruta (p. ej. /publico o /cliente) y comparte backend y
+tokens de diseño con el panel, pero no componentes de operación.
+
+Fuente de datos (reglas)
+- Solo consume ALERTAS CONFIRMADAS por mayoría y eventos ya confirmados. Nunca
+  mostrar eventos pendientes al público.
+- Cada detector necesita coordenadas (lat/lon) en la configuración; para los
+  virtuales, asignar coordenadas de ejemplo dentro de la ciudad. Si no
+  existen, añadirlas a la config.
+- Ubicación estimada del sismo: centroide ponderado por intensidad de los
+  detectores que coincidieron, con un radio de incertidumbre. Con 2–3
+  detectores la ubicación es aproximada: se muestra como ZONA (círculo
+  translúcido), nunca como un punto exacto, y se rotula "Zona estimada".
+- Estado del servicio para el público, derivado del estado interno:
+    3/3 o 2/3 servidores → "Servicio activo"
+    1/3 (sin quórum)     → "Servicio limitado: las alertas podrían no
+                            emitirse. Mantente atento a medios oficiales."
+    Sin conexión         → "Sin conexión con el servicio de alertas"
+  Ser honesto con esto genera confianza; nunca mostrar "todo bien" si no lo es.
+
+Estructura
+----------
+Top bar (escritorio) / barra superior compacta (móvil):
+  - Nombre público del servicio (p. ej. "Alerta Sísmica Pasto"; configurable).
+  - Indicador de estado del servicio (punto + texto).
+  - Botón de ubicación del usuario y botón de notificaciones.
+
+Navegación por pestañas:
+  - Escritorio: pestañas en la top bar.
+  - Móvil: barra inferior con 4 destinos (icono + texto).
+  Pestañas:
+    1. Ahora          (estado actual + mapa)
+    2. Sismos recientes
+    3. Qué hacer      (guía de preparación)
+    4. Ajustes        (notificaciones, ubicación, idioma, tema)
+
+B1. Pestaña "Ahora"
+  Tres estados de pantalla, muy distintos entre sí:
+
+  a) Calma (lo normal)
+     - Mensaje principal grande: "Sin sismos en este momento".
+     - Hora de la última comprobación ("actualizado hace 2 s").
+     - Mapa de la zona con la ubicación del usuario y el último sismo
+       (atenuado) si fue reciente.
+     - Tarjeta "Último sismo": hace cuánto, zona, intensidad en palabras,
+       distancia al usuario.
+
+  b) ALERTA ACTIVA (lo más importante de toda la vista)
+     - Ocupa toda la pantalla, por encima de cualquier pestaña.
+     - Instrucción de acción en primer lugar y en letra muy grande:
+       "AGÁCHATE · CÚBRETE · SUJÉTATE" (o la instrucción que corresponda al
+       nivel). La acción va antes que los datos.
+     - Debajo: nivel en palabras ("Sismo fuerte"), hora de detección,
+       "hace X s", zona estimada y distancia al usuario.
+     - Mapa con la zona estimada pulsando suavemente y la posición del usuario.
+     - Sonido y vibración (si el usuario lo permitió), nunca solo sonido ni
+       solo color: siempre texto e icono.
+     - Botón "Estoy a salvo" / "Cerrar" grande; la alerta no desaparece sola
+       mientras siga activa.
+     - role="alert", foco movido al título, respetando prefers-reduced-motion
+       (sin pulsos ni parpadeos; nada que parpadee más de 3 veces por segundo).
+
+  c) Después del sismo (primeros minutos/horas)
+     - "Hubo un sismo hace 4 min" + resumen.
+     - Checklist "Después del sismo": revisa gas y electricidad, sal con
+       calma, aléjate de ventanas, atento a réplicas.
+     - Aviso de posibles réplicas.
+
+B2. Mapa
+  - Leaflet + teselas de OpenStreetMap (con atribución), o la librería que ya
+    use el proyecto.
+  - Capas: zona estimada del sismo (círculo coloreado por severidad), anillos
+    de intensidad opcionales, ubicación del usuario (si la compartió),
+    estaciones/detectores como puntos discretos y opcionales (capa apagada por
+    defecto).
+  - Leyenda de colores con texto. Controles de zoom accesibles por teclado.
+  - Alternativa textual: "Zona estimada: a 12 km al norte de tu ubicación".
+  - Si el usuario no comparte ubicación: mostrar el mapa centrado en la zona
+    de cobertura y un botón "Usar mi ubicación" (pedir permiso en contexto, no
+    al cargar la página).
+
+B3. Pestaña "Sismos recientes"
+  - Lista cronológica (más reciente arriba): hora y fecha relativa ("hoy
+    13:31"), zona, intensidad en palabras + Mercalli, distancia al usuario.
+  - Vista mapa/lista conmutables; filtros por "hoy / 7 días / 30 días" y por
+    intensidad mínima.
+  - Detalle de cada sismo: mapa, intensidad explicada en lenguaje llano ("Lo
+    sintió la mayoría de personas; algunos objetos cayeron"), hora exacta y un
+    desplegable "Datos técnicos" (PGA, detectores que lo registraron) para
+    curiosos.
+  - Estado vacío: "No se han registrado sismos en los últimos 7 días."
+
+B4. Pestaña "Qué hacer"
+  - Guía en tres bloques: Antes (mochila de emergencia, punto de encuentro),
+    Durante (agáchate, cúbrete, sujétate; si estás en la calle; si conduces),
+    Después (revisar daños, réplicas, comunicación).
+  - Disponible sin conexión (cachear con service worker).
+  - Enlaces a fuentes oficiales (configurables).
+
+B5. Pestaña "Ajustes"
+  - Notificaciones: activar/desactivar, intensidad mínima para avisar
+    (Todas / Moderado o más / Fuerte o más), sonido, vibración, botón "Probar
+    alerta" (claramente marcado como prueba).
+  - Ubicación: usar ubicación actual o fijar una dirección/zona manual.
+  - Tema claro/oscuro/sistema, tamaño de texto.
+
+Escala de intensidad para el público
+- Usar la misma escala de colores de severidad del panel (Leve, Moderado,
+  Fuerte, Severo) para que todo el sistema sea coherente.
+- Mostrar siempre: palabra + numeral Mercalli + explicación corta:
+    Leve       (I–III)  "Pocas personas lo sienten."
+    Moderado   (IV–V)   "Se siente dentro de casa; vibran ventanas."
+    Fuerte     (VI–VII) "Lo siente todo el mundo; caen objetos."
+    Severo     (VIII+)  "Daños posibles en construcciones."
+- No mostrar "nivel 6.5 de 10" ni "intensidad promedio" en la vista pública.
+
+Simulaciones y pruebas
+- Toda alerta generada desde el panel en modo simulación o desde "Probar
+  alerta" lleva una franja visible "SIMULACRO / PRUEBA" en la vista pública,
+  para no confundir con una alerta real.
+
+Diseño
+- Mobile-first: la mayoría la abrirá en el celular. Diseñar a 360 px primero.
+- Más espaciado, texto más grande (cuerpo 16–18 px, alerta >= 32 px) y menos
+  densidad que el panel de operación. Una idea por pantalla.
+- Tono calmado y directo; nada de dramatismo en estado de calma. Reservar el
+  rojo y la intensidad visual para la alerta real.
+- Mismos tokens de diseño que el panel (tipografía, espaciado, severidades),
+  con una paleta de marca propia más cálida para el público.
+- Sin degradados decorativos, glassmorphism ni emojis como iconos.
+
+Accesibilidad y robustez
+- WCAG 2.2 AA; contraste reforzado en la pantalla de alerta (>= 7:1).
+- La alerta funciona sin depender del mapa: si las teselas no cargan, el
+  texto e instrucciones se muestran igual.
+- Funciona con conexión lenta; reconexión automática visible.
+- Textos externalizados (es por defecto, preparado para en).
+- Fechas y horas con Intl, en hora local del usuario.
+
+Estados a diseñar
+- Calma, alerta activa, después del sismo, simulacro.
+- Servicio limitado (sin quórum), sin conexión, ubicación denegada,
+  notificaciones denegadas, sin sismos recientes.
+
+
+====================================================================
+ENTREGABLES
+====================================================================
+1. Parte A aplicada al panel de operación, con capturas antes/después de cada
+   punto en escritorio y móvil (y tema oscuro).
+2. Vista de cliente funcionando en su propia ruta, conectada a las alertas
+   confirmadas del backend.
+3. Configuración con coordenadas de los detectores y nombre público del
+   servicio.
+4. Capturas de la vista de cliente en móvil (360 px) y escritorio en los
+   estados: calma, alerta activa, después del sismo, simulacro y servicio
+   limitado.
+5. Lista breve de cambios.
