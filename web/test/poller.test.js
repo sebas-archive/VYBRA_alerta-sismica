@@ -182,3 +182,30 @@ test('poller: solo emite cambio si la foto cambió', async () => {
   falsos[0].estado.termino = 9;
   await esperar(() => cambios > asentado);
 });
+
+test('poller: nodo caído no hace que cambio se emita sin parar', async () => {
+  liderEs(1);
+  nuevoPoller();
+  let cambios = 0;
+  poller.on('cambio', () => { cambios += 1; });
+  poller.iniciar();
+  await esperar(() => poller.foto().nodos.every((x) => x.alcanzable));
+  await falsos[1].cerrar();
+  await esperar(() => !poller.foto().nodos[1].alcanzable, 1000);
+  await pausa(100);
+  const asentado = cambios;
+  const ciclos = llamadas(falsos[0], '/estado').length;
+  await esperar(() => llamadas(falsos[0], '/estado').length >= ciclos + 10);
+  assert.equal(cambios, asentado);
+  assert.equal(poller.foto().nodos[1].fallos, 3);
+});
+
+test('poller: nunca dos pedidos simultáneos al mismo nodo (sync de log lenta)', async () => {
+  liderEs(1);
+  for (let i = 0; i < 120; i++) falsos[0].agregarEntrada({}); // 3 páginas
+  falsos[0].control.retardoLog = 100; // más que el intervalo: los ciclos se solapan
+  nuevoPoller().iniciar();
+  await esperar(() => poller.foto().log.length === 120, 5000);
+  assert.equal(llamadas(falsos[0], '/log').length, 3);
+  for (const f of falsos) assert.equal(f.control.maxConcurrentes, 1, `nodo ${f.n}`);
+});

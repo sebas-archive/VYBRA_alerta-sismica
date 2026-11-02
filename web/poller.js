@@ -59,7 +59,7 @@ export function crearPoller({ nodos, intervaloMs = 300, timeoutMs = 250, fallosP
       nodo.alcanzable = true;
       await sincronizarSucesos(nodo, estado);
     } catch {
-      nodo.fallos += 1;
+      nodo.fallos = Math.min(nodo.fallos + 1, fallosParaCaido); // tope: si no, la foto cambiaría en cada ciclo
       if (nodo.fallos >= fallosParaCaido) nodo.alcanzable = false;
     } finally {
       nodo.enCurso = false;
@@ -110,6 +110,16 @@ export function crearPoller({ nodos, intervaloMs = 300, timeoutMs = 250, fallosP
     const { fuente } = calcularLiderYFuente();
     const nodo = info.find((x) => x.n === fuente);
     if (!nodo) return;
+    if (nodo.enCurso) return;
+    nodo.enCurso = true; // el log también cuenta como pedido en vuelo a este nodo
+    try {
+      await sincronizarLog(nodo, fuente);
+    } finally {
+      nodo.enCurso = false;
+    }
+  }
+
+  async function sincronizarLog(nodo, fuente) {
     const est = nodo.estado;
     if (fuenteLog.n !== fuente || est.log_len < fuenteLog.log.length) {
       fuenteLog.n = fuente;

@@ -21,6 +21,8 @@ export function crearNodoFalso({ n, puerto = 0 }) {
   const sucesos = [];
   const alertas = [];
   const peticiones = [];
+  let enVuelo = 0;
+  const control = { retardoLog: 0, maxConcurrentes: 0 };
 
   function json(res, codigo, cuerpo) {
     res.writeHead(codigo, {
@@ -40,6 +42,9 @@ export function crearNodoFalso({ n, puerto = 0 }) {
   }
 
   const servidor = http.createServer(async (req, res) => {
+    enVuelo += 1;
+    control.maxConcurrentes = Math.max(control.maxConcurrentes, enVuelo);
+    res.on('close', () => { enVuelo -= 1; });
     const url = new URL(req.url, 'http://x');
     const ruta = url.pathname;
     const texto = req.method === 'POST' ? await leerCuerpo(req) : '';
@@ -66,6 +71,7 @@ export function crearNodoFalso({ n, puerto = 0 }) {
     }
     if (req.method === 'GET' && ruta === '/log') {
       const desde = Math.max(1, parseInt(url.searchParams.get('desde') || '1', 10) || 1);
+      if (control.retardoLog) await new Promise((r) => setTimeout(r, control.retardoLog));
       return json(res, 200, {
         desde, log_len: estado.log_len, commit_index: estado.commit_index,
         entradas: log.slice(desde - 1, desde - 1 + PAGINA_LOG),
@@ -112,7 +118,7 @@ export function crearNodoFalso({ n, puerto = 0 }) {
   servidor.listen(puerto, '127.0.0.1');
 
   return {
-    n, servidor, estado, log, sucesos, alertas, peticiones,
+    n, servidor, estado, control, log, sucesos, alertas, peticiones,
     // Puerto real (útil con puerto 0); resuelve cuando el servidor ya escucha.
     listo: new Promise((resolve) => {
       if (servidor.listening) resolve();
