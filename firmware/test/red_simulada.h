@@ -3,6 +3,7 @@
 #pragma once
 #include <algorithm>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <random>
@@ -44,12 +45,17 @@ class RedSimulada {
     while (ahora_ < fin) {
       ahora_ = std::min<uint64_t>(ahora_ + pasoMs, fin);
       entregar();
+      registrarLideres();
       for (int n = 1; n <= kNodos; n++) {
         nodo(n).tick(ahora_);
         despachar(n);
+        registrarLideres();
       }
     }
   }
+
+  // Seguridad de elección: true si alguna vez hubo dos líderes distintos en el mismo término.
+  bool violacionSeguridad() const { return violacion_; }
 
   nucleo::Raft& nodo(int n) { return *nodos_[n - 1]; }
   const nucleo::Raft& nodo(int n) const { return *nodos_[n - 1]; }
@@ -118,6 +124,19 @@ class RedSimulada {
     nodos_[n - 1] = std::make_unique<nucleo::Raft>(c, *pers_[n - 1], [reloj] { return kEpoch + *reloj; });
   }
 
+  // Anota término → líder de cada nodo vivo que hoy es líder.
+  void registrarLideres() {
+    for (int n = 1; n <= kNodos; n++) {
+      const nucleo::Raft& r = nodo(n);
+      if (r.caido() || r.rol() != nucleo::Rol::Lider) continue;
+      auto it = lideresPorTermino_.find(r.termino());
+      if (it == lideresPorTermino_.end())
+        lideresPorTermino_[r.termino()] = n;
+      else if (it->second != n)
+        violacion_ = true;
+    }
+  }
+
   bool cortado(int de, int a) const {
     return (grupoA_.count(de) && grupoB_.count(a)) || (grupoB_.count(de) && grupoA_.count(a));
   }
@@ -164,4 +183,6 @@ class RedSimulada {
   double perdida_ = 0;
   uint32_t retrasoMin_ = 1, retrasoMax_ = 10;
   std::function<bool(int, int, const nucleo::Msg&)> filtro_;
+  std::map<uint32_t, int> lideresPorTermino_;
+  bool violacion_ = false;
 };
