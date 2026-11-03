@@ -210,9 +210,12 @@ export function dibujarMapa(svg, args = {}) {
   if (persona && Number.isFinite(persona.lat) && Number.isFinite(persona.lon)) {
     const g = el('g');
     const cx = f1(p.x(persona)), cy = f1(p.y(persona));
-    if (persona.precision > 0) g.appendChild(el('circle', { cx, cy, r: f1(Math.max(8, px(persona.precision))), fill: 'var(--focus)', 'fill-opacity': 0.14, stroke: 'var(--focus)', 'stroke-opacity': 0.5 }));
+    // Rango corto: un anillo pequeño fijo en vez del círculo de precisión del GPS (que a 10–20 m
+    // tapaba a los detectores cercanos); la precisión va escrita en la etiqueta.
+    g.appendChild(el('circle', { cx, cy, r: 12, fill: 'var(--focus)', 'fill-opacity': 0.15, stroke: 'var(--focus)', 'stroke-opacity': 0.6 }));
     g.appendChild(el('circle', { cx, cy, r: 6, fill: 'var(--focus)', stroke: 'var(--surface)', 'stroke-width': 2 }));
-    g.appendChild(el('text', { x: cx, y: f1(p.y(persona) - 12), 'text-anchor': 'middle', fill: 'var(--text)', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, 'Estás aquí'));
+    const prec = persona.precision > 0 ? ` · ±${Math.round(persona.precision)} m` : '';
+    g.appendChild(el('text', { x: cx, y: f1(p.y(persona) - 18), 'text-anchor': 'middle', fill: 'var(--text)', stroke: 'var(--surface-2)', 'stroke-width': 3, 'paint-order': 'stroke', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, `Estás aquí${prec}`));
     svg.appendChild(g);
   }
 
