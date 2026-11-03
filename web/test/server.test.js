@@ -410,9 +410,11 @@ async function conPedidos(respuestas) {
   });
   await new Promise((r) => s2.listen(0, '127.0.0.1', r));
   p2.iniciar();
-  const post = () => fetch(`http://127.0.0.1:${s2.address().port}/api/nodos/1/ubicacion`, {
+  const url = `http://127.0.0.1:${s2.address().port}/api/nodos/1/ubicacion`;
+  const post = () => fetch(url, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(UBI),
   });
+  post.url = url;
   const cerrar = async () => { p2.detener(); s2.closeAllConnections(); await new Promise((r) => s2.close(r)); };
   return { llamadas, reloj2, post, cerrar, p2 };
 }
@@ -481,6 +483,58 @@ test('pedirHuella por defecto: solo 202 cuenta como aceptado', async () => {
   reloj += 60000;
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(falsos[0].peticiones.filter((p) => p.ruta === '/huella').length, 2); // aceptado: no más
+});
+
+const borrarUbi = (n, b = base) => fetch(`${b}/api/nodos/${n}/ubicacion`, { method: 'DELETE' });
+
+test('ubicacion: DELETE quita la ubicación, persiste y avisa por SSE', async () => {
+  assert.equal((await borrarUbi(2)).status, 404); // no estaba ubicado
+  for (const n of [0, 4, 'x', '1.5']) assert.equal((await borrarUbi(n)).status, 404, String(n));
+  assert.equal((await postUbi(2, UBI)).status, 200);
+  assert.equal((await postUbi(3, UBI)).status, 200);
+  const s = abrirSSE();
+  await s.listo;
+  await esperar(() => s.eventos.length >= 1);
+  const estados = () => s.eventos.filter((e) => e.evento === 'estado');
+  assert.ok(estados()[0].datos.ubicaciones['2']);
+  poller.detener(); // sin sondeos: el único 'estado' nuevo puede venir del borrado
+  await new Promise((r) => setTimeout(r, 100));
+  const antes = estados().length;
+  const r = await borrarUbi(2);
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true });
+  await esperar(() => estados().length > antes);
+  assert.equal(estados().at(-1).datos.ubicaciones['2'], undefined);
+  assert.ok(estados().at(-1).datos.ubicaciones['3']);
+  const j = await (await fetch(`${base}/api/estado`)).json();
+  assert.deepEqual(Object.keys(j.ubicaciones), ['3']);
+  assert.deepEqual(Object.keys(crearUbicaciones(archivoUbi).todas()), ['3']);
+  assert.equal((await borrarUbi(2)).status, 404); // ya se quitó
+  s.cerrar();
+});
+
+test('ubicacion: ajuste:true guarda sin pedir huella ni dejarla pendiente', async () => {
+  falsos[0].estado.con_huella = true; // la placa tiene su referencia y no se movió
+  const c = await conPedidos([]);
+  try {
+    await esperar(() => c.p2.foto().nodos.every((x) => x.alcanzable));
+    const url = c.post.url;
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...UBI, ajuste: true }) });
+    assert.equal(r.status, 200);
+    const { ubicacion } = await r.json();
+    assert.equal('ajuste' in ubicacion, false);
+    assert.equal(ubicacion.lat, UBI.lat);
+    for (let i = 0; i < 3; i++) {
+      c.reloj2.t += 60000;
+      await new Promise((ok) => setTimeout(ok, 80));
+    }
+    assert.deepEqual(c.llamadas, []);
+    // Sin ajuste sí la pide (control).
+    assert.equal((await c.post()).status, 200);
+    await esperar(() => c.llamadas.length === 1);
+  } finally {
+    await c.cerrar();
+  }
 });
 
 test('nodo falso: "mover" marca movido con suceso; /huella lo limpia al fijar la referencia', async () => {

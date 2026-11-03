@@ -20,24 +20,38 @@ export function crearUbicaciones(archivo, ahora = Date.now) {
     } catch { /* sin archivo o dañado: se empieza vacío */ }
   }
 
+  // Escritura atómica: temporal en la misma carpeta y luego rename.
+  function escribir(nuevo) {
+    if (!archivo) return;
+    fs.mkdirSync(path.dirname(archivo), { recursive: true });
+    const tmp = `${archivo}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(nuevo, null, 2));
+    fs.renameSync(tmp, archivo);
+  }
+  const validarNodo = (n) => { if (!Number.isInteger(n) || n < 1 || n > 3) throw invalido('nodo fuera de 1-3'); };
+
   return {
     todas: () => structuredClone(datos),
     fijar(n, { lat, lon, precision } = {}) {
-      if (!Number.isInteger(n) || n < 1 || n > 3) throw invalido('nodo fuera de 1-3');
+      validarNodo(n);
       if (!num(lat) || lat < -90 || lat > 90) throw invalido('lat fuera de rango');
       if (!num(lon) || lon < -180 || lon > 180) throw invalido('lon fuera de rango');
       if (!num(precision) || precision < 0) throw invalido('precision invalida');
       const guardado = { lat, lon, precision, t: ahora() };
       const nuevo = { ...datos, [n]: guardado };
-      if (archivo) {
-        // Escritura atómica: temporal en la misma carpeta y luego rename.
-        fs.mkdirSync(path.dirname(archivo), { recursive: true });
-        const tmp = `${archivo}.${process.pid}.tmp`;
-        fs.writeFileSync(tmp, JSON.stringify(nuevo, null, 2));
-        fs.renameSync(tmp, archivo);
-      }
+      escribir(nuevo);
       datos = nuevo;
       return { ...guardado };
+    },
+    // Quita la ubicación del nodo n. Devuelve false si no estaba ubicado.
+    quitar(n) {
+      validarNodo(n);
+      if (!Object.hasOwn(datos, String(n))) return false;
+      const nuevo = { ...datos };
+      delete nuevo[n];
+      escribir(nuevo);
+      datos = nuevo;
+      return true;
     },
   };
 }

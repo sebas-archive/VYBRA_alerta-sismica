@@ -203,7 +203,8 @@ export function crearManejador({
     }
   }
 
-  // Guarda la ubicación de un nodo y le pide la huella.
+  // Guarda la ubicación de un nodo y le pide la huella. Con ajuste:true (posición corregida a mano
+  // en el mapa: la placa no se movió) solo guarda, sin pedir una huella nueva.
   async function ubicacion(req, res, n) {
     if (!nodos.some((x) => x.n === n)) return responderJson(res, 404, { error: 'nodo no existe' });
     if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) {
@@ -221,10 +222,27 @@ export function crearManejador({
       console.error('No se pudo guardar la ubicación:', e.message);
       return responderJson(res, 500, { error: 'no se pudo guardar' });
     }
-    pendientes.add(n);
-    pedir(n);
+    if (datos.ajuste !== true) {
+      pendientes.add(n);
+      pedir(n);
+    }
     for (const aviso of avisos) aviso(); // la ubicación nueva llega ya a todas las vistas
     responderJson(res, 200, { ubicacion: guardada });
+  }
+
+  // Quita la ubicación de un nodo: 404 si no estaba ubicado.
+  function quitarUbicacion(res, n) {
+    if (!nodos.some((x) => x.n === n)) return responderJson(res, 404, { error: 'nodo no existe' });
+    let estaba;
+    try { estaba = ubicaciones.quitar(n); } catch (e) {
+      if (e.codigo === 400) return responderJson(res, 404, { error: 'nodo no existe' });
+      console.error('No se pudo quitar la ubicación:', e.message);
+      return responderJson(res, 500, { error: 'no se pudo guardar' });
+    }
+    if (!estaba) return responderJson(res, 404, { error: 'nodo sin ubicar' });
+    pendientes.delete(n);
+    for (const aviso of avisos) aviso(); // el nodo pasa a "sin ubicar" en todas las vistas
+    responderJson(res, 200, { ok: true });
   }
 
   const manejador = (req, res) => {
@@ -251,6 +269,10 @@ export function crearManejador({
         const n = /^[1-9]$/.test(m[1]) ? Number(m[1]) : 0;
         return m[2] === 'ubicacion' ? ubicacion(req, res, n) : proxy(req, res, n, m[2]);
       }
+    }
+    if (metodo === 'DELETE') {
+      const m = /^\/api\/nodos\/([^/]+)\/ubicacion$/.exec(pathname);
+      if (m) { req.resume(); return quitarUbicacion(res, /^[1-9]$/.test(m[1]) ? Number(m[1]) : 0); }
     }
     responderJson(res, 404, { error: 'no existe' });
   };

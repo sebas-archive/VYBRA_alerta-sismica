@@ -30,6 +30,23 @@ test('ubicaciones: valida con codigo 400', () => {
   assert.deepEqual(u.todas(), {});
 });
 
+test('ubicaciones: quitar borra, persiste atómicamente y dice si estaba', () => {
+  const d = tmp();
+  const f = path.join(d, 'u.json');
+  const u = crearUbicaciones(f, () => 5);
+  u.fijar(1, { lat: 1, lon: 2, precision: 3 });
+  u.fijar(3, { lat: 4, lon: 5, precision: 6 });
+  assert.equal(u.quitar(1), true);
+  assert.deepEqual(u.todas(), { 3: { lat: 4, lon: 5, precision: 6, t: 5 } });
+  assert.deepEqual(crearUbicaciones(f).todas(), { 3: { lat: 4, lon: 5, precision: 6, t: 5 } });
+  assert.deepEqual(fs.readdirSync(d), ['u.json']);
+  assert.equal(u.quitar(1), false); // ya no estaba
+  assert.equal(u.quitar(2), false);
+  for (const n of [0, 4, 1.5, '3']) assert.throws(() => u.quitar(n), (e) => e.codigo === 400, String(n));
+  assert.deepEqual(crearUbicaciones(f).todas(), { 3: { lat: 4, lon: 5, precision: 6, t: 5 } });
+  fs.rmSync(d, { recursive: true });
+});
+
 test('certificado: SAN incluye las IPv4', async () => {
   const d = tmp();
   const { cert, key } = await asegurarCertificado(d);

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { colorNodo, distanciaM, proyectar, zonaSismo, nodoMasCercano } from '../public/geo.js';
+import { colorNodo, distanciaM, proyectar, zonaSismo, nodoMasCercano, promediarLecturas } from '../public/geo.js';
 
 const est = (o = {}) => ({ rol: 'seguidor', caido: false, termino: 1, lider_conocido: 1, log_len: 5, commit_index: 5, ...o });
 const foto = (nodos, extra = {}) => ({ nodos, fuente: 1, lider: 1, ...extra });
@@ -91,4 +91,50 @@ test('nodoMasCercano: ignora movidos; null sin candidatos', () => {
   assert.equal(nodoMasCercano({ lat: 4.0019, lon: -74 }, ub, new Set()), 3);
   assert.equal(nodoMasCercano({ lat: 4.0019, lon: -74 }, ub, new Set([3])), 2);
   assert.equal(nodoMasCercano({ lat: 4, lon: -74 }, {}, new Set()), null);
+});
+
+test('geo: invertir es la inversa exacta de x/y', () => {
+  const casos = [
+    [[{ lat: 4, lon: -74 }], 600, 400],
+    [[{ lat: 4, lon: -74 }, { lat: 4.01, lon: -73.99 }], 640, 400],
+    [[{ lat: 1.2134, lon: -77.2811 }, { lat: 1.2136, lon: -77.2809 }, { lat: -33.4, lon: 151.2 }], 320, 200],
+  ];
+  for (const [pts, an, al] of casos) {
+    const p = proyectar(pts, an, al, 56);
+    for (const q of [...pts, { lat: pts[0].lat + 0.0003, lon: pts[0].lon - 0.0002 }]) {
+      const r = p.invertir(p.x(q), p.y(q));
+      assert.ok(Math.abs(r.lat - q.lat) < 1e-9 && Math.abs(r.lon - q.lon) < 1e-9, JSON.stringify([q, r]));
+    }
+    // Y al revés: un punto de la pantalla vuelve al mismo punto.
+    const g = p.invertir(123.5, 77.25);
+    assert.ok(Math.abs(p.x(g) - 123.5) < 1e-6 && Math.abs(p.y(g) - 77.25) < 1e-6);
+  }
+});
+
+test('promediar: pondera por 1/accuracy² (acc 5 y 10 → 4/5 del camino hacia la de 5)', () => {
+  const r = promediarLecturas([{ lat: 1, lon: -77, accuracy: 5 }, { lat: 1.001, lon: -76.999, accuracy: 10 }]);
+  assert.ok(Math.abs(r.lat - (1 + 0.001 / 5)) < 1e-12, String(r.lat));
+  assert.ok(Math.abs(r.lon - (-77 + 0.001 / 5)) < 1e-12, String(r.lon));
+  assert.equal(r.precision, 4.5); // sqrt(1/(1/25 + 1/100)) = 4.47
+  assert.equal(r.usadas, 2);
+  assert.equal(r.descartadas, 0);
+  assert.equal(r.impreciso, false);
+});
+
+test('promediar: descarta lecturas con accuracy > 30 m; precisión mínima 1 m', () => {
+  const r = promediarLecturas([{ lat: 2, lon: 3, accuracy: 1 }, { lat: 9, lon: 9, accuracy: 31 }, { lat: 2, lon: 3, accuracy: 1 }, { lat: 2, lon: 3, accuracy: 1 }]);
+  assert.deepEqual(r, { lat: 2, lon: 3, precision: 1, usadas: 3, descartadas: 1, impreciso: false });
+  const borde = promediarLecturas([{ lat: 5, lon: 5, accuracy: 30 }]);
+  assert.equal(borde.impreciso, false);
+  assert.equal(borde.precision, 30);
+  // Otro tope
+  assert.equal(promediarLecturas([{ lat: 5, lon: 5, accuracy: 30 }], 20).impreciso, true);
+});
+
+test('promediar: todas > 30 m → la mejor lectura con impreciso; vacía → null', () => {
+  const r = promediarLecturas([{ lat: 1, lon: 1, accuracy: 80 }, { lat: 2, lon: 2, accuracy: 45.25 }, { lat: 3, lon: 3, accuracy: 60 }]);
+  assert.deepEqual(r, { lat: 2, lon: 2, precision: 45.3, usadas: 1, descartadas: 2, impreciso: true });
+  assert.equal(promediarLecturas([]), null);
+  assert.equal(promediarLecturas(), null);
+  assert.equal(promediarLecturas([{ lat: NaN, lon: 1, accuracy: 5 }]), null);
 });
