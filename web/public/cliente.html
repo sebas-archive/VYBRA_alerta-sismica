@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alerta Sísmica Pasto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/tokens.css">
+<style>
+  /* La vista pública usa los mismos tokens con un fondo más cálido y texto más grande */
+  :root { --bg: #f4f2ee; --surface-2: #f8f6f3; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12161a; --surface-2: #1a2127; } }
+  :root[data-theme="dark"] { --bg: #12161a; --surface-2: #1a2127; }
+  html { font-size: 16px; }
+  html.text-lg { font-size: 18px; }
+  body { font-size: 1rem; line-height: 1.55; }
+
+  /* ---------- Top bar ---------- */
+  .topbar { position: sticky; top: 0; z-index: 30; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .topbar-in { max-width: 1200px; margin: 0 auto; height: 60px; display: flex; align-items: center; gap: var(--s4); padding: 0 var(--s5); }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.08rem; color: var(--text); text-decoration: none; white-space: nowrap; }
+  .brand .icon { width: 28px; height: 28px; color: var(--brand); }
+  .svc { display: inline-flex; align-items: center; gap: 6px; font-size: .84rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .svc i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .svc.ok { background: var(--ok-bg); color: var(--ok); }
+  .svc.warn { background: var(--warn-bg); color: var(--warn); }
+  .svc.err { background: var(--err-bg); color: var(--err); }
+  .nav-top { display: flex; gap: 2px; margin-left: var(--s4); }
+  .nav-top a, .nav-bottom a { text-decoration: none; color: var(--text-2); font-weight: 500; }
+  .nav-top a { padding: 8px 12px; border-radius: 8px; font-size: .95rem; }
+  .nav-top a:hover { background: var(--surface-2); color: var(--text); }
+  .nav-top a[aria-current="page"] { color: var(--text); background: var(--surface-3); font-weight: 600; }
+  .top-actions { margin-left: auto; display: flex; gap: var(--s2); }
+
+  .nav-bottom { display: none; }
+
+  /* ---------- Layout ---------- */
+  main { max-width: 1200px; margin: 0 auto; padding: var(--s6) var(--s5) var(--s10); }
+  section[hidden] { display: none; }
+  h1 { font-size: 1.75rem; font-weight: 700; }
+  h2 { font-size: 1.15rem; font-weight: 600; }
+  .lead { color: var(--text-2); margin-top: 4px; max-width: 60ch; }
+  .page-head { margin-bottom: var(--s5); }
+  .notice { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) var(--s4); border-radius: var(--radius); border: 1px solid; margin-bottom: var(--s4); }
+  .notice .icon { width: 22px; height: 22px; margin-top: 1px; }
+  .notice b { display: block; }
+  .notice.warn { background: var(--warn-bg); border-color: var(--warn); color: var(--text); }
+  .notice.warn .icon { color: var(--warn); }
+  .notice.err { background: var(--err-bg); border-color: var(--err); color: var(--text); }
+  .notice.err .icon { color: var(--err); }
+  .notice.sim { background: var(--surface); border-color: var(--border-strong); }
+
+  /* ---------- Ahora ---------- */
+  .now-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--s5); align-items: start; }
+  .hero { padding: var(--s6); }
+  .hero-ic { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; margin-bottom: var(--s4); }
+  .hero-ic .icon { width: 28px; height: 28px; }
+  .hero.calm .hero-ic { background: var(--ok-bg); color: var(--ok); }
+  .hero.after .hero-ic { background: var(--sev-fuerte-bg); color: var(--sev-fuerte); }
+  .hero h1 { font-size: 2rem; line-height: 1.15; }
+  .hero .meta { color: var(--text-2); margin-top: var(--s2); }
+  .hero .meta .num { font-weight: 500; }
+  .stack { display: grid; gap: var(--s4); }
+  .quake-card { padding: var(--s5); }
+  .quake-card .row { display: flex; justify-content: space-between; gap: var(--s3); align-items: baseline; flex-wrap: wrap; }
+  .quake-card .where { font-size: 1.1rem; font-weight: 600; margin: var(--s2) 0 2px; }
+  .explain { color: var(--text-2); }
+  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); margin-top: var(--s4); }
+  .fact { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+  .fact span { display: block; font-size: .8rem; color: var(--text-2); }
+  .fact b { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+  .map { height: 460px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--surface-2); position: relative; z-index: 0; }
+  .map-card { padding: var(--s3); }
+  .map-caption { padding: var(--s3) var(--s2) var(--s1); font-size: .92rem; color: var(--text-2); display: flex; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
+  .map-legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); font-size: .85rem; color: var(--text-2); padding: 0 var(--s2) var(--s2); }
+  .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .lg-zone { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--sev-fuerte); background: color-mix(in srgb, var(--sev-fuerte) 25%, transparent); }
+  .lg-you { width: 12px; height: 12px; border-radius: 50%; background: var(--info); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--info); }
+  .lg-st { width: 10px; height: 10px; transform: rotate(45deg); background: var(--text-3); }
+  .map-fallback { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: var(--s6); color: var(--text-2); }
+  .checklist { list-style: none; padding: 0; margin: var(--s3) 0 0; display: grid; gap: var(--s2); }
+  .checklist label { display: flex; gap: var(--s3); align-items: flex-start; cursor: pointer; padding: 6px 0; }
+  .checklist input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--brand); flex-shrink: 0; }
+  .checklist input:checked + span { color: var(--text-3); text-decoration: line-through; }
+  .cta-row { display: flex; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s4); }
+  .btn { min-height: 44px; font-size: .95rem; }
+  .btn-icon { width: 44px; min-height: 44px; }
+
+  /* ---------- Recientes ---------- */
+  .filters { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s4); align-items: center; margin-bottom: var(--s4); }
+  .filters label { font-size: .9rem; color: var(--text-2); }
+  .filters select { min-height: 40px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 0 10px; background: var(--surface); }
+  .seg button { min-height: 40px; padding: 6px 14px; font-size: .9rem; }
+  .q-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+  .q-item { width: 100%; text-align: left; cursor: pointer; padding: var(--s4); display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: var(--s4); align-items: center; border-left: 5px solid var(--border-strong); }
+  .q-item:hover { border-color: var(--border-strong); background: var(--surface-2); }
+  .q-item.l-leve { border-left-color: var(--sev-leve); } .q-item.l-moderado { border-left-color: var(--sev-moderado); }
+  .q-item.l-fuerte { border-left-color: var(--sev-fuerte); } .q-item.l-severo { border-left-color: var(--sev-severo); }
+  .q-when { font-variant-numeric: tabular-nums; }
+  .q-when b { display: block; font-size: 1.05rem; }
+  .q-when span { font-size: .82rem; color: var(--text-2); }
+  .q-main b { display: block; }
+  .q-main .sev { margin-top: 4px; }
+  .q-dist { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-2); font-size: .92rem; white-space: nowrap; }
+  .tag-sim { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .04em; padding: 1px 6px; border-radius: 4px; background: var(--surface-3); color: var(--text-2); margin-left: 6px; vertical-align: middle; }
+  .empty { padding: var(--s8) var(--s4); text-align: center; color: var(--text-2); }
+  .empty b { display: block; color: var(--text); font-size: 1.05rem; margin-bottom: 4px; }
+
+  /* ---------- Qué hacer ---------- */
+  .guide { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s4); }
+  .guide .card { padding: var(--s5); }
+  .guide h2 { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
+  .guide h2 .icon { color: var(--brand); width: 22px; height: 22px; }
+  .guide ol { margin: 0; padding-left: 1.2em; display: grid; gap: var(--s2); }
+  .guide .during { border: 2px solid var(--sev-fuerte); }
+  .guide .during h2 .icon { color: var(--sev-fuerte); }
+  .dch { font-size: 1.25rem; font-weight: 800; letter-spacing: .02em; margin-bottom: var(--s3); }
+  .guide h3 { font-size: .95rem; margin: var(--s4) 0 var(--s2); }
+  .offline-note { display: flex; gap: var(--s2); align-items: center; font-size: .9rem; color: var(--text-2); margin-top: var(--s4); }
+
+  /* ---------- Ajustes ---------- */
+  .settings { display: grid; gap: var(--s4); max-width: 760px; }
+  .settings .card { padding: var(--s5); }
+  .settings h2 { margin-bottom: var(--s2); }
+  .set-row { display: flex; justify-content: space-between; align-items: center; gap: var(--s4); padding: var(--s3) 0; border-top: 1px solid var(--border); }
+  .set-row:first-of-type { border-top: 0; }
+  .set-row .txt b { display: block; font-weight: 600; }
+  .set-row .txt span { font-size: .9rem; color: var(--text-2); }
+  .switch { position: relative; width: 48px; height: 28px; flex-shrink: 0; }
+  .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+  .switch span { position: absolute; inset: 0; background: var(--border-strong); border-radius: 14px; transition: background .15s; }
+  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .15s var(--ease); box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+  .switch input:checked + span { background: var(--brand); }
+  .switch input:checked + span::after { transform: translateX(20px); }
+  .switch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .radio-list { display: grid; gap: var(--s2); margin-top: var(--s2); }
+  .radio-list label { display: flex; gap: var(--s3); align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+  .radio-list label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); }
+  .radio-list input { margin-top: 4px; accent-color: var(--brand); width: 18px; height: 18px; }
+  .radio-list span small { display: block; color: var(--text-2); font-size: .85rem; }
+  .settings select { min-height: 44px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 0 10px; background: var(--surface); width: 100%; margin-top: var(--s2); }
+  .field-note { font-size: .88rem; color: var(--text-2); margin-top: var(--s2); }
+
+  /* ---------- Alerta a pantalla completa ---------- */
+  dialog.alert-full {
+    margin: 0; padding: 0; border: 0; width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh;
+    color: #fff; background: var(--alert-bg, #7e1c15);
+  }
+  dialog.alert-full::backdrop { background: rgba(0,0,0,.6); }
+  dialog.alert-full.a-severo { --alert-bg: #7e1c15; }
+  dialog.alert-full.a-fuerte { --alert-bg: #7a3307; }
+  dialog.alert-full.a-moderado { --alert-bg: #5c4100; }
+  dialog.alert-full.a-leve { --alert-bg: #1f4f33; }
+  .alert-in { min-height: 100%; display: flex; flex-direction: column; }
+  .sim-stripe {
+    padding: 8px var(--s4); text-align: center; font-weight: 800; letter-spacing: .08em; font-size: .9rem; color: #111;
+    background: repeating-linear-gradient(-45deg, #ffd23f 0 16px, #f5c400 16px 32px);
+  }
+  .alert-body { flex: 1; width: 100%; max-width: 1000px; margin: 0 auto; padding: var(--s6) var(--s5); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s6); align-items: center; }
+  .alert-level { display: inline-flex; align-items: center; gap: var(--s2); font-weight: 700; font-size: 1.05rem; background: rgba(255,255,255,.14); padding: 6px 12px; border-radius: 999px; }
+  .alert-level .icon { width: 20px; height: 20px; }
+  .alert-action { font-size: clamp(2.2rem, 7vw, 3.6rem); font-weight: 800; line-height: 1.05; letter-spacing: -.01em; margin: var(--s4) 0; }
+  .alert-action span { display: block; }
+  .alert-sub { font-size: 1.15rem; opacity: .95; }
+  .alert-facts { display: grid; gap: 6px; margin-top: var(--s4); font-size: 1.05rem; }
+  .alert-facts b { font-variant-numeric: tabular-nums; }
+  .alert-map { height: 320px; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,.35); position: relative; background: rgba(0,0,0,.2); }
+  .alert-buttons { display: flex; gap: var(--s3); flex-wrap: wrap; margin-top: var(--s6); }
+  .btn-on-alert { min-height: 52px; padding: 0 var(--s6); border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; border: 2px solid #fff; }
+  .btn-on-alert.primary { background: #fff; color: #111; }
+  .btn-on-alert.secondary { background: transparent; color: #fff; }
+  #alert-title:focus { outline: none; }
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+
+  /* Detalle de sismo */
+  dialog.detail { border: 1px solid var(--border); border-radius: 14px; padding: 0; width: min(720px, calc(100vw - 24px)); background: var(--surface); color: var(--text); }
+  dialog.detail::backdrop { background: rgba(10, 16, 20, .5); }
+  .detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s3); padding: var(--s5) var(--s5) var(--s3); }
+  .detail-body { padding: 0 var(--s5) var(--s5); }
+  .detail .map { height: 280px; }
+  details.tech { margin-top: var(--s4); border-top: 1px solid var(--border); padding-top: var(--s3); }
+  details.tech summary { cursor: pointer; font-weight: 500; }
+  details.tech dl { display: grid; grid-template-columns: auto 1fr; gap: 4px var(--s4); margin: var(--s3) 0 0; font-size: .92rem; }
+  details.tech dt { color: var(--text-2); }
+  details.tech dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: var(--s6); z-index: 60; background: var(--text); color: var(--bg); padding: 12px 18px; border-radius: 10px; font-size: .95rem; max-width: calc(100vw - 32px); }
+
+  /* Mapa en tema oscuro */
+  :root[data-theme="dark"] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); } }
+  .leaflet-container { font-family: var(--font); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .now-grid { grid-template-columns: 1fr; }
+    .map { height: 340px; }
+    .guide { grid-template-columns: 1fr; }
+    .guide .during { order: -1; }
+  }
+  @media (max-width: 720px) {
+    .nav-top, .top-actions .hide-sm { display: none; }
+    .topbar-in { height: 56px; padding: 0 var(--s4); gap: var(--s3); }
+    .brand { font-size: 1rem; }
+    main { padding: var(--s4) var(--s4) calc(96px + env(safe-area-inset-bottom)); }
+    .nav-bottom {
+      display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+      background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-bottom a { display: grid; justify-items: center; gap: 2px; padding: 8px 4px 10px; font-size: .75rem; min-height: 60px; }
+    .nav-bottom a .icon { width: 22px; height: 22px; }
+    .nav-bottom a[aria-current="page"] { color: var(--brand); font-weight: 700; }
+    .hero { padding: var(--s5); }
+    .hero h1 { font-size: 1.6rem; }
+    .facts { grid-template-columns: 1fr 1fr; }
+    .q-item { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main when" "main dist"; gap: 4px var(--s3); }
+    .q-main { grid-area: main; } .q-when { grid-area: when; text-align: right; } .q-dist { grid-area: dist; }
+    .alert-body { grid-template-columns: 1fr; padding: var(--s5) var(--s4); gap: var(--s4); align-content: start; }
+    .alert-map { height: 200px; }
+    .alert-buttons { margin-top: var(--s4); }
+    .btn-on-alert { flex: 1; padding: 0 12px; font-size: 1rem; white-space: nowrap; }
+    .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+  }
+  @media (max-width: 380px) { .svc .lbl { display: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M12 2.8 4 6v5.5c0 4.6 3.3 8.6 8 9.7 4.7-1.1 8-5.1 8-9.7V6z"/><path d="M7 12.5h2.2l1.3-3 2.5 6 1.6-4 .9 1H17"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8.5a1 1 0 0 1-1 1h-4.5V15h-5v5.5H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".8"/><circle cx="4.5" cy="12" r=".8"/><circle cx="4.5" cy="18" r=".8"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 1 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2.8 4 6v5.5c0 4.6 3.3 8.6 8 9.7 4.7-1.1 8-5.1 8-9.7V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4.5M12 17.2v.1"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 12h4l2-6 3 12 3-9 2 5 1.5-2H22"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 4.2-2.4M19 12.9a10 10 0 0 0-2.3-1.6M2 9a15 15 0 0 1 4.4-2.8M22 9a15 15 0 0 0-10-3.9M12 20h.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2M4 12h16"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="#ahora"><svg class="icon"><use href="#i-logo"/></svg><span id="svc-name">Alerta Sísmica Pasto</span></a>
+    <span class="svc ok" id="svc" role="status"><i></i><span class="lbl">Servicio activo</span></span>
+    <nav class="nav-top" aria-label="Secciones">
+      <a href="#ahora" data-nav="ahora">Ahora</a>
+      <a href="#recientes" data-nav="recientes">Sismos recientes</a>
+      <a href="#que-hacer" data-nav="que-hacer">Qué hacer</a>
+      <a href="#ajustes" data-nav="ajustes">Ajustes</a>
+    </nav>
+    <div class="top-actions">
+      <button class="btn btn-icon hide-sm" type="button" id="loc-btn" aria-label="Usar mi ubicación"><svg class="icon"><use href="#i-pin"/></svg></button>
+      <a class="btn btn-icon" href="#ajustes" id="bell-btn" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"/></svg></a>
+      <button class="btn btn-icon" type="button" id="theme-btn" aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="notices"></div>
+
+  <!-- AHORA -->
+  <section id="s-ahora" aria-labelledby="h-ahora">
+    <div class="now-grid">
+      <div class="stack">
+        <div class="card hero" id="hero"></div>
+        <div class="card quake-card" id="last-quake"></div>
+        <div class="card quake-card" id="after-card" hidden>
+          <h2>Después del sismo</h2>
+          <p class="explain">Revisa estos puntos con calma. Puede haber réplicas en las próximas horas.</p>
+          <ul class="checklist">
+            <li><label><input type="checkbox"><span>Revisa si hay olor a gas. Si lo hay, cierra la llave y sal sin encender luces.</span></label></li>
+            <li><label><input type="checkbox"><span>Revisa tu casa por grietas o daños antes de volver a entrar.</span></label></li>
+            <li><label><input type="checkbox"><span>Aléjate de ventanas, cables caídos y fachadas.</span></label></li>
+            <li><label><input type="checkbox"><span>Avisa a tu familia que estás bien. Usa mensajes, no llamadas.</span></label></li>
+          </ul>
+        </div>
+      </div>
+      <div class="card map-card">
+        <div class="map" id="map-now" role="region" aria-label="Mapa de la zona"></div>
+        <div class="map-caption"><span id="map-now-text"></span></div>
+        <div class="map-legend" aria-hidden="true">
+          <span><i class="lg-zone"></i>Zona estimada del sismo</span>
+          <span><i class="lg-you"></i>Tu ubicación</span>
+          <span><i class="lg-st"></i>Estación de medición</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECIENTES -->
+  <section id="s-recientes" aria-labelledby="h-recientes" hidden>
+    <div class="page-head"><h1 id="h-recientes">Sismos recientes</h1><p class="lead">Sismos confirmados por la red en la zona. La ubicación es aproximada. Por ahora todos son simulacros generados al pulsar los detectores.</p></div>
+    <div class="filters">
+      <div class="seg" role="group" aria-label="Periodo" id="seg-period">
+        <button type="button" data-v="1" aria-pressed="false">Hoy</button><button type="button" data-v="7" aria-pressed="false">7 días</button><button type="button" data-v="30" aria-pressed="true">30 días</button>
+      </div>
+      <div><label for="f-min">Intensidad mínima</label>
+        <select id="f-min"><option value="1">Todas</option><option value="3">Moderado o más</option><option value="5">Fuerte o más</option><option value="8">Severo</option></select></div>
+      <div class="seg" role="group" aria-label="Vista" id="seg-view" style="margin-left:auto">
+        <button type="button" data-v="lista" aria-pressed="true">Lista</button><button type="button" data-v="mapa" aria-pressed="false">Mapa</button>
+      </div>
+    </div>
+    <ul class="q-list" id="q-list"></ul>
+    <div class="card map-card" id="q-map-card" hidden><div class="map" id="map-list" role="region" aria-label="Mapa de sismos recientes"></div></div>
+  </section>
+
+  <!-- QUÉ HACER -->
+  <section id="s-que-hacer" aria-labelledby="h-que" hidden>
+    <div class="page-head"><h1 id="h-que">Qué hacer en un sismo</h1><p class="lead">Lo más importante pasa en los primeros segundos. Léelo ahora, con calma.</p></div>
+    <div class="guide">
+      <article class="card">
+        <h2><svg class="icon"><use href="#i-bag"/></svg>Antes</h2>
+        <ol>
+          <li>Prepara una mochila con agua, linterna, botiquín, radio, documentos y medicamentos.</li>
+          <li>Acuerda con tu familia un punto de encuentro fuera de casa.</li>
+          <li>Fija muebles altos y objetos pesados a la pared.</li>
+          <li>Identifica los lugares seguros de cada habitación: bajo una mesa firme, lejos de ventanas.</li>
+        </ol>
+      </article>
+      <article class="card during">
+        <h2><svg class="icon"><use href="#i-alert"/></svg>Durante</h2>
+        <p class="dch">Agáchate · Cúbrete · Sujétate</p>
+        <ol>
+          <li>Agáchate en el suelo antes de que el movimiento te tumbe.</li>
+          <li>Cúbrete la cabeza y el cuello bajo una mesa firme.</li>
+          <li>Sujétate hasta que pare el movimiento.</li>
+        </ol>
+        <h3>Si estás en la calle</h3>
+        <p class="explain">Aléjate de edificios, postes y cables. Quédate en un espacio abierto.</p>
+        <h3>Si conduces</h3>
+        <p class="explain">Detente donde sea seguro, lejos de puentes, y quédate dentro del vehículo.</p>
+      </article>
+      <article class="card">
+        <h2><svg class="icon"><use href="#i-check"/></svg>Después</h2>
+        <ol>
+          <li>Sal con calma por las escaleras, nunca por el ascensor.</li>
+          <li>Revisa si hay heridos, olor a gas o daños en la estructura.</li>
+          <li>Espera réplicas: vuelve a agacharte si se mueve de nuevo.</li>
+          <li>Infórmate solo por canales oficiales.</li>
+        </ol>
+      </article>
+    </div>
+    <p class="offline-note"><svg class="icon"><use href="#i-check"/></svg>Esta guía queda guardada en tu teléfono y funciona sin conexión.</p>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="s-ajustes" aria-labelledby="h-ajustes" hidden>
+    <div class="page-head"><h1 id="h-ajustes">Ajustes</h1></div>
+    <div class="settings">
+      <div class="card">
+        <h2>Notificaciones</h2>
+        <div class="set-row"><div class="txt"><b>Avisarme de sismos</b><span id="notif-note">Recibe la alerta aunque no tengas esta página abierta.</span></div><label class="switch"><input type="checkbox" id="set-notif" aria-label="Avisarme de sismos"><span></span></label></div>
+        <div class="set-row"><div class="txt"><b>Sonido</b><span>Una sirena corta cuando haya alerta.</span></div><label class="switch"><input type="checkbox" id="set-sound" checked aria-label="Sonido"><span></span></label></div>
+        <div class="set-row"><div class="txt"><b>Vibración</b><span>Solo en teléfonos que lo permitan.</span></div><label class="switch"><input type="checkbox" id="set-vibe" checked aria-label="Vibración"><span></span></label></div>
+        <fieldset style="border:0;padding:0;margin:var(--s3) 0 0">
+          <legend style="font-weight:600">Avisarme a partir de</legend>
+          <div class="radio-list" id="min-list">
+            <label><input type="radio" name="min" value="1"><span>Todos los sismos<small>Incluye los leves que casi nadie siente.</small></span></label>
+            <label><input type="radio" name="min" value="3" checked><span>Moderado o más<small>Se siente dentro de casa.</small></span></label>
+            <label><input type="radio" name="min" value="5"><span>Fuerte o más<small>Solo sismos que pueden tumbar objetos.</small></span></label>
+          </div>
+        </fieldset>
+        <div class="cta-row"><button class="btn" type="button" id="test-btn"><svg class="icon"><use href="#i-flask"/></svg>Probar alerta</button></div>
+        <p class="field-note">La prueba muestra la alerta marcada como PRUEBA. No avisa a nadie más.</p>
+      </div>
+      <div class="card">
+        <h2>Ubicación</h2>
+        <p class="explain">Sirve para decirte a qué distancia ocurrió el sismo. No sale de tu teléfono.</p>
+        <div class="radio-list">
+          <label><input type="radio" name="loc" value="gps"><span>Usar mi ubicación actual<small id="gps-note">Te pediremos permiso.</small></span></label>
+          <label><input type="radio" name="loc" value="manual" checked><span>Elegir una zona<small>Útil si no quieres compartir tu ubicación.</small></span></label>
+        </div>
+        <label for="set-zone" class="sr-only">Zona</label>
+        <select id="set-zone"></select>
+      </div>
+      <div class="card">
+        <h2>Pantalla</h2>
+        <div class="set-row"><div class="txt"><b>Tema</b></div>
+          <div class="seg" role="group" aria-label="Tema" id="seg-theme"><button type="button" data-v="system" aria-pressed="true">Sistema</button><button type="button" data-v="light" aria-pressed="false">Claro</button><button type="button" data-v="dark" aria-pressed="false">Oscuro</button></div></div>
+        <div class="set-row"><div class="txt"><b>Tamaño del texto</b></div>
+          <div class="seg" role="group" aria-label="Tamaño del texto" id="seg-text"><button type="button" data-v="n" aria-pressed="true">Normal</button><button type="button" data-v="l" aria-pressed="false">Grande</button></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="nav-bottom" aria-label="Secciones">
+  <a href="#ahora" data-nav="ahora"><svg class="icon"><use href="#i-home"/></svg>Ahora</a>
+  <a href="#recientes" data-nav="recientes"><svg class="icon"><use href="#i-list"/></svg>Recientes</a>
+  <a href="#que-hacer" data-nav="que-hacer"><svg class="icon"><use href="#i-book"/></svg>Qué hacer</a>
+  <a href="#ajustes" data-nav="ajustes"><svg class="icon"><use href="#i-gear"/></svg>Ajustes</a>
+</nav>
+
+<!-- Alerta a pantalla completa -->
+<dialog class="alert-full" id="alert-dlg" aria-labelledby="alert-title" aria-describedby="alert-sub">
+  <div class="alert-in">
+    <div class="sim-stripe" id="alert-stripe" hidden>SIMULACRO · NO ES UN SISMO REAL</div>
+    <div class="alert-body">
+      <div>
+        <span class="alert-level" id="alert-level"></span>
+        <h1 class="alert-action" id="alert-title" tabindex="-1"></h1>
+        <p class="alert-sub" id="alert-sub"></p>
+        <div class="alert-facts" id="alert-facts"></div>
+        <div class="alert-buttons">
+          <button class="btn-on-alert primary" type="button" id="safe-btn">Estoy a salvo</button>
+          <button class="btn-on-alert secondary" type="button" id="guide-btn">Ver qué hacer</button>
+        </div>
+      </div>
+      <div class="alert-map" id="map-alert" aria-hidden="true"></div>
+    </div>
+  </div>
+</dialog>
+
+<!-- Detalle de sismo -->
+<dialog class="detail" id="detail-dlg" aria-labelledby="detail-title">
+  <div class="detail-head"><div><h2 id="detail-title"></h2><p class="explain" id="detail-when"></p></div>
+    <form method="dialog"><button class="btn btn-icon" aria-label="Cerrar"><svg class="icon"><use href="#i-x"/></svg></button></form></div>
+  <div class="detail-body">
+    <div class="map" id="map-detail" role="region" aria-label="Mapa del sismo"></div>
+    <div id="detail-info"></div>
+  </div>
+</dialog>
+
+<div class="sr-only" aria-live="polite" id="sr-live"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script type="module">
+  import { suscribir, esc, horaEvento } from '/datos.js';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const nowS = () => Date.now() / 1000;
+  const fmtTime = t => t == null ? 'sin hora' : new Date(t * 1000).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const fmtDay = t => {
+    if (t == null) return 'Sin hora';
+    const d = new Date(t * 1000), today = new Date(); const y = new Date(); y.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Hoy';
+    if (d.toDateString() === y.toDateString()) return 'Ayer';
+    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+  };
+  const rel = t => { if (t == null) return 'sin hora'; const d = Math.max(0, Math.round(nowS() - t)); if (d < 60) return `hace ${d} s`; if (d < 3600) return `hace ${Math.floor(d / 60)} min`; if (d < 86400) return `hace ${Math.floor(d / 3600)} h`; const n = Math.floor(d / 86400); return `hace ${n} día${n > 1 ? 's' : ''}`; };
+  const km = n => n < 10 ? n.toLocaleString('es-CO', { maximumFractionDigits: 1 }) : Math.round(n).toLocaleString('es-CO');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const store = { get(k, d) { try { const v = localStorage.getItem('pub-' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('pub-' + k, JSON.stringify(v)); } catch (e) {} } };
+
+  // ---------- Configuración ----------
+  const CONFIG = {
+    name: 'Alerta Sísmica Pasto',
+    center: [1.2136, -77.2811],
+    stations: [], // llegan del servidor (foto.detectores)
+  };
+  const PLACES = [
+    ['el centro de Pasto', 1.2136, -77.2811], ['el volcán Galeras', 1.2208, -77.3592], ['Catambuco', 1.1606, -77.3083],
+    ['Genoy', 1.2596, -77.3262], ['La Laguna', 1.2148, -77.2153], ['Chachagüí', 1.3611, -77.2836], ['Obonuco', 1.1890, -77.3040],
+    ['Cabrera', 1.2386, -77.2486], ['Buesaco', 1.3822, -77.1567], ['Tangua', 1.0947, -77.3936],
+  ];
+  const SEV = {
+    leve: { name: 'Leve', merc: 'I–III', text: 'Pocas personas lo sienten.' },
+    moderado: { name: 'Moderado', merc: 'IV–V', text: 'Se siente dentro de casa; vibran ventanas y objetos colgados.' },
+    fuerte: { name: 'Fuerte', merc: 'VI–VII', text: 'Lo siente todo el mundo; caen objetos y se mueven muebles.' },
+    severo: { name: 'Severo', merc: 'VIII+', text: 'Puede causar daños en construcciones.' },
+  };
+  const sevKey = l => l <= 2 ? 'leve' : l <= 4 ? 'moderado' : l <= 7 ? 'fuerte' : 'severo';
+  // Severidad de un sismo = nivel de la alerta que emitió el nodo (baja | media | alta).
+  const KEY_DE_NIVEL = { baja: 'moderado', media: 'fuerte', alta: 'severo' };
+  const RANGO = { leve: 1, moderado: 3, fuerte: 5, severo: 8 };
+  const qKey = q => q.k || qKey(q);
+  const sevBadgeK = k => `<span class="sev sev-${k}">${SEV[k].name} · Mercalli ${SEV[k].merc}</span>`;
+
+  // ---------- Geografía ----------
+  const R = 6371;
+  const rad = d => d * Math.PI / 180;
+  const dist = (a, b) => { const dLat = rad(b[0] - a[0]), dLon = rad(b[1] - a[1]); const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+  const bearing = (a, b) => { const y = Math.sin(rad(b[1] - a[1])) * Math.cos(rad(b[0])); const x = Math.cos(rad(a[0])) * Math.sin(rad(b[0])) - Math.sin(rad(a[0])) * Math.cos(rad(b[0])) * Math.cos(rad(b[1] - a[1])); return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; };
+  const DIRS = ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'];
+  const dirOf = (a, b) => DIRS[Math.round(bearing(a, b) / 45) % 8];
+  const nearestPlace = p => PLACES.reduce((best, pl) => { const d = dist(p, [pl[1], pl[2]]); return d < best.d ? { name: pl[0], d } : best; }, { name: '', d: Infinity });
+  const cerca = q => `cerca ${('de ' + nearestPlace([q.lat, q.lon]).name).replace(/^de el /, 'del ')}`;
+  function relToYou(q) {
+    const d = dist(S.user.pos, [q.lat, q.lon]);
+    if (d < q.radius) return { d, text: 'Tu ubicación está dentro de la zona estimada' };
+    return { d, text: `A unos ${km(d)} km al ${dirOf(S.user.pos, [q.lat, q.lon])} de ${S.user.mode === 'gps' ? 'ti' : S.user.label}`.replace(/\bde el\b/, 'del') };
+  }
+  // Estimación: centroide ponderado por intensidad de las estaciones que coincidieron
+  function estimate(dets) {
+    const w = dets.reduce((s, d) => s + d.level, 0);
+    const lat = dets.reduce((s, d) => s + d.lat * d.level, 0) / w, lon = dets.reduce((s, d) => s + d.lon * d.level, 0) / w;
+    const spread = Math.max(...dets.map(d => dist([lat, lon], [d.lat, d.lon])));
+    return { lat, lon, radius: Math.max(1.2, spread * 1.4) };
+  }
+
+  // ---------- Estado ----------
+  const S = {
+    view: 'ahora', period: 30, min: 1, listView: 'lista',
+    svc: 'err', conn: 'reconectando', quorum: false, lastCheck: null,
+    user: { mode: 'manual', pos: CONFIG.center, label: 'el centro de Pasto' },
+    quakes: [], seen: null, active: null, afterUntil: 0, afterQuake: null,
+    settings: { notif: store.get('notif', false), sound: store.get('sound', true), vibe: store.get('vibe', true), min: store.get('min', 3) },
+  };
+  // ---------- Mapas ----------
+  const hasL = typeof L !== 'undefined';
+  const maps = {};
+  const sevColor = k => getComputedStyle(document.documentElement).getPropertyValue('--sev-' + k).trim();
+  function makeMap(id, opts = {}) {
+    const el = $('#' + id);
+    if (!hasL) { el.innerHTML = `<div class="map-fallback">El mapa no está disponible sin conexión.<br>La información de texto sigue siendo válida.</div>`; return null; }
+    const m = L.map(el, { zoomControl: !opts.static, attributionControl: true, dragging: !opts.static, scrollWheelZoom: false, keyboard: !opts.static, doubleClickZoom: !opts.static, touchZoom: !opts.static })
+      .setView(CONFIG.center, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap' }).addTo(m);
+    m._layer = L.layerGroup().addTo(m);
+    return m;
+  }
+  function drawOn(m, quakes, { fit = true, showStations = true, pulse = false } = {}) {
+    if (!m) return;
+    m._layer.clearLayers();
+    const bounds = [S.user.pos];
+    if (showStations) CONFIG.stations.forEach(s => L.marker([s.lat, s.lon], { icon: L.divIcon({ className: '', html: '<i class="lg-st" style="display:block"></i>', iconSize: [10, 10] }), keyboard: false, interactive: false }).addTo(m._layer));
+    quakes.forEach(q => {
+      const k = qKey(q), c = sevColor(k);
+      L.circle([q.lat, q.lon], { radius: q.radius * 1000, color: c, weight: 2, fillColor: c, fillOpacity: .22, className: pulse && !reduceMotion.matches ? 'pulse' : '' })
+        .bindTooltip(`${SEV[k].name} · ${fmtDay(q.t)} ${fmtTime(q.t)}`).addTo(m._layer);
+      bounds.push([q.lat, q.lon]);
+    });
+    L.circleMarker(S.user.pos, { radius: 7, color: '#fff', weight: 2, fillColor: '#2f6fd6', fillOpacity: 1 }).bindTooltip(S.user.mode === 'gps' ? 'Tu ubicación' : `Tu zona: ${S.user.label}`).addTo(m._layer);
+    if (fit && quakes.length) m.fitBounds(L.latLngBounds(bounds).pad(0.35), { maxZoom: 13 });
+    else if (fit) m.setView(S.user.pos, 12);
+  }
+
+  // ---------- Render ----------
+  const visibleQuakes = () => S.quakes.filter(q => (q.t == null || nowS() - q.t <= S.period * 86400) && RANGO[qKey(q)] >= S.min).sort(porHora);
+  // Más recientes primero; los sin hora van por número de entrada del log
+  const porHora = (a, b) => (b.t ?? 0) - (a.t ?? 0) || b.idx - a.idx;
+  const lastQuake = () => [...S.quakes].sort(porHora)[0];
+
+  function renderNotices() {
+    const n = [];
+    if (S.svc === 'warn') n.push(`<div class="notice warn" role="status"><svg class="icon"><use href="#i-alert"/></svg><div><b>Servicio limitado</b>Parte de la red no responde y las alertas podrían no emitirse. Mantente atento a los medios oficiales.</div></div>`);
+    if (S.svc === 'err') n.push(`<div class="notice err" role="alert"><svg class="icon"><use href="#i-wifi-off"/></svg><div><b>Sin conexión con el servicio de alertas</b>Reintentando… La información en pantalla puede estar desactualizada.</div></div>`);
+    $('#notices').innerHTML = n.join('');
+    const svc = $('#svc');
+    svc.className = 'svc ' + S.svc;
+    svc.querySelector('.lbl').textContent = { ok: 'Servicio activo', warn: 'Servicio limitado', err: 'Sin conexión' }[S.svc];
+  }
+  function renderNow() {
+    const after = S.afterQuake && nowS() < S.afterUntil;
+    const hero = $('#hero');
+    hero.className = 'card hero ' + (after ? 'after' : 'calm');
+    if (after) {
+      const q = S.afterQuake, k = qKey(q);
+      hero.innerHTML = `<div class="hero-ic"><svg class="icon"><use href="#i-alert"/></svg></div>
+        <h1>Hubo un sismo${q.t == null ? '' : ` <span data-rel="${q.t}">${rel(q.t)}</span>`}</h1>
+        <p class="meta">${SEV[k].name}. Puede haber réplicas: si vuelve a moverse, agáchate, cúbrete y sujétate.</p>
+        <div class="cta-row"><a class="btn btn-primary" href="#que-hacer">Ver qué hacer</a></div>`;
+    } else {
+      const stale = S.svc === 'err';
+      hero.innerHTML = `<div class="hero-ic"><svg class="icon"><use href="#i-shield"/></svg></div>
+        <h1>Sin sismos en este momento</h1>
+        <p class="meta">${stale ? 'Sin conexión. Último dato recibido' : 'Actualizado'} <span class="num" data-check>${S.lastCheck == null ? 'nunca' : rel(S.lastCheck)}</span>.</p>`;
+    }
+    $('#after-card').hidden = !after;
+    const q = after ? S.afterQuake : lastQuake();
+    const lq = $('#last-quake');
+    if (!q) { lq.innerHTML = `<div class="empty"><b>Sin sismos registrados</b>Cuando la red registre uno, aparecerá aquí.</div>`; }
+    else {
+      const k = qKey(q), r = relToYou(q);
+      lq.innerHTML = `<div class="row"><h2>${after ? 'El sismo' : 'Último sismo'}</h2><span class="subtle">${fmtDay(q.t)}, ${fmtTime(q.t)}${q.simulated ? '<span class="tag-sim">SIMULACRO</span>' : ''}</span></div>
+        <p class="where">${cerca(q).replace(/^c/, 'C')}</p>
+        ${sevBadgeK(qKey(q))}
+        <p class="explain" style="margin-top:8px">${SEV[k].text}</p>
+        <div class="facts"><div class="fact"><span>Distancia</span><b>${km(r.d)} km</b></div><div class="fact"><span>Cuándo</span><b data-rel="${q.t}">${rel(q.t)}</b></div><div class="fact"><span>Estaciones</span><b>${q.stations} de ${CONFIG.stations.length || 3}</b></div></div>
+        <div class="cta-row"><button class="btn" type="button" data-detail="${esc(q.id)}">Ver detalle</button></div>`;
+    }
+    const recent = q && (q.t == null || nowS() - q.t < 3 * 86400);
+    drawOn(maps.now, recent ? [q] : [], { pulse: after });
+    $('#map-now-text').textContent = q && recent ? `Zona estimada ${cerca(q)}. ${relToYou(q).text}.` : `Mostrando ${S.user.mode === 'gps' ? 'tu ubicación' : S.user.label}. No hay sismos en los últimos 3 días.`;
+  }
+  function renderList() {
+    const qs = visibleQuakes();
+    $('#q-list').hidden = S.listView !== 'lista';
+    $('#q-map-card').hidden = S.listView !== 'mapa';
+    $('#q-list').innerHTML = qs.length ? qs.map(q => {
+      const k = qKey(q), r = relToYou(q);
+      return `<li><button type="button" class="card q-item l-${k}" data-detail="${esc(q.id)}">
+        <span class="q-when"><b>${fmtTime(q.t)}</b><span>${fmtDay(q.t)}</span></span>
+        <span class="q-main"><b>${cerca(q).replace(/^c/, 'C')}${q.simulated ? '<span class="tag-sim">SIMULACRO</span>' : ''}</b>${sevBadgeK(qKey(q))}</span>
+        <span class="q-dist">${km(r.d)} km</span></button></li>`;
+    }).join('') : `<li class="card empty"><b>No se han registrado sismos en este periodo</b>Prueba con un periodo más largo o baja la intensidad mínima.</li>`;
+    if (S.listView === 'mapa') {
+      if (!maps.list) maps.list = makeMap('map-list');
+      setTimeout(() => { maps.list && maps.list.invalidateSize(); drawOn(maps.list, qs); }, 0);
+    }
+  }
+  function openDetail(id) {
+    const q = S.quakes.find(x => x.id === id); if (!q) return;
+    const k = qKey(q), r = relToYou(q);
+    $('#detail-title').innerHTML = `Sismo ${SEV[k].name.toLowerCase()} ${cerca(q)}${q.simulated ? '<span class="tag-sim">SIMULACRO</span>' : ''}`;
+    $('#detail-when').textContent = q.t == null ? 'Sin hora: el detector no tenía la hora sincronizada.' : `${new Date(q.t * 1000).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}, ${fmtTime(q.t)}`;
+    $('#detail-info').innerHTML = `<div style="margin-top:16px">${sevBadgeK(qKey(q))}</div><p class="explain" style="margin-top:8px">${SEV[k].text}</p>
+      <div class="facts"><div class="fact"><span>Distancia</span><b>${km(r.d)} km</b></div><div class="fact"><span>Zona estimada</span><b>radio ${km(q.radius)} km</b></div><div class="fact"><span>Estaciones</span><b>${q.stations} de ${CONFIG.stations.length || 3}</b></div></div>
+      <p class="explain" style="margin-top:12px">${r.text}. La ubicación es aproximada porque la red tiene pocas estaciones.</p>
+      <details class="tech"><summary>Datos técnicos</summary><dl>
+        <dt>Escala de Mercalli</dt><dd>${SEV[k].merc}</dd><dt>Intensidad promedio</dt><dd>${esc(q.avg ?? q.level)} de 10</dd>
+        <dt>Aceleración máxima (PGA)</dt><dd>${q.pga ? q.pga.toFixed(3) + ' g' : '–'}</dd>
+        <dt>Centro estimado</dt><dd>${q.lat.toFixed(4)}, ${q.lon.toFixed(4)}</dd></dl></details>`;
+    $('#detail-dlg').showModal();
+    if (!maps.detail) maps.detail = makeMap('map-detail');
+    setTimeout(() => { maps.detail && maps.detail.invalidateSize(); drawOn(maps.detail, [q]); }, 0);
+  }
+
+  // ---------- Alerta ----------
+  function instruction(k) {
+    return (k === 'fuerte' || k === 'severo') ? ['Agáchate', 'Cúbrete', 'Sujétate'] : k === 'moderado' ? ['Mantén la calma', 'Aléjate de ventanas'] : ['Sismo leve', 'No es necesario actuar'];
+  }
+  function showAlert(q, { test = false } = {}) {
+    const k = qKey(q), dlg = $('#alert-dlg');
+    S.active = q;
+    dlg.className = 'alert-full a-' + k;
+    $('#alert-stripe').hidden = !(q.simulated || test);
+    $('#alert-stripe').textContent = test ? 'PRUEBA · NO ES UN SISMO REAL' : 'SIMULACRO · NO ES UN SISMO REAL';
+    $('#alert-level').innerHTML = `<svg class="icon"><use href="#i-alert"/></svg>Sismo ${SEV[k].name.toLowerCase()}`;
+    $('#alert-title').innerHTML = instruction(k).map(s => `<span>${s}</span>`).join('');
+    const r = relToYou(q);
+    $('#alert-sub').innerHTML = q.t == null ? 'Hora de detección desconocida.' : `Detectado <span data-rel="${q.t}">${rel(q.t)}</span>, a las ${fmtTime(q.t)}.`;
+    const inside = r.d < q.radius;
+    $('#alert-facts').innerHTML = `<div>Zona estimada: <b>${cerca(q)}</b></div><div>${inside ? `<b>Estás dentro de la zona estimada</b>, a ${km(r.d)} km de su centro` : `${r.text}: <b>${km(r.d)} km</b>`}</div><div>${SEV[k].text}</div>`;
+    if (!dlg.open) dlg.showModal();
+    $('#alert-title').focus();
+    $('#sr-live').textContent = `Alerta de sismo ${SEV[k].name}. ${instruction(k).join('. ')}.`;
+    if (!maps.alert) maps.alert = makeMap('map-alert', { static: true });
+    setTimeout(() => { maps.alert && maps.alert.invalidateSize(); drawOn(maps.alert, [q], { showStations: false, pulse: true }); }, 0);
+    if (S.settings.sound) siren();
+    if (S.settings.vibe && navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]);
+    if (S.settings.notif && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+      try { new Notification(`${test ? 'PRUEBA: ' : q.simulated ? 'SIMULACRO: ' : ''}Sismo ${SEV[k].name.toLowerCase()}`, { body: instruction(k).join(' · '), tag: q.id }); } catch (e) {}
+    }
+  }
+  function closeAlert() {
+    const q = S.active; $('#alert-dlg').close(); S.active = null;
+    if (q && !q.test) { S.afterQuake = q; S.afterUntil = nowS() + 15 * 60; }
+    go('ahora'); renderAll();
+  }
+  let audio;
+  function siren() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audio.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(880, t + i * .6); o.frequency.linearRampToValueAtTime(660, t + i * .6 + .45);
+        g.gain.setValueAtTime(.0001, t + i * .6); g.gain.exponentialRampToValueAtTime(.25, t + i * .6 + .05); g.gain.exponentialRampToValueAtTime(.0001, t + i * .6 + .5);
+        o.connect(g).connect(audio.destination); o.start(t + i * .6); o.stop(t + i * .6 + .55);
+      }
+    } catch (e) {}
+  }
+  // ---------- Datos en vivo ----------
+  // Cada alerta confirmada por el clúster es un sismo. Todas vienen de pulsaciones: se marcan SIMULACRO.
+  function quakesDe(foto) {
+    const dets = Array.isArray(foto.detectores) ? foto.detectores : [];
+    const evs = {};
+    (foto.log || []).forEach(x => { if (x.clase === 'evento' && x.ev) evs[x.ev.id] = x.ev; });
+    const out = [];
+    (foto.alertas || []).forEach(a => {
+      const ids = a.eventos || [];
+      const lista = ids.map(id => evs[id]).filter(Boolean);
+      const puntos = lista.map(ev => { const d = dets.find(x => x.n === ev.nodo); return d ? { lat: d.lat, lon: d.lon, level: ev.nivel, pga: +ev.pga || 0 } : null; }).filter(Boolean);
+      if (!puntos.length) return; // el log de esos eventos aún no llega
+      const trig = evs[ids[0]];
+      const horas = lista.map(horaEvento).filter(h => h != null);
+      const ms = trig && horaEvento(trig) != null ? horaEvento(trig) : (horas.length ? Math.max(...horas) : null);
+      out.push({ id: `${a.id}-${ids[0] || ''}`, idx: a.id, t: ms == null ? null : ms / 1000, level: Math.round(a.promedio), avg: a.promedio,
+        k: KEY_DE_NIVEL[a.nivel] || 'moderado', ...estimate(puntos), simulated: true, stations: ids.length,
+        pga: Math.max(...puntos.map(d => d.pga)) });
+    });
+    return out;
+  }
+  function aplicarFoto(foto) {
+    if (Array.isArray(foto.detectores)) CONFIG.stations = foto.detectores.map(d => ({ id: d.n, lat: d.lat, lon: d.lon }));
+    S.quorum = !!foto.quorum; S.lastCheck = nowS();
+    S.quakes = quakesDe(foto);
+    const primera = S.seen === null;
+    if (primera) S.seen = new Set();
+    let nueva = null;
+    S.quakes.forEach(q => { if (!S.seen.has(q.id)) { S.seen.add(q.id); if (!primera) nueva = q; } });
+    actualizarSvc();
+    renderAll();
+    // Solo las alertas que llegan con la página abierta se muestran a pantalla completa
+    if (nueva && RANGO[qKey(nueva)] >= S.settings.min) showAlert(nueva);
+  }
+  function actualizarSvc() { S.svc = S.conn !== 'conectado' ? 'err' : S.quorum ? 'ok' : 'warn'; }
+
+  // ---------- Navegación ----------
+  const VIEWS = ['ahora', 'recientes', 'que-hacer', 'ajustes'];
+  function go(v) {
+    if (!VIEWS.includes(v)) v = 'ahora';
+    S.view = v;
+    VIEWS.forEach(x => $('#s-' + x).hidden = x !== v);
+    $$('[data-nav]').forEach(a => a.dataset.nav === v ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+    if (location.hash.slice(1) !== v) history.replaceState(null, '', '#' + v);
+    if (v === 'ahora' && maps.now) setTimeout(() => maps.now.invalidateSize(), 0);
+    if (v === 'recientes') renderList();
+  }
+  function renderAll() { renderNotices(); renderNow(); if (S.view === 'recientes') renderList(); }
+
+  // ---------- Ajustes ----------
+  function fillZones() { $('#set-zone').innerHTML = PLACES.map((p, i) => `<option value="${i}">${p[0].replace(/^el /, '').replace(/^./, c => c.toUpperCase())}</option>`).join(''); }
+  function useGPS() {
+    if (!navigator.geolocation) { toast('Tu navegador no permite compartir la ubicación.'); return; }
+    $('#gps-note').textContent = 'Buscando tu ubicación…';
+    navigator.geolocation.getCurrentPosition(p => {
+      S.user = { mode: 'gps', pos: [p.coords.latitude, p.coords.longitude], label: 'tu ubicación' };
+      $('#gps-note').textContent = 'Usando tu ubicación actual.'; $$('input[name="loc"]').forEach(i => i.checked = i.value === 'gps');
+      renderAll();
+    }, () => {
+      $('#gps-note').textContent = 'No diste permiso. Puedes elegir una zona manualmente.';
+      $$('input[name="loc"]').forEach(i => i.checked = i.value === 'manual');
+      toast('Sin permiso de ubicación: usamos la zona elegida.');
+    }, { timeout: 8000 });
+  }
+  function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 5000); }
+  function applyTheme(th) {
+    if (th === 'light' || th === 'dark') document.documentElement.dataset.theme = th; else delete document.documentElement.dataset.theme;
+    const dark = th === 'dark' || (th !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    $('#theme-btn use').setAttribute('href', dark ? '#i-sun' : '#i-moon');
+    $('#theme-btn').setAttribute('aria-label', dark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
+    $$('#seg-theme button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === (th || 'system')));
+    store.set('theme', th || 'system');
+    if (maps.now) renderAll();
+  }
+
+  // ---------- Eventos ----------
+  document.addEventListener('click', e => {
+    const b = e.target.closest('button, a'); if (!b) return;
+    if (b.dataset.detail) openDetail(b.dataset.detail);
+    const seg = b.closest('.seg');
+    if (seg && b.dataset.v) {
+      $$('button', seg).forEach(x => x.setAttribute('aria-pressed', x === b));
+      if (seg.id === 'seg-period') { S.period = +b.dataset.v; renderList(); }
+      if (seg.id === 'seg-view') { S.listView = b.dataset.v; renderList(); }
+      if (seg.id === 'seg-theme') applyTheme(b.dataset.v);
+      if (seg.id === 'seg-text') { document.documentElement.classList.toggle('text-lg', b.dataset.v === 'l'); store.set('text', b.dataset.v); }
+    }
+  });
+  $('#safe-btn').addEventListener('click', closeAlert);
+  $('#guide-btn').addEventListener('click', () => { closeAlert(); go('que-hacer'); });
+  $('#alert-dlg').addEventListener('cancel', e => { e.preventDefault(); closeAlert(); });
+  $('#theme-btn').addEventListener('click', () => {
+    const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+    applyTheme(dark ? 'light' : 'dark');
+  });
+  $('#loc-btn').addEventListener('click', useGPS);
+  $('#test-btn').addEventListener('click', () => { const est = CONFIG.stations.length ? estimate(CONFIG.stations.map(s => ({ ...s, level: 6 }))) : { lat: CONFIG.center[0], lon: CONFIG.center[1], radius: 2 }; showAlert({ id: 't' + Date.now(), t: nowS(), level: 6, ...est, simulated: true, stations: 3, test: true }, { test: true }); });
+  $('#f-min').addEventListener('change', e => { S.min = +e.target.value; renderList(); });
+  $('#set-sound').addEventListener('change', e => { S.settings.sound = e.target.checked; store.set('sound', e.target.checked); });
+  $('#set-vibe').addEventListener('change', e => { S.settings.vibe = e.target.checked; store.set('vibe', e.target.checked); });
+  $('#set-notif').addEventListener('change', async e => {
+    S.settings.notif = e.target.checked; store.set('notif', e.target.checked);
+    if (e.target.checked && 'Notification' in window && Notification.permission === 'default') {
+      const r = await Notification.requestPermission();
+      if (r !== 'granted') { e.target.checked = false; S.settings.notif = false; store.set('notif', false); $('#notif-note').textContent = 'No diste permiso de notificaciones. Puedes activarlo en los ajustes del navegador.'; }
+    }
+  });
+  $$('input[name="min"]').forEach(i => i.addEventListener('change', () => { S.settings.min = +i.value; store.set('min', S.settings.min); }));
+  $$('input[name="loc"]').forEach(i => i.addEventListener('change', () => { if (i.value === 'gps') useGPS(); else $('#set-zone').dispatchEvent(new Event('change')); }));
+  $('#set-zone').addEventListener('change', e => { const p = PLACES[+e.target.value]; S.user = { mode: 'manual', pos: [p[1], p[2]], label: p[0] }; $$('input[name="loc"]').forEach(i => i.checked = i.value === 'manual'); renderAll(); });
+  window.addEventListener('hashchange', () => go(location.hash.slice(1)));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(store.get('theme', 'system')));
+
+  setInterval(() => {
+    $$('[data-rel]').forEach(n => { const v = n.dataset.rel; n.textContent = v === 'null' || v === '' ? 'sin hora' : rel(+v); });
+    $$('[data-check]').forEach(n => n.textContent = S.lastCheck == null ? 'nunca' : rel(S.lastCheck));
+    if (S.afterQuake && nowS() >= S.afterUntil) { S.afterQuake = null; renderNow(); }
+  }, 1000);
+
+  // ---------- Inicio ----------
+  $('#svc-name').textContent = CONFIG.name;
+  fillZones();
+  $('#set-notif').checked = S.settings.notif; $('#set-sound').checked = S.settings.sound; $('#set-vibe').checked = S.settings.vibe;
+  $$('input[name="min"]').forEach(i => i.checked = +i.value === S.settings.min);
+  if (store.get('text', 'n') === 'l') { document.documentElement.classList.add('text-lg'); $$('#seg-text button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === 'l')); }
+  maps.now = makeMap('map-now');
+  applyTheme(store.get('theme', 'system'));
+  go(location.hash.slice(1) || 'ahora');
+  renderAll();
+  suscribir(aplicarFoto, estado => { S.conn = estado; actualizarSvc(); renderAll(); });
+</script>
+</body>
+</html>
