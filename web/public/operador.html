@@ -110,7 +110,11 @@
   .pano-row b { font-size: 14px; }
   .pano-row .subtle { font-size: 12px; line-height: 1.35; }
   .pano-row canvas { width: 100%; height: 52px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); display: block; }
-  #pano-cluster svg { width: 100%; max-height: 250px; display: block; }
+  #pano-cluster svg { width: 100%; max-height: 270px; display: block; }
+  /* Mapa liso de Panorama */
+  .mapa-mini { border-radius: var(--radius-sm); overflow: hidden; }
+  .sin-ubicar { font-size: 13px; color: var(--text-2); margin-top: var(--s2); }
+  .sin-ubicar:empty { display: none; }
 
   .ev-list { list-style: none; margin: 0; padding: 0; }
   .ev-row { display: grid; grid-template-columns: 1.1fr 1.7fr .7fr .8fr; gap: var(--s3); align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--border); font-size: 14px; }
@@ -170,8 +174,9 @@
   .srv.leader { border-top-color: var(--role-leader); }
   .srv.candidate { border-top-color: var(--role-candidate); }
   .srv.down { border-top: 4px dashed var(--role-down); }
-  .srv-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--s3); }
-  .srv-head h3 { font-size: 16px; }
+  .srv-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s2); margin-bottom: var(--s3); }
+  .srv-head h3 { font-size: 16px; white-space: nowrap; }
+  .srv-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   .role { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-3); color: var(--text-2); }
   .role .icon { width: 13px; height: 13px; }
   .role.leader { background: var(--brand-soft); color: var(--brand); }
@@ -195,6 +200,7 @@
   .tl-ic.down { background: var(--err-bg); color: var(--err); }
   .tl-ic.recover { background: var(--ok-bg); color: var(--ok); }
   .tl-ic.info { background: var(--surface-3); color: var(--text-2); }
+  .tl-ic.moved { background: var(--warn-bg); color: var(--warn); }
   .tl-text { font-size: 14px; }
   .tl-meta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
   .legend-inline { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); font-size: 13px; color: var(--text-2); margin-top: var(--s2); }
@@ -213,6 +219,7 @@
   .node.candidate circle.main { stroke: var(--role-candidate); }
   .node.down circle.main { stroke: var(--role-down); stroke-dasharray: 5 4; }
   .node.down text.id { fill: var(--text-3); }
+  .node text.est { font: 600 12px var(--font); text-anchor: middle; }
 
   /* ---------- Detectores ---------- */
   .det-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s4); }
@@ -244,6 +251,13 @@
   @media (max-width: 420px) { .sismo-btns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .det-route { font-size: 14px; min-height: 42px; }
   .det-card .kv { border-top: 1px solid var(--border); padding-top: var(--s3); }
+  .ubic { display: grid; gap: var(--s2); border-top: 1px solid var(--border); padding-top: var(--s3); }
+  .ubic-txt { font-size: 14px; }
+  .ubic-txt .movido { color: var(--warn); font-weight: 600; }
+  .ubic-msg { font-size: 13px; color: var(--text-2); min-height: 18px; overflow-wrap: anywhere; }
+  .ubic-msg.err { color: var(--err); }
+  .ubic-msg.ok { color: var(--ok); }
+  .ubic .btn[disabled] { cursor: progress; opacity: .7; }
 
   /* ---------- Alertas ---------- */
   .alerts-layout { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); gap: var(--s4); align-items: start; }
@@ -355,6 +369,7 @@
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 1 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.1"/></symbol>
 </svg>
 
@@ -403,9 +418,16 @@
         <div class="card-head"><h2>Últimos eventos</h2><a href="#registros">Ver registros</a></div>
         <ul class="ev-list" id="pano-events"></ul>
       </div>
-      <div class="card pad">
-        <div class="card-head"><h2>Última alerta</h2><a href="#alertas">Ver alertas</a></div>
-        <div id="pano-alert"></div>
+      <div class="stack">
+        <div class="card pad">
+          <div class="card-head"><h2>Última alerta</h2><a href="#alertas">Ver alertas</a></div>
+          <div id="pano-alert"></div>
+        </div>
+        <div class="card pad">
+          <div class="card-head"><h2>Mapa de nodos</h2><a href="#detectores">Ubicar nodos</a></div>
+          <svg class="mapa-mini" id="pano-mapa"></svg>
+          <p class="sin-ubicar" id="pano-sin-ubicar"></p>
+        </div>
       </div>
     </div>
   </section>
@@ -520,6 +542,8 @@
 
 <script type="module">
   import { suscribir, control, pulsar, esc, horaEvento } from '/datos.js';
+  import { colorNodo, zonaSismo } from '/geo.js';
+  import { dibujarMapa } from '/mapa.js';
 
   // ================= Utilidades =================
   const $ = (s, r = document) => r.querySelector(s);
@@ -558,13 +582,24 @@
     log: [], events: [], alerts: [], timeline: [],
     paused: false, pauseAt: 0, win: 60, scale: 'comun', show: { 1: true, 2: true, 3: true },
     hidden: {}, expanded: {}, selAlert: null, reg: 'log', tl: 'all', fdet: 'all',
-    detMsg: {}, busy: {},
+    detMsg: {}, busy: {}, ubic: {},
   };
   const srv = id => S.servers.find(s => s.id === id);
   const alive = () => S.servers.filter(s => s.reach && !s.caido);
   const eventsOf = det => S.events.filter(e => e.det === det && e.t != null);
   const lastEventOf = det => S.events.find(e => e.det === det);
   const fuenteSrv = () => S.fuente != null ? srv(S.fuente) : null;
+
+  // Color de estado de cada nodo (geo.js): la misma regla en el mapa, el diagrama y las tarjetas.
+  const COLOR_CLS = { verde: 'ok', azul: 'info', rojo: 'err' };
+  const COLOR_VAR = { verde: 'var(--ok)', azul: 'var(--info)', rojo: 'var(--err)' };
+  const COLOR_BG = { verde: 'var(--ok-bg)', azul: 'var(--info-bg)', rojo: 'var(--err-bg)' };
+  const colorDe = n => colorNodo(S.foto, n);
+  const pillColor = n => { const c = colorDe(n); return `<span class="pill ${COLOR_CLS[c.color]}">${c.texto}</span>`; };
+  // Ubicaciones guardadas en el servidor y nodos que detectaron por WiFi que los movieron.
+  const ubicaciones = () => (S.foto && S.foto.ubicaciones) || {};
+  const movidos = () => new Set(((S.foto && S.foto.nodos) || []).filter(x => x.estado && x.estado.movido).map(x => x.n));
+  const estadoDe = n => { const nd = ((S.foto && S.foto.nodos) || []).find(x => x.n === n); return nd && nd.alcanzable ? nd.estado : null; };
 
   // ================= Foto → estado =================
   let prev = null;
@@ -635,7 +670,7 @@
   // ================= Render =================
   function render() {
     renderChips(); renderBanners(); renderTabMarks();
-    renderKpis(); renderPanoCluster(); renderPanoEvents(); renderPanoAlert();
+    renderKpis(); renderPanoCluster(); renderPanoEvents(); renderPanoAlert(); renderPanoMapa();
     renderChanHeads(); renderSismoTable();
     renderCluster(); renderServers(); renderTimeline();
     updateDetectors();
@@ -740,6 +775,18 @@
       <p style="margin-top:10px"><a href="#alertas" data-sel="${esc(a.id)}">Ver detalle de la alerta</a></p>${noq}`;
   }
 
+  // Mapa liso: nodos con su color y, si hay una alerta activa, la zona estimada del sismo.
+  function renderPanoMapa() {
+    const a = activeAlert();
+    let zona = null;
+    if (a) {
+      const z = zonaSismo({ eventos: a.eventIds }, S.events.map(e => ({ id: e.id, nodo: e.det, nivel: e.level })), ubicaciones(), movidos());
+      if (z) zona = { ...z, nivel: alertLevel(a).key };
+    }
+    const sin = dibujarMapa($('#pano-mapa'), { ubicaciones: ubicaciones(), foto: S.foto, zona });
+    $('#pano-sin-ubicar').textContent = sin.length ? `Sin ubicar: ${sin.map(n => `nodo ${n}`).join(', ')}` : '';
+  }
+
   // ---- Sismógrafos ----
   function buildChannels() {
     $('#channels').innerHTML = IDS.map(id => `<div class="chan" data-det="${id}"><div class="chan-head"><b>Detector ${id}</b> · ${nodeName(id)} · <span data-f="chan-last-${id}"></span></div><canvas data-det="${id}" role="img" aria-label="Sismograma del detector ${id}"></canvas></div>`).join('');
@@ -760,6 +807,7 @@
 
   // ---- Clúster ----
   const POS = { 1: [200, 66], 2: [80, 232], 3: [320, 232] };
+  const CLUSTER_ALTO = 340; // alto del viewBox del diagrama grande (y de su capa de puntos)
   const downTxt = s => !s.reach ? 'Inalcanzable' : 'Caído (simulado)';
   function roleTxt(s) { return { leader: 'Líder', follower: 'Seguidor', candidate: 'Candidato' }[s.role] || downTxt(s); }
   function clusterSVG(mini) {
@@ -771,14 +819,18 @@
     const nodes = S.servers.map(s => {
       const [x, y] = POS[s.id];
       const crown = s.role === 'leader' ? `<use href="#i-crown" x="${x - 11}" y="${y - R - 26}" width="22" height="22" style="color:var(--role-leader);fill:var(--role-leader);stroke:var(--role-leader)"/>` : '';
-      const fill = s.role === 'down' ? ` style="fill:url(#${pid})"` : '';
+      // Borde y relleno con el color de estado; el rol sigue en la etiqueta y la pastilla lleva el texto
+      const c = colorDe(s.id), col = COLOR_VAR[c.color];
+      const estilo = ` style="stroke:${col};fill:${s.role === 'down' ? `url(#${pid})` : COLOR_BG[c.color]}"`;
       const sub = s.reach ? `término ${s.term}` : 'sin respuesta';
-      return `<g class="node ${s.role}">${crown}<circle class="main" cx="${x}" cy="${y}" r="${R}"${fill}/><text class="id" x="${x}" y="${y}">S${s.id}</text>
-        <text class="lbl" x="${x}" y="${y + R + 20}">${roleTxt(s)}</text>${mini ? '' : `<text class="sub" x="${x}" y="${y + R + 36}">${sub}</text>`}</g>`;
+      const pw = c.texto.length * 7 + 18, py = y + R + 28;
+      const pill = `<rect x="${x - pw / 2}" y="${py}" width="${pw}" height="20" rx="10" style="fill:${COLOR_BG[c.color]};stroke:${col}"/><text class="est" x="${x}" y="${py + 14}" style="fill:${col}">${c.texto}</text>`;
+      return `<g class="node ${s.role}">${crown}<circle class="main" cx="${x}" cy="${y}" r="${R}"${estilo}/><text class="id" x="${x}" y="${y}">S${s.id}</text>
+        <text class="lbl" x="${x}" y="${y + R + 20}">${roleTxt(s)}</text>${pill}${mini ? '' : `<text class="sub" x="${x}" y="${y + R + 64}">${sub}</text>`}</g>`;
     }).join('');
-    const desc = S.servers.map(s => `Servidor ${s.id}: ${roleTxt(s)}`).join('. ');
-    return `<svg viewBox="0 0 400 ${mini ? 290 : 310}" role="img" aria-label="${desc}">
-      <defs><pattern id="${pid}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--surface-2)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--role-down)" stroke-width="2.5"/></pattern></defs>
+    const desc = S.servers.map(s => `Servidor ${s.id}: ${roleTxt(s)}, ${colorDe(s.id).texto}`).join('. ');
+    return `<svg viewBox="0 0 400 ${mini ? 320 : CLUSTER_ALTO}" role="img" aria-label="${desc}">
+      <defs><pattern id="${pid}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--surface-2)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--err)" stroke-width="2.5"/></pattern></defs>
       ${edges}${nodes}</svg>`;
   }
   function renderCluster() {
@@ -787,7 +839,7 @@
     const html = clusterSVG(false);
     // Se conserva la capa de puntos para no cortar animaciones en curso
     if (svg && $('#dots')) { const tmp = document.createElement('div'); tmp.innerHTML = html; svg.replaceWith(tmp.firstElementChild); }
-    else st.innerHTML = html + `<svg class="dots-layer" viewBox="0 0 400 310" aria-hidden="true" id="dots"></svg>`;
+    else st.innerHTML = html + `<svg class="dots-layer" viewBox="0 0 400 ${CLUSTER_ALTO}" aria-hidden="true" id="dots"></svg>`;
   }
   function sendDot(from, to, kind) {
     if (S.tab !== 'raft' || reduceMotion.matches || document.hidden) return;
@@ -835,16 +887,16 @@
         : s.caido ? `<button class="btn btn-primary" type="button" data-up="${s.id}" ${busy ? 'disabled' : ''}>${ic('i-refresh')}${busy ? 'Enviando…' : 'Recuperar'}</button>`
         : `<button class="btn" type="button" data-down="${s.id}" ${busy ? 'disabled' : ''}>${ic('i-power')}${busy ? 'Enviando…' : 'Simular caída'}</button>`;
       const rssi = s.reach && s.rssi ? `${esc(s.rssi)} dBm` : '–';
-      return `<article class="card srv ${s.role}"><div class="srv-head"><h3>Servidor ${s.id}</h3>${roleHtml}</div>
+      return `<article class="card srv ${s.role}" style="border-top-color:${COLOR_VAR[colorDe(s.id).color]}"><div class="srv-head"><h3>Servidor ${s.id}</h3><div class="srv-tags">${roleHtml}${pillColor(s.id)}</div></div>
         <dl class="kv"><dt>Término</dt><dd class="${lagT ? 'lag' : ''}">${esc(s.term)}</dd><dt>Log / confirmadas</dt><dd class="${lagL ? 'lag' : ''}">${esc(s.logLen)} / ${esc(s.commit)}</dd>
         <dt>Pendientes</dt><dd class="${s.pend ? 'lag' : ''}">${esc(s.pend)}</dd><dt>Señal WiFi</dt><dd>${rssi}</dd></dl>
         ${note}<div class="spacer"></div>${btn}</article>`;
     }).join('');
   }
-  const TL_KIND = { postulo: 'candidate', voto: 'vote', gano: 'win', perdio_lider: 'info', cayo: 'down', recupero: 'recover', log_lleno: 'down', resincroniza: 'recover' };
+  const TL_KIND = { postulo: 'candidate', voto: 'vote', gano: 'win', perdio_lider: 'info', cayo: 'down', recupero: 'recover', log_lleno: 'down', resincroniza: 'recover', movido: 'moved' };
   function renderTimeline() {
     const f = { all: () => true, lider: e => e.tipo === 'gano', eleccion: e => ['postulo', 'voto', 'gano', 'perdio_lider'].includes(e.tipo), caidas: e => ['cayo', 'recupero', 'resincroniza'].includes(e.tipo) }[S.tl];
-    const icons = { vote: 'i-vote', candidate: 'i-vote', win: 'i-crown', down: 'i-power', recover: 'i-refresh', info: 'i-info' };
+    const icons = { vote: 'i-vote', candidate: 'i-vote', win: 'i-crown', down: 'i-power', recover: 'i-refresh', info: 'i-info', moved: 'i-alert' };
     const items = S.timeline.filter(f);
     $('#timeline').innerHTML = items.length ? items.map(e => {
       const kind = TL_KIND[e.tipo] || 'info';
@@ -863,7 +915,13 @@
       </div>
       <p class="det-route" data-f="route"></p>
       <dl class="kv"><dt>Última lectura</dt><dd data-f="sev"></dd><dt>PGA</dt><dd data-f="pga"></dd><dt>Último reporte</dt><dd data-f="time"></dd></dl>
+      <div class="ubic">
+        <p class="ubic-txt" data-f="ubic"></p>
+        <button class="btn" type="button" data-ubicar="${id}">${ic('i-pin')}Ubicar nodo ${id} aquí</button>
+        <p class="ubic-msg" data-f="ubic-msg" role="status"></p>
+      </div>
     </article>`).join('');
+    $$('[data-ubicar]').forEach(btn => btn.addEventListener('click', () => ubicarNodo(+btn.dataset.ubicar)));
     $$('[data-sismo]').forEach(btn => btn.addEventListener('click', () => {
       const id = +btn.dataset.sismo, nivel = +btn.dataset.nivel;
       if (S.detMsg[id] && S.detMsg[id].sending) return;
@@ -933,7 +991,81 @@
       card.querySelector('[data-f="sev"]').innerHTML = e ? `${sevBadge(e.level)}<div class="subtle">nivel ${esc(e.level)} de 10</div>` : '–';
       card.querySelector('[data-f="pga"]').textContent = e ? `${e.pga.toFixed(3)} g` : '–';
       card.querySelector('[data-f="time"]').innerHTML = e ? timeCell(e.t) : '–';
+      // Ubicación del nodo: la guarda el servidor al pulsar "Ubicar nodo N aquí"
+      const u = ubicaciones()[id], est = estadoDe(id), um = S.ubic[id];
+      let ut = 'Ubicación: <b>sin ubicar</b>';
+      if (u) {
+        ut = `Ubicación: ±${esc(Math.round(u.precision))} m · ${Number.isFinite(u.t) ? `<span data-rel="${u.t / 1000}">${rel(u.t / 1000)}</span>` : 'sin hora'}`;
+        if (est && est.movido) ut += ' · <span class="movido">se movió</span>';
+        else if (est && est.con_huella === false) ut += ' · <span class="muted">Tomando huella WiFi…</span>';
+      }
+      card.querySelector('[data-f="ubic"]').innerHTML = ut;
+      card.querySelector('[data-ubicar]').disabled = !!(um && um.busy);
+      const msg = card.querySelector('[data-f="ubic-msg"]');
+      msg.className = 'ubic-msg' + (um && um.cls ? ' ' + um.cls : '');
+      msg.innerHTML = um ? um.html : '';
     });
+  }
+
+  // ---- Ubicar un nodo con el GPS del celular ----
+  // Espera precisión ≤ 50 m o 15 s; después envía la mejor lectura al servidor.
+  const GPS_PRECISION_M = 50, GPS_ESPERA_MS = 15000;
+  // El servidor sirve HTTPS en el puerto siguiente al de HTTP (8090 → 8091).
+  const puertoHttps = () => { const p = Number(location.port); return p ? p + 1 : 8091; };
+  function ubicarNodo(id) {
+    if (S.ubic[id] && S.ubic[id].busy) return;
+    const fijar = (busy, cls, html) => { S.ubic[id] = { busy, cls, html }; updateDetectors(); };
+    if (!window.isSecureContext) {
+      const url = `https://${location.hostname}:${puertoHttps()}/`;
+      fijar(false, 'err', `Abre el panel por <a href="${esc(url)}">${esc(url)}</a> para usar el GPS.`);
+      return;
+    }
+    if (!navigator.geolocation) { fijar(false, 'err', 'Este navegador no da la ubicación.'); return; }
+    let mejor = null, listo = false, vigia = null;
+    const terminar = () => { listo = true; if (vigia != null) navigator.geolocation.clearWatch(vigia); clearTimeout(reloj); };
+    fijar(true, '', 'Buscando GPS…');
+    const reloj = setTimeout(() => {
+      if (listo) return;
+      terminar();
+      if (mejor) guardarUbicacion(id, mejor);
+      else fijar(false, 'err', 'No hubo señal de GPS en 15 s. Prueba junto a una ventana o al aire libre.');
+    }, GPS_ESPERA_MS);
+    vigia = navigator.geolocation.watchPosition(p => {
+      if (listo) return;
+      const c = p.coords;
+      if (!mejor || c.accuracy < mejor.precision) mejor = { lat: c.latitude, lon: c.longitude, precision: c.accuracy };
+      if (mejor.precision <= GPS_PRECISION_M) { terminar(); guardarUbicacion(id, mejor); }
+      else fijar(true, '', `Buscando GPS… ±${Math.round(mejor.precision)} m`);
+    }, err => {
+      if (listo) return;
+      if (err.code === err.PERMISSION_DENIED) {
+        terminar();
+        fijar(false, 'err', 'Sin permiso de ubicación. Permite la ubicación para este sitio en el navegador y vuelve a intentar.');
+      }
+      // Sin señal o demora: se sigue esperando hasta los 15 s.
+    }, { enableHighAccuracy: true, maximumAge: 0 });
+  }
+  async function guardarUbicacion(id, u) {
+    const prec = Math.round(u.precision);
+    S.ubic[id] = { busy: true, cls: '', html: `Guardando la ubicación (±${prec} m)…` }; updateDetectors();
+    let status = 0, cuerpo = null;
+    try {
+      const r = await fetch(`/api/nodos/${encodeURIComponent(id)}/ubicacion`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(u),
+      });
+      status = r.status;
+      try { cuerpo = await r.json(); } catch (e) { cuerpo = null; }
+    } catch (e) { status = 0; }
+    if (status === 200) {
+      S.ubic[id] = { busy: false, cls: 'ok', html: `Ubicación guardada (±${prec} m).` };
+      toast(`Nodo ${id} ubicado (±${prec} m)`);
+      // El SSE solo avisa cuando cambian los nodos: se trae la foto con la ubicación nueva
+      try { const r = await fetch('/api/estado', { cache: 'no-store' }); if (r.ok) { aplicarFoto(await r.json()); return; } } catch (e) { /* llegará por el SSE */ }
+    } else {
+      S.ubic[id] = { busy: false, cls: 'err', html: status === 0 ? 'Sin conexión con el servidor del PC: no se guardó.' : `Error ${status}: ${esc((cuerpo && cuerpo.error) || 'respuesta inesperada')}.` };
+      toast(`No se pudo guardar la ubicación del nodo ${id}`, 'warn');
+    }
+    updateDetectors();
   }
 
   // ---- Alertas ----
@@ -1256,7 +1388,7 @@
     tickClock();
     $$('[data-rel]').forEach(n => n.textContent = rel(+n.dataset.rel));
     const a = activeAlert(); const id = a ? a.id : null;
-    if (id !== lastActive) { lastActive = id; renderChips(); renderBanners(); renderTabMarks(); }
+    if (id !== lastActive) { lastActive = id; renderChips(); renderBanners(); renderTabMarks(); renderPanoMapa(); }
   }, 1000);
 
   // ================= Inicio =================
