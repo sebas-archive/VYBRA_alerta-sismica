@@ -228,7 +228,7 @@ export function dibujarMapa(svg, args = {}) {
   const orden = [...ubicados].sort((a, b) => p.y(ubicaciones[a]) - p.y(ubicaciones[b]) || a - b);
 
   // Nodos que caen en el mismo punto de la pantalla (el GPS de un celular no distingue
-  // menos de ~10 m) se abren en abanico alrededor del punto real, con una línea hacia él.
+  // menos de ~10 m) se separan alrededor de ese punto para que se vean todos.
   const SEPARACION_PX = 30;
   const grupos = [];
   for (const n of orden) {
@@ -247,7 +247,6 @@ export function dibujarMapa(svg, args = {}) {
       const ang = -Math.PI / 2 + (2 * Math.PI * i) / gr.nodos.length;
       posicion.set(n, { x: gr.x + radio * Math.cos(ang), y: gr.y + radio * Math.sin(ang), real: { x: p.x(ubicaciones[n]), y: p.y(ubicaciones[n]) } });
     });
-    svg.appendChild(el('circle', { cx: f1(gr.x), cy: f1(gr.y), r: 4, fill: 'var(--text-2)' }));
   }
 
   for (const n of orden) {
@@ -258,7 +257,6 @@ export function dibujarMapa(svg, args = {}) {
     const pos = posicion.get(n);
     const cx = f1(pos.x), cy = f1(pos.y);
     const g = el('g', { 'data-nodo': n });
-    if (pos.real) g.appendChild(el('line', { x1: f1(pos.real.x), y1: f1(pos.real.y), x2: cx, y2: cy, stroke: 'var(--text-2)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }));
     if (u.precision > 0) {
       // Con zoom el halo puede ser más grande que el mapa: entonces solo se dibuja el borde, sin teñir el fondo.
       const r = Math.max(14, px(u.precision));
