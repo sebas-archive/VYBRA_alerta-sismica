@@ -257,7 +257,24 @@
   .ubic-msg { font-size: 13px; color: var(--text-2); min-height: 18px; overflow-wrap: anywhere; }
   .ubic-msg.err { color: var(--err); }
   .ubic-msg.ok { color: var(--ok); }
+  .ubic-msg.warn { color: var(--warn); }
   .ubic .btn[disabled] { cursor: progress; opacity: .7; }
+  .ubic-acciones { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+  .ubic-acciones[hidden], .ubic-acciones [hidden] { display: none; }
+  .ubic-conf { display: inline-flex; flex-wrap: wrap; gap: var(--s2); align-items: center; font-size: 14px; font-weight: 600; }
+  .btn-peligro { color: var(--err); border-color: var(--err); }
+  /* Mapa de la pestaña Detectores y modo "Ajustar posiciones" */
+  .det-mapa-card { margin-bottom: var(--s4); }
+  .det-mapa-card .card-head { flex-wrap: wrap; align-items: center; }
+  .det-mapa-svg { border-radius: var(--radius-sm); overflow: hidden; width: min(100%, 860px); margin: 0 auto; }
+  .det-mapa-svg.editando { outline: 2px dashed var(--focus); outline-offset: 2px; }
+  .ajuste-barra { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+  .ajuste-barra [hidden] { display: none; }
+  .ajuste-ayuda { font-size: 14px; font-weight: 600; color: var(--text); flex-basis: 100%; }
+  .ajuste-msg { font-size: 13px; color: var(--text-2); margin-top: var(--s2); overflow-wrap: anywhere; }
+  .ajuste-msg:empty { display: none; }
+  .ajuste-msg.err { color: var(--err); }
+  .ajuste-msg.ok { color: var(--ok); }
 
   /* ---------- Alertas ---------- */
   .alerts-layout { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); gap: var(--s4); align-items: start; }
@@ -496,6 +513,19 @@
   <!-- DETECTORES -->
   <section id="panel-detectores" role="tabpanel" aria-labelledby="tab-detectores" tabindex="-1" hidden>
     <div class="page-head"><div><h1>Detectores</h1><p class="muted" id="det-help">Elige la intensidad del sismo en el detector: el nodo lo recibe como si se hubiera presionado su botón el tiempo equivalente. Si 2 detectores reportan dentro de 10 s, se emite alerta. El botón físico de cada prototipo sigue funcionando igual: más tiempo presionado, sismo más fuerte.</p></div></div>
+    <div class="card pad det-mapa-card">
+      <div class="card-head"><h2>Mapa de detectores</h2>
+        <div class="ajuste-barra" id="ajuste-barra">
+          <p class="ajuste-ayuda" id="ajuste-ayuda" hidden>Arrastra cada detector a su lugar real</p>
+          <button class="btn" type="button" id="ajuste-btn">Ajustar posiciones</button>
+          <button class="btn btn-primary" type="button" id="ajuste-guardar" hidden>Guardar</button>
+          <button class="btn" type="button" id="ajuste-cancelar" hidden>Cancelar</button>
+        </div>
+      </div>
+      <svg class="det-mapa-svg" id="det-mapa"></svg>
+      <p class="sin-ubicar" id="det-sin-ubicar"></p>
+      <p class="ajuste-msg" id="ajuste-msg" role="status"></p>
+    </div>
     <div class="det-grid" id="det-grid"></div>
   </section>
 
@@ -542,7 +572,7 @@
 
 <script type="module">
   import { suscribir, control, pulsar, esc, horaEvento } from '/datos.js';
-  import { colorNodo, zonaSismo } from '/geo.js';
+  import { colorNodo, zonaSismo, promediarLecturas } from '/geo.js';
   import { dibujarMapa } from '/mapa.js';
 
   // ================= Utilidades =================
@@ -583,6 +613,8 @@
     paused: false, pauseAt: 0, win: 60, scale: 'comun', show: { 1: true, 2: true, 3: true },
     hidden: {}, expanded: {}, selAlert: null, reg: 'log', tl: 'all', fdet: 'all',
     detMsg: {}, busy: {}, ubic: {},
+    quitar: {},     // por nodo: 'confirmar' | 'borrando' (eliminar ubicación en dos pasos)
+    ajuste: null,   // modo "Ajustar posiciones": { pendientes: {N: {lat, lon}}, guardando } | null
   };
   const srv = id => S.servers.find(s => s.id === id);
   const alive = () => S.servers.filter(s => s.reach && !s.caido);
@@ -673,7 +705,7 @@
     renderKpis(); renderPanoCluster(); renderPanoEvents(); renderPanoAlert(); renderPanoMapa();
     renderChanHeads(); renderSismoTable();
     renderCluster(); renderServers(); renderTimeline();
-    updateDetectors();
+    updateDetectors(); renderDetMapa();
     renderAlerts();
     renderRegistros();
   }
@@ -917,11 +949,33 @@
       <dl class="kv"><dt>Última lectura</dt><dd data-f="sev"></dd><dt>PGA</dt><dd data-f="pga"></dd><dt>Último reporte</dt><dd data-f="time"></dd></dl>
       <div class="ubic">
         <p class="ubic-txt" data-f="ubic"></p>
-        <button class="btn" type="button" data-ubicar="${id}">${ic('i-pin')}Ubicar nodo ${id} aquí</button>
+        <div class="ubic-acciones">
+          <button class="btn" type="button" data-ubicar="${id}">${ic('i-pin')}Ubicar nodo ${id} aquí</button>
+          <button class="btn" type="button" data-terminar="${id}" hidden>Terminar ya</button>
+          <button class="btn btn-peligro" type="button" data-quitar="${id}" hidden>Eliminar ubicación</button>
+          <span class="ubic-conf" data-f="quitar-conf" hidden>¿Eliminar?
+            <button class="btn btn-peligro" type="button" data-quitar-si="${id}">Sí</button>
+            <button class="btn" type="button" data-quitar-no="${id}">No</button>
+          </span>
+        </div>
         <p class="ubic-msg" data-f="ubic-msg" role="status"></p>
       </div>
     </article>`).join('');
     $$('[data-ubicar]').forEach(btn => btn.addEventListener('click', () => ubicarNodo(+btn.dataset.ubicar)));
+    $$('[data-terminar]').forEach(btn => btn.addEventListener('click', () => { const m = midiendo.get(+btn.dataset.terminar); if (m) m.terminarYa(); }));
+    // Eliminar ubicación en dos pasos, dentro de la tarjeta (sin confirm() del navegador).
+    $$('[data-quitar]').forEach(btn => btn.addEventListener('click', () => {
+      const id = +btn.dataset.quitar; S.quitar[id] = 'confirmar'; updateDetectors();
+      $(`#det-${id} [data-quitar-no]`).focus();
+    }));
+    $$('[data-quitar-no]').forEach(btn => btn.addEventListener('click', () => {
+      const id = +btn.dataset.quitarNo; delete S.quitar[id]; updateDetectors();
+      $(`#det-${id} [data-quitar]`)?.focus();
+    }));
+    $$('[data-quitar-si]').forEach(btn => btn.addEventListener('click', () => quitarUbicacion(+btn.dataset.quitarSi)));
+    $('#ajuste-btn').addEventListener('click', empezarAjuste);
+    $('#ajuste-cancelar').addEventListener('click', cancelarAjuste);
+    $('#ajuste-guardar').addEventListener('click', guardarAjuste);
     $$('[data-sismo]').forEach(btn => btn.addEventListener('click', () => {
       const id = +btn.dataset.sismo, nivel = +btn.dataset.nivel;
       if (S.detMsg[id] && S.detMsg[id].sending) return;
@@ -1001,6 +1055,15 @@
       }
       card.querySelector('[data-f="ubic"]').innerHTML = ut;
       card.querySelector('[data-ubicar]').disabled = !!(um && um.busy);
+      const med = midiendo.get(id);
+      const term = card.querySelector('[data-terminar]');
+      term.hidden = !med; term.disabled = !med || !med.lecturas.length;
+      // Eliminar: solo si está ubicado; el primer toque pide confirmar con Sí / No.
+      if (!u && S.quitar[id] === 'confirmar') delete S.quitar[id];
+      const q = S.quitar[id];
+      card.querySelector('[data-quitar]').hidden = !u || !!q || !!(um && um.busy);
+      card.querySelector('[data-f="quitar-conf"]').hidden = !q;
+      card.querySelectorAll('[data-quitar-si], [data-quitar-no]').forEach(b => { b.disabled = q === 'borrando'; });
       const msg = card.querySelector('[data-f="ubic-msg"]');
       msg.className = 'ubic-msg' + (um && um.cls ? ' ' + um.cls : '');
       msg.innerHTML = um ? um.html : '';
@@ -1008,8 +1071,10 @@
   }
 
   // ---- Ubicar un nodo con el GPS del celular ----
-  // Espera precisión ≤ 50 m o 15 s; después envía la mejor lectura al servidor.
-  const GPS_PRECISION_M = 50, GPS_ESPERA_MS = 15000;
+  // Junta lecturas durante 20 s y las promedia ponderando por precisión (geo.js: promediarLecturas):
+  // descarta las de más de 30 m; si ninguna llega, usa la mejor y avisa que el GPS fue impreciso.
+  const GPS_MAX_M = 30, GPS_ESPERA_MS = 20000;
+  const midiendo = new Map(); // nodo → { lecturas, terminarYa } mientras mide
   // El servidor sirve HTTPS en el puerto siguiente al de HTTP (8090 → 8091).
   const puertoHttps = () => { const p = Number(location.port); return p ? p + 1 : 8091; };
   function ubicarNodo(id) {
@@ -1021,31 +1086,47 @@
       return;
     }
     if (!navigator.geolocation) { fijar(false, 'err', 'Este navegador no da la ubicación.'); return; }
-    let mejor = null, listo = false, vigia = null;
-    const terminar = () => { listo = true; if (vigia != null) navigator.geolocation.clearWatch(vigia); clearTimeout(reloj); };
-    fijar(true, '', 'Buscando GPS…');
-    const reloj = setTimeout(() => {
+    const lecturas = [];
+    const fin = Date.now() + GPS_ESPERA_MS;
+    let listo = false, vigia = null, reloj = null, tic = null;
+    const progreso = () => {
+      const r = promediarLecturas(lecturas, GPS_MAX_M);
+      const quedan = Math.max(0, Math.ceil((fin - Date.now()) / 1000));
+      fijar(true, '', `Midiendo… ${lecturas.length} lecturas · ${r ? `±${esc(r.precision)} m` : 'sin señal aún'} · quedan ${quedan} s`);
+    };
+    const terminar = () => {
+      listo = true;
+      if (vigia != null) navigator.geolocation.clearWatch(vigia);
+      clearTimeout(reloj); clearInterval(tic);
+      midiendo.delete(id);
+    };
+    const concluir = () => {
       if (listo) return;
       terminar();
-      if (mejor) guardarUbicacion(id, mejor);
-      else fijar(false, 'err', 'No hubo señal de GPS en 15 s. Prueba junto a una ventana o al aire libre.');
-    }, GPS_ESPERA_MS);
+      const r = promediarLecturas(lecturas, GPS_MAX_M);
+      if (!r) { fijar(false, 'err', 'No hubo señal de GPS en 20 s. Prueba junto a una ventana o al aire libre.'); return; }
+      guardarUbicacion(id, { lat: r.lat, lon: r.lon, precision: r.precision }, r);
+    };
+    midiendo.set(id, { lecturas, terminarYa: () => { if (lecturas.length) concluir(); } });
+    progreso();
+    reloj = setTimeout(concluir, GPS_ESPERA_MS);
+    tic = setInterval(() => { if (!listo) progreso(); }, 1000);
     vigia = navigator.geolocation.watchPosition(p => {
       if (listo) return;
       const c = p.coords;
-      if (!mejor || c.accuracy < mejor.precision) mejor = { lat: c.latitude, lon: c.longitude, precision: c.accuracy };
-      if (mejor.precision <= GPS_PRECISION_M) { terminar(); guardarUbicacion(id, mejor); }
-      else fijar(true, '', `Buscando GPS… ±${Math.round(mejor.precision)} m`);
+      lecturas.push({ lat: c.latitude, lon: c.longitude, accuracy: c.accuracy });
+      progreso();
     }, err => {
       if (listo) return;
       if (err.code === err.PERMISSION_DENIED) {
         terminar();
         fijar(false, 'err', 'Sin permiso de ubicación. Permite la ubicación para este sitio en el navegador y vuelve a intentar.');
       }
-      // Sin señal o demora: se sigue esperando hasta los 15 s.
+      // Sin señal o demora: se sigue esperando hasta los 20 s.
     }, { enableHighAccuracy: true, maximumAge: 0 });
   }
-  async function guardarUbicacion(id, u) {
+  // medida: resultado de promediarLecturas (cuántas lecturas y si el GPS fue impreciso).
+  async function guardarUbicacion(id, u, medida) {
     const prec = Math.round(u.precision);
     S.ubic[id] = { busy: true, cls: '', html: `Guardando la ubicación (±${prec} m)…` }; updateDetectors();
     let status = 0, cuerpo = null;
@@ -1057,8 +1138,14 @@
       try { cuerpo = await r.json(); } catch (e) { cuerpo = null; }
     } catch (e) { status = 0; }
     if (status === 200) {
-      S.ubic[id] = { busy: false, cls: 'ok', html: `Ubicación guardada (±${prec} m).` };
-      toast(`Nodo ${id} ubicado (±${prec} m)`);
+      if (medida && medida.impreciso) {
+        S.ubic[id] = { busy: false, cls: 'warn', html: `GPS impreciso (±${prec} m). Se guardó la mejor lectura; si puedes, repite al aire libre.` };
+        toast(`Nodo ${id} ubicado, GPS impreciso (±${prec} m)`, 'warn');
+      } else {
+        const n = medida ? ` con ${medida.usadas} lectura${medida.usadas === 1 ? '' : 's'}` : '';
+        S.ubic[id] = { busy: false, cls: 'ok', html: `Ubicación guardada (±${esc(u.precision)} m${n}).` };
+        toast(`Nodo ${id} ubicado (±${prec} m)`);
+      }
       // El servidor ya la reenvía por SSE a todas las vistas; aquí se trae igual para no esperarlo
       try { const r = await fetch('/api/estado', { cache: 'no-store' }); if (r.ok) { aplicarFoto(await r.json()); return; } } catch (e) { /* llegará por el SSE */ }
     } else {
@@ -1066,6 +1153,101 @@
       toast(`No se pudo guardar la ubicación del nodo ${id}`, 'warn');
     }
     updateDetectors();
+  }
+
+  // ---- Eliminar la ubicación de un nodo ----
+  async function quitarUbicacion(id) {
+    if (S.quitar[id] === 'borrando') return;
+    S.quitar[id] = 'borrando'; updateDetectors();
+    let status = 0, cuerpo = null;
+    try {
+      const r = await fetch(`/api/nodos/${encodeURIComponent(id)}/ubicacion`, { method: 'DELETE' });
+      status = r.status;
+      try { cuerpo = await r.json(); } catch (e) { cuerpo = null; }
+    } catch (e) { status = 0; }
+    delete S.quitar[id];
+    if (status === 200 || status === 404) {
+      // 404: ya estaba sin ubicar (otra vista la quitó): el resultado es el mismo.
+      S.ubic[id] = { busy: false, cls: 'ok', html: 'Ubicación eliminada.' };
+      if (S.ajuste) delete S.ajuste.pendientes[id];
+      toast(`Nodo ${id}: ubicación eliminada`);
+      try { const r = await fetch('/api/estado', { cache: 'no-store' }); if (r.ok) { aplicarFoto(await r.json()); return; } } catch (e) { /* llegará por el SSE */ }
+    } else {
+      S.ubic[id] = { busy: false, cls: 'err', html: status === 0 ? 'Sin conexión con el servidor del PC: no se eliminó.' : `Error ${status}: ${esc((cuerpo && cuerpo.error) || 'respuesta inesperada')}.` };
+      toast(`No se pudo eliminar la ubicación del nodo ${id}`, 'warn');
+    }
+    updateDetectors();
+  }
+
+  // ---- Mapa de Detectores y "Ajustar posiciones" ----
+  // Mientras se ajusta, lo arrastrado queda en S.ajuste.pendientes: las fotos que llegan por SSE
+  // no lo deshacen porque el mapa dibuja las pendientes encima de las guardadas.
+  function renderDetMapa() {
+    const svg = $('#det-mapa'); if (!svg) return;
+    const ub = ubicaciones(), aj = S.ajuste;
+    if (aj) for (const k of Object.keys(aj.pendientes)) if (!ub[k]) delete aj.pendientes[k]; // ya no está ubicado
+    const sin = dibujarMapa(svg, {
+      ubicaciones: ub, foto: S.foto, editable: !!aj, pendientes: aj ? aj.pendientes : {},
+      alMover: (n, pos) => { if (!S.ajuste) return; S.ajuste.pendientes[n] = pos; renderDetMapa(); },
+    });
+    svg.classList.toggle('editando', !!aj);
+    $('#det-sin-ubicar').textContent = sin.length ? `Sin ubicar: ${sin.map(n => `nodo ${n}`).join(', ')}` : '';
+    const hay = Object.keys(ub).length > 0, mov = aj ? Object.keys(aj.pendientes).length : 0;
+    $('#ajuste-btn').hidden = !!aj;
+    $('#ajuste-btn').disabled = !hay;
+    $('#ajuste-ayuda').hidden = !aj;
+    $('#ajuste-guardar').hidden = $('#ajuste-cancelar').hidden = !aj;
+    $('#ajuste-guardar').disabled = !aj || aj.guardando || !mov;
+    $('#ajuste-cancelar').disabled = !aj || aj.guardando;
+    $('#ajuste-guardar').textContent = aj && aj.guardando ? 'Guardando…' : mov ? `Guardar (${mov})` : 'Guardar';
+  }
+  function avisoAjuste(cls, texto) { const m = $('#ajuste-msg'); m.className = 'ajuste-msg' + (cls ? ' ' + cls : ''); m.textContent = texto; }
+  function empezarAjuste() {
+    if (S.ajuste || !Object.keys(ubicaciones()).length) return;
+    S.ajuste = { pendientes: {}, guardando: false };
+    avisoAjuste('', '');
+    renderDetMapa();
+    $('#ajuste-cancelar').focus();
+  }
+  function cancelarAjuste() {
+    if (!S.ajuste || S.ajuste.guardando) return;
+    S.ajuste = null;
+    avisoAjuste('', 'Ajuste cancelado: no se cambió nada.');
+    renderDetMapa();
+    $('#ajuste-btn').focus();
+  }
+  async function guardarAjuste() {
+    const aj = S.ajuste;
+    if (!aj || aj.guardando) return;
+    aj.guardando = true; renderDetMapa();
+    const fallos = [];
+    for (const [k, pos] of Object.entries(aj.pendientes)) {
+      const u = ubicaciones()[k];
+      if (!u) continue; // lo quitaron mientras se ajustaba
+      // La precisión es la de la medición GPS original: el ajuste no la cambia.
+      let status = 0;
+      try {
+        const r = await fetch(`/api/nodos/${encodeURIComponent(k)}/ubicacion`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat: pos.lat, lon: pos.lon, precision: u.precision, ajuste: true }),
+        });
+        status = r.status;
+        await r.body?.cancel();
+      } catch (e) { status = 0; }
+      if (status === 200) delete aj.pendientes[k];
+      else fallos.push(`nodo ${k} (${status === 0 ? 'sin conexión' : `error ${status}`})`);
+    }
+    aj.guardando = false;
+    if (fallos.length) {
+      avisoAjuste('err', `No se guardó: ${fallos.join(', ')}. Vuelve a intentar.`);
+      toast('No se pudieron guardar todas las posiciones', 'warn');
+    } else {
+      S.ajuste = null;
+      avisoAjuste('ok', 'Posiciones guardadas.');
+      toast('Posiciones de los detectores guardadas');
+    }
+    try { const r = await fetch('/api/estado', { cache: 'no-store' }); if (r.ok) { aplicarFoto(await r.json()); return; } } catch (e) { /* llegará por el SSE */ }
+    renderDetMapa();
   }
 
   // ---- Alertas ----

@@ -35,7 +35,8 @@ const limitar = (v, a, b) => Math.min(b, Math.max(a, v));
 function vistaDe(svg) {
   let v = vistas.get(svg);
   if (!v) {
-    v = { z: 1, ox: 0, oy: 0, zMax: 1, args: null, punteros: new Map(), pellizco: null, pendiente: false };
+    v = { z: 1, ox: 0, oy: 0, zMax: 1, args: null, punteros: new Map(), pellizco: null, pendiente: false,
+      baseEdicion: null, aLatLon: null, arrastre: null };
     vistas.set(svg, v);
     instalarInteraccion(svg, v);
   }
@@ -80,9 +81,20 @@ function instalarInteraccion(svg, v) {
     zoomEn(svg, v, ev.deltaY < 0 ? 1.25 : 0.8, p.x, p.y);
   }, { passive: false });
 
-  // Punteros: un dedo/mouse arrastra; dos dedos pellizcan.
+  // Punteros: un dedo/mouse arrastra; dos dedos pellizcan. En modo edición, tomar un detector
+  // lo arrastra a él (no al mapa) y al soltarlo se avisa su nueva posición con alMover.
   svg.addEventListener('pointerdown', (ev) => {
     if (!v.args) return;
+    const nodo = v.args.editable && !v.arrastre ? ev.target.closest?.('[data-nodo]') : null;
+    if (nodo && v.aLatLon) {
+      const n = Number(nodo.dataset.nodo);
+      const q = aViewBox(svg, ev);
+      const cx = Number(nodo.dataset.x), cy = Number(nodo.dataset.y);
+      v.arrastre = { n, id: ev.pointerId, dx: q.x - cx, dy: q.y - cy, pos: null };
+      svg.setPointerCapture?.(ev.pointerId);
+      ev.preventDefault();
+      return;
+    }
     v.punteros.set(ev.pointerId, aViewBox(svg, ev));
     svg.setPointerCapture?.(ev.pointerId);
     if (v.punteros.size === 2) {
@@ -91,6 +103,12 @@ function instalarInteraccion(svg, v) {
     }
   });
   svg.addEventListener('pointermove', (ev) => {
+    if (v.arrastre && v.arrastre.id === ev.pointerId) {
+      const q = aViewBox(svg, ev);
+      v.arrastre.pos = v.aLatLon(q.x - v.arrastre.dx, q.y - v.arrastre.dy);
+      redibujar(svg, v);
+      return;
+    }
     if (!v.punteros.has(ev.pointerId)) return;
     const antes = v.punteros.get(ev.pointerId);
     const ahora = aViewBox(svg, ev);
@@ -100,13 +118,23 @@ function instalarInteraccion(svg, v) {
       const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
       zoomEn(svg, v, d / v.pellizco.d, (a.x + b.x) / 2, (a.y + b.y) / 2);
       v.pellizco.d = d;
-    } else if (v.punteros.size === 1 && v.z > 1) {
+    } else if (v.punteros.size === 1 && v.z > 1 && !v.arrastre) {
       v.ox += ahora.x - antes.x; v.oy += ahora.y - antes.y;
       acotar(v);
       redibujar(svg, v);
     }
   });
-  const soltar = (ev) => { v.punteros.delete(ev.pointerId); if (v.punteros.size < 2) v.pellizco = null; };
+  const soltar = (ev) => {
+    if (v.arrastre && v.arrastre.id === ev.pointerId) {
+      const { n, pos } = v.arrastre;
+      v.arrastre = null;
+      if (pos && ev.type === 'pointerup' && v.args?.editable) v.args.alMover?.(n, pos);
+      else redibujar(svg, v); // cancelado: vuelve a donde estaba
+      return;
+    }
+    v.punteros.delete(ev.pointerId);
+    if (v.punteros.size < 2) v.pellizco = null;
+  };
   svg.addEventListener('pointerup', soltar);
   svg.addEventListener('pointercancel', soltar);
 
@@ -136,11 +164,21 @@ function instalarInteraccion(svg, v) {
 // svg: elemento <svg> donde dibujar.
 // ubicaciones: {"N": {lat, lon, precision}}; foto: foto del poller; persona: {lat, lon, precision?} | null;
 // zona: {lat, lon, radioM, nivel?: 'leve'|'moderado'|'fuerte'|'severo'} | null; enfoque: número de nodo a resaltar | null.
+// editable: los detectores se arrastran (sin abanico) y al soltar se llama alMover(n, {lat, lon});
+// pendientes: {"N": {lat, lon}} posiciones sin guardar, que se dibujan en vez de las guardadas.
 // Devuelve la lista de nodos (números) de la foto sin ubicación.
 export function dibujarMapa(svg, args = {}) {
-  const { ubicaciones = {}, foto = null, persona = null, zona = null, enfoque = null } = args;
+  const { ubicaciones: guardadas = {}, foto = null, persona = null, zona = null, enfoque = null, editable = false, pendientes = {} } = args;
   const v = vistaDe(svg);
   v.args = args;
+  if (!editable) { v.baseEdicion = null; v.arrastre = null; }
+  // Posición a dibujar: la que se está arrastrando, luego la pendiente y si no la guardada.
+  const ubicaciones = {};
+  for (const [k, u] of Object.entries(guardadas)) {
+    const n = Number(k);
+    const otra = editable ? (v.arrastre?.n === n && v.arrastre.pos) || pendientes?.[k] : null;
+    ubicaciones[k] = otra ? { ...u, lat: otra.lat, lon: otra.lon } : u;
+  }
   svg.replaceChildren();
   svg.setAttribute('viewBox', `0 0 ${ANCHO} ${ALTO}`);
   svg.setAttribute('width', '100%');
@@ -178,7 +216,10 @@ export function dibujarMapa(svg, args = {}) {
     puntos.push({ lat: zona.lat + dLat, lon: zona.lon + dLon }, { lat: zona.lat - dLat, lon: zona.lon - dLon });
   }
   const margen = 56;
-  const base = proyectar(puntos, ANCHO, ALTO, margen);
+  // Mientras se edita el encuadre queda fijo: si siguiera a los puntos, el detector arrastrado
+  // se correría bajo el dedo.
+  const base = (editable && v.baseEdicion) || proyectar(puntos, ANCHO, ALTO, margen);
+  if (editable) v.baseEdicion = base;
   // Vista con zoom: escala alrededor del centro y desplaza.
   v.zMax = Math.max(1, (base.metrosPorPx * ANCHO) / ANCHO_MIN_M);
   if (v.z > v.zMax) { v.z = v.zMax; acotar(v); }
@@ -188,6 +229,8 @@ export function dibujarMapa(svg, args = {}) {
     metrosPorPx: base.metrosPorPx / v.z,
   };
   const px = (m) => Math.max(0, m / p.metrosPorPx);
+  // Inversa de p: punto del viewBox → {lat, lon} (deshace el desplazamiento y el zoom).
+  v.aLatLon = (x, y) => base.invertir((x - ANCHO / 2 - v.ox) / v.z + ANCHO / 2, (y - ALTO / 2 - v.oy) / v.z + ALTO / 2);
   if (v.barra) {
     v.barra.hidden = false;
     v.btnMas.disabled = v.z >= v.zMax;
@@ -195,7 +238,8 @@ export function dibujarMapa(svg, args = {}) {
     v.btnTodo.disabled = v.z === 1 && v.ox === 0 && v.oy === 0;
   }
   // Con zoom, un dedo mueve el mapa; sin zoom, el dedo desplaza la página.
-  svg.style.touchAction = v.z > 1 ? 'none' : 'pan-y';
+  // En modo edición el dedo arrastra detectores: la página no debe desplazarse bajo él.
+  svg.style.touchAction = v.z > 1 || editable ? 'none' : 'pan-y';
   svg.style.cursor = v.z > 1 ? 'grab' : 'default';
 
   // Zona del sismo, debajo de todo lo demás.
@@ -243,7 +287,11 @@ export function dibujarMapa(svg, args = {}) {
   const posicion = new Map();
   let abanico = false;
   for (const gr of grupos) {
-    if (gr.nodos.length === 1) { const n = gr.nodos[0]; posicion.set(n, { x: p.x(ubicaciones[n]), y: p.y(ubicaciones[n]) }); continue; }
+    if (gr.nodos.length === 1 || editable) {
+      // Al editar no hay abanico: cada detector en su posición real.
+      for (const n of gr.nodos) posicion.set(n, { x: p.x(ubicaciones[n]), y: p.y(ubicaciones[n]) });
+      continue;
+    }
     abanico = true;
     const radio = 20 + 4 * gr.nodos.length;
     gr.nodos.sort((a, b) => a - b).forEach((n, i) => {
@@ -259,7 +307,8 @@ export function dibujarMapa(svg, args = {}) {
     const movido = info(n)?.estado?.movido === true;
     const pos = posicion.get(n);
     const cx = f1(pos.x), cy = f1(pos.y);
-    const g = el('g', { 'data-nodo': n });
+    const g = el('g', { 'data-nodo': n, 'data-x': cx, 'data-y': cy });
+    if (editable) g.style.cursor = v.arrastre?.n === n ? 'grabbing' : 'move';
     // Anillo pequeño fijo alrededor del nodo en vez del círculo de precisión del GPS (10–20 m),
     // que tapaba a los detectores vecinos. La precisión queda en la descripción del mapa.
     g.appendChild(el('circle', { cx, cy, r: 12, fill: c, 'fill-opacity': 0.15, stroke: c, 'stroke-opacity': 0.4, 'stroke-width': 1 }));
