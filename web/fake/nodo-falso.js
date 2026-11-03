@@ -64,8 +64,8 @@ export function crearNodoFalso({ n, puerto = 0 }) {
       return res.end();
     }
 
+    if (colgado && (ruta === '/estado' || req.method === 'POST')) { colgadas.add(res); return; } // nunca responde
     if (req.method === 'GET' && ruta === '/estado') {
-      if (colgado) { colgadas.add(res); return; } // nunca responde
       estado.uptime_ms = Date.now() - inicio;
       return json(res, 200, estado);
     }
