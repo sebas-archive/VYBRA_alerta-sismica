@@ -363,23 +363,33 @@ test('ubicacion: reintenta huella como máximo 1 vez por minuto', async () => {
   let t = 5000000;
   const ubi = crearUbicaciones(null);
   ubi.fijar(2, UBI);
-  const s2 = crearServidor({ poller: p2, nodos, publicDir: dir, ubicaciones: ubi, ahora: () => t, pedirHuella: async (n) => { propias.push(n); } });
+  const s2 = crearServidor({ poller: p2, nodos, publicDir: dir, ubicaciones: ubi, ahora: () => t, revisionHuellaMs: 20, pedirHuella: async (n) => { propias.push(n); } });
   p2.iniciar();
   try {
     await esperar(() => propias.length >= 1);
-    for (let min = 1; min <= 3; min++) {
-      await new Promise((r) => setTimeout(r, 100)); // varios ciclos del poller con el mismo reloj
-      t += 61000;
-      f.estado.log_len += 1; // fuerza un cambio de foto
-      await esperar(() => propias.length >= min + 1);
+    // Foto estable, sin forzar cambios: solo avanza el reloj simulado, de a 30 s, hasta 3 min menos 1 s.
+    for (let seg = 30; seg < 180; seg += 30) {
+      await new Promise((r) => setTimeout(r, 80)); // varias revisiones con el mismo reloj
+      t = 5000000 + seg * 1000;
     }
-    await new Promise((r) => setTimeout(r, 150));
-    assert.ok(propias.length <= 4, `llamadas: ${propias.length}`);
+    await new Promise((r) => setTimeout(r, 80));
+    assert.equal(propias.length, 3, `llamadas: ${propias.length}`); // t=0, 60 s y 120 s
     assert.ok(propias.every((n) => n === 2));
   } finally {
     p2.detener();
     s2.closeAllConnections?.();
   }
+});
+
+test('certificado: key.pem 0600 y carpeta 0700', async () => {
+  const d = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'perm-')), 'c');
+  await asegurarCertificado(d);
+  assert.equal(fs.statSync(path.join(d, 'key.pem')).mode & 0o777, 0o600);
+  assert.equal(fs.statSync(d).mode & 0o777, 0o700);
+  fs.chmodSync(path.join(d, 'key.pem'), 0o644);
+  await asegurarCertificado(d);
+  assert.equal(fs.statSync(path.join(d, 'key.pem')).mode & 0o777, 0o600);
+  fs.rmSync(path.dirname(d), { recursive: true });
 });
 
 test('ubicacion: no reintenta nodos sin ubicación, con huella o caídos', async () => {

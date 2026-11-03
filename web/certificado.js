@@ -32,7 +32,7 @@ export async function asegurarCertificado(dir) {
     vigente = fs.existsSync(archCert) && fs.existsSync(archKey) && fs.readFileSync(archSan, 'utf8') === SAN_PREFIJO + san;
   } catch { /* sin san.txt: se regenera */ }
   if (!vigente) {
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     const lista = ['DNS:localhost', 'IP:127.0.0.1', ...ips.map((ip) => `IP:${ip}`)].join(',');
     await ejecutar('openssl', [
       'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '825',
@@ -40,7 +40,10 @@ export async function asegurarCertificado(dir) {
       '-subj', '/CN=detector-sismos',
       '-addext', `subjectAltName=${lista}`,
     ]);
+    fs.chmodSync(archKey, 0o600);
     fs.writeFileSync(archSan, SAN_PREFIJO + san);
   }
+  // También en certificados ya existentes.
+  try { fs.chmodSync(dir, 0o700); fs.chmodSync(archKey, 0o600); } catch { /* sin permisos para cambiarlo */ }
   return { cert: fs.readFileSync(archCert, 'utf8'), key: fs.readFileSync(archKey, 'utf8') };
 }

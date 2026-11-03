@@ -13,6 +13,7 @@ const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const LIMITE_CUERPO = 4096;
 const VIVO_MS = 5000;  // latido SSE: mantiene viva la conexión y dice "el PC sigue al día"
 const MAX_PENDIENTE = 1024 * 1024;
+const REVISION_HUELLA_MS = 15000;  // revisión periódica: la foto deduplicada puede no emitir 'cambio'
 const REINTENTO_HUELLA_MS = 60000; // como máximo un pedido de huella por minuto y nodo
 
 const TIPOS = {
@@ -82,6 +83,7 @@ export function crearManejador({
   poller, nodos, publicDir = path.join(AQUI, 'public'), detectores = DETECTORES, timeoutNodoMs = 1000,
   maxPendienteSse = MAX_PENDIENTE, vivoMs = VIVO_MS,
   ubicaciones = crearUbicaciones(null), pedirHuella = pedirHuellaPorDefecto(nodos, timeoutNodoMs), ahora = Date.now,
+  revisionHuellaMs = REVISION_HUELLA_MS,
 }) {
   const raiz = path.resolve(publicDir);
   const conUbicaciones = (foto) => ({ ...foto, ubicaciones: ubicaciones.todas() });
@@ -102,6 +104,9 @@ export function crearManejador({
   }
   poller.on('cambio', pedirSiHaceFalta);
   pedirSiHaceFalta(poller.foto());
+  // Un nodo atascado en con_huella:false con la foto estable no genera 'cambio': se revisa con un timer.
+  const revision = setInterval(() => pedirSiHaceFalta(poller.foto()), revisionHuellaMs);
+  revision.unref();
 
   function estatico(res, nombre) {
     let rel;
@@ -204,7 +209,7 @@ export function crearManejador({
     responderJson(res, 200, { ubicacion: guardada });
   }
 
-  return (req, res) => {
+  const manejador = (req, res) => {
     // Se antepone el origen como texto: con base, "//x/y" se leería como host.
     // URL normaliza los ".." en silencio: se rechazan antes sobre la ruta cruda.
     try {
@@ -231,12 +236,16 @@ export function crearManejador({
     }
     responderJson(res, 404, { error: 'no existe' });
   };
+  manejador.detener = () => { clearInterval(revision); poller.off('cambio', pedirSiHaceFalta); };
+  return manejador;
 }
 
 // Servidor HTTP; con `https: {cert, key}` devuelve un servidor HTTPS con el mismo manejador.
 export function crearServidor({ https: tls, ...opciones }) {
   const manejador = crearManejador(opciones);
-  return tls ? https.createServer({ cert: tls.cert, key: tls.key }, manejador) : http.createServer(manejador);
+  const servidor = tls ? https.createServer({ cert: tls.cert, key: tls.key }, manejador) : http.createServer(manejador);
+  servidor.on('close', manejador.detener);
+  return servidor;
 }
 
 const REGLA_UFW = 'sudo ufw allow from 192.168.80.0/24 to any port 8091 proto tcp';
@@ -251,6 +260,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const servidores = [http.createServer(manejador)];
   const ip = ipsLan()[0] ?? 'localhost';
   poller.iniciar();
+  servidores[0].on('error', (e) => {
+    console.error(e.code === 'EADDRINUSE'
+      ? `El puerto ${puerto} está ocupado. Cierra el otro programa o usa otro con la variable PUERTO.`
+      : `No se pudo abrir HTTP en el puerto ${puerto} (variable PUERTO): ${e.message}`);
+    process.exit(1);
+  });
   servidores[0].listen(puerto, '0.0.0.0', () => {
     console.log(`Panel: http://${ip}:${puerto}  Vista pública: http://${ip}:${puerto}/publico`);
   });
@@ -258,6 +273,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const tls = await asegurarCertificado(dirCerts);
     const seguro = https.createServer({ cert: tls.cert, key: tls.key }, manejador);
     servidores.push(seguro);
+    seguro.on('error', (e) => {
+      console.error(e.code === 'EADDRINUSE'
+        ? `El puerto ${puertoHttps} está ocupado; sigo solo con HTTP.`
+        : `HTTPS no disponible (${e.message}); sigo solo con HTTP.`);
+    });
     seguro.listen(puertoHttps, '0.0.0.0', () => {
       console.log(`Para ubicar nodos con el celular (GPS): https://${ip}:${puertoHttps}  (acepta el aviso del certificado)`);
       console.log(`Si el firewall bloquea el celular: ${REGLA_UFW}`);
@@ -265,7 +285,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   } catch (e) {
     console.log(`No se pudo preparar HTTPS (${e.message}). ¿Está instalado openssl? Se sirve solo HTTP; sin HTTPS el celular no podrá usar el GPS.`);
   }
-  const salir = () => { poller.detener(); for (const s of servidores) { s.close(); s.closeAllConnections(); } process.exit(0); };
+  const salir = () => { poller.detener(); manejador.detener(); for (const s of servidores) { s.close(); s.closeAllConnections(); } process.exit(0); };
   process.on('SIGINT', salir);
   process.on('SIGTERM', salir);
 }
