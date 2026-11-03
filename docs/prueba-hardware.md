@@ -16,9 +16,12 @@ Para cada placa N = 1, 2, 3:
   ```bash
   sudo setfacl -m u:t1an:rw /dev/ttyUSB0
   ```
-- [ ] Carga: `firmware/cargar.sh N`
+- [ ] Primera vez: `firmware/cargar.sh N`. Carga el firmware y registra la placa como detector N por su MAC, en `firmware/placas.conf`.
+- [ ] Las siguientes veces basta con `firmware/cargar.sh`: detecta solo cuál detector es. Si pides `cargar.sh 1` en la placa del detector 2, se niega.
 - [ ] Monitor serie (115200): debe decir `nodo-N conectado a Apt_105, IP 192.168.80.20N`.
 - [ ] Desconéctala, márcala SIS-DN y enchúfala a su toma.
+
+Para saber qué placa tienes conectada: `firmware/quien.sh` → "Detector 2 (SIS-D2) conectado en /dev/ttyUSB0". Con `firmware/quien.sh --vigilar` avisa (también con notificación de escritorio) cada vez que conectas una placa.
 
 ## 2. El clúster se forma
 

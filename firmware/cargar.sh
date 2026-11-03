@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
 # Compila y carga el firmware en un detector.
-# Uso: ./cargar.sh <1|2|3> [puerto]     por USB, ej: ./cargar.sh 1  o  ./cargar.sh 2 /dev/ttyUSB1
+# Uso: ./cargar.sh                     por USB, detecta qué detector es por su MAC (placas.conf)
+#      ./cargar.sh <1|2|3> [puerto]     por USB; la primera vez registra la placa como ese detector
 #      ./cargar.sh <1|2|3> --wifi       por red (ArduinoOTA) a 192.168.80.20N
+#      --forzar                         carga aunque la placa esté registrada como otro detector
 set -euo pipefail
 
-NODO="${1:-}"
-if [[ ! "$NODO" =~ ^[123]$ ]]; then
-  echo "Uso: $0 <1|2|3> [puerto | --wifi]" >&2
-  exit 1
+NODO=""; PUERTO=""; WIFI=0; FORZAR=0
+for arg in "$@"; do
+  case "$arg" in
+    1|2|3) NODO="$arg" ;;
+    --wifi) WIFI=1 ;;
+    --forzar) FORZAR=1 ;;
+    /dev/*) PUERTO="$arg" ;;
+    *) echo "Uso: $0 [1|2|3] [puerto | --wifi] [--forzar]" >&2; exit 1 ;;
+  esac
+done
+if [[ $WIFI -eq 1 && -z "$NODO" ]]; then
+  echo "Por WiFi hay que decir qué detector: $0 <1|2|3> --wifi" >&2; exit 1
 fi
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -24,21 +34,38 @@ if [[ -z "$OTA_CLAVE" ]]; then
   exit 1
 fi
 
-WIFI=0
-PUERTO="${2:-}"
-if [[ "$PUERTO" == "--wifi" ]]; then
-  WIFI=1
+if [[ $WIFI -eq 1 ]]; then
   PUERTO="192.168.80.20$NODO"
-elif [[ -z "$PUERTO" ]]; then
-  mapfile -t PUERTOS < <(ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null || true)
-  if [[ ${#PUERTOS[@]} -eq 0 ]]; then
-    echo "No hay ningún ESP32 conectado (no aparece /dev/ttyUSB*). Revisa el cable USB o usa --wifi." >&2
-    exit 1
-  elif [[ ${#PUERTOS[@]} -gt 1 ]]; then
-    echo "Hay varias placas conectadas: ${PUERTOS[*]}. Conecta solo una o indica el puerto." >&2
+else
+  if [[ -z "$PUERTO" ]]; then
+    mapfile -t PUERTOS < <(ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null || true)
+    if [[ ${#PUERTOS[@]} -eq 0 ]]; then
+      echo "No hay ningún ESP32 conectado (no aparece /dev/ttyUSB*). Revisa el cable USB o usa --wifi." >&2
+      exit 1
+    elif [[ ${#PUERTOS[@]} -gt 1 ]]; then
+      echo "Hay varias placas conectadas: ${PUERTOS[*]}. Conecta solo una o indica el puerto." >&2
+      exit 1
+    fi
+    PUERTO="${PUERTOS[0]}"
+  fi
+  # Qué detector es esta placa según su MAC
+  echo "== Identificando la placa en $PUERTO"
+  set +e; REGISTRADO="$("$DIR/quien.sh" --nodo -p "$PUERTO" 2>/dev/null)"; COD=$?; set -e
+  if [[ $COD -ne 0 && $COD -ne 2 ]]; then
+    "$DIR/quien.sh" -p "$PUERTO" >/dev/null   # repite para mostrar el motivo (permiso, BOOT…)
     exit 1
   fi
-  PUERTO="${PUERTOS[0]}"
+  if [[ -z "$NODO" ]]; then
+    if [[ -z "$REGISTRADO" ]]; then
+      echo "Esta placa no está registrada. Dime cuál es: $0 <1|2|3>" >&2; exit 1
+    fi
+    NODO="$REGISTRADO"
+    echo "   Es el detector $NODO (SIS-D$NODO)."
+  elif [[ -n "$REGISTRADO" && "$REGISTRADO" != "$NODO" && $FORZAR -eq 0 ]]; then
+    echo "Ojo: esta placa está registrada como detector $REGISTRADO, no $NODO." >&2
+    echo "Usa $0 $REGISTRADO, o agrega --forzar si de verdad quieres cambiarla." >&2
+    exit 1
+  fi
 fi
 
 BUILD="$DIR/build/nodo-$NODO"
@@ -58,5 +85,8 @@ fi
 echo "== Cargando en $PUERTO"
 arduino-cli upload --fqbn "$FQBN" -p "$PUERTO" --input-dir "$BUILD" "$DIR/detector"
 
-echo "== Listo. Etiqueta esta protoboard como SIS-D$NODO."
+if [[ -z "${REGISTRADO:-}" ]]; then
+  "$DIR/quien.sh" --registrar "$NODO" -p "$PUERTO" | sed 's/^/   /'
+fi
+echo "== Listo: detector $NODO (SIS-D$NODO) cargado."
 echo "   Para ver el detector: arduino-cli monitor -p $PUERTO -c baudrate=115200"
