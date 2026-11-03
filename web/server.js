@@ -10,6 +10,7 @@ import { NODOS, PUERTO, DETECTORES } from './config.js';
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const LIMITE_CUERPO = 4096;
 const PING_MS = 15000;
+const MAX_PENDIENTE = 1024 * 1024;
 
 const TIPOS = {
   '.html': 'text/html; charset=utf-8',
@@ -54,7 +55,7 @@ function leerCuerpo(req, res) {
   });
 }
 
-export function crearServidor({ poller, nodos, publicDir = path.join(AQUI, 'public'), detectores = DETECTORES, timeoutNodoMs = 1000 }) {
+export function crearServidor({ poller, nodos, publicDir = path.join(AQUI, 'public'), detectores = DETECTORES, timeoutNodoMs = 1000, maxPendienteSse = MAX_PENDIENTE }) {
   const raiz = path.resolve(publicDir);
 
   function estatico(res, nombre) {
@@ -82,8 +83,13 @@ export function crearServidor({ poller, nodos, publicDir = path.join(AQUI, 'publ
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
     });
-    const enviar = (foto) => res.write(`event: estado\ndata: ${JSON.stringify({ ...foto, detectores: detectores })}\n\n`);
-    const ping = setInterval(() => res.write(': ping\n\n'), PING_MS);
+    // Cliente detenido (socket a medias): si se acumula demasiado, se corta.
+    const escribir = (texto) => {
+      if (res.writableLength > maxPendienteSse) return res.destroy();
+      res.write(texto);
+    };
+    const enviar = (foto) => escribir(`event: estado\ndata: ${JSON.stringify({ ...foto, detectores: detectores })}\n\n`);
+    const ping = setInterval(() => escribir(': ping\n\n'), PING_MS);
     poller.on('cambio', enviar);
     let limpio = false;
     const limpiar = () => {
@@ -101,8 +107,14 @@ export function crearServidor({ poller, nodos, publicDir = path.join(AQUI, 'publ
   async function proxy(req, res, n, accion) {
     const nodo = nodos.find((x) => x.n === n);
     if (!nodo) return responderJson(res, 404, { error: 'nodo no existe' });
+    // Solo JSON: obliga a preflight CORS desde otras páginas (anti-CSRF).
+    if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) {
+      req.resume();
+      return responderJson(res, 415, { error: 'se requiere application/json' });
+    }
     const cuerpo = await leerCuerpo(req, res);
     if (cuerpo === null) return;
+    try { JSON.parse(cuerpo); } catch { return responderJson(res, 400, { error: 'json invalido' }); }
     try {
       const r = await fetch(`${nodo.url}/${accion}`, {
         method: 'POST',
@@ -123,7 +135,13 @@ export function crearServidor({ poller, nodos, publicDir = path.join(AQUI, 'publ
   }
 
   return http.createServer((req, res) => {
-    const { pathname } = new URL(req.url, 'http://x');
+    // Se antepone el origen como texto: con base, "//x/y" se leería como host.
+    // URL normaliza los ".." en silencio: se rechazan antes sobre la ruta cruda.
+    try {
+      if (decodeURIComponent(req.url.split('?')[0]).split(/[\\/]/).includes('..')) return responderJson(res, 404, { error: 'no existe' });
+    } catch { return responderJson(res, 404, { error: 'no existe' }); }
+    let pathname;
+    try { ({ pathname } = new URL(`http://x${req.url}`)); } catch { return responderJson(res, 400, { error: 'url invalida' }); }
     const metodo = req.method;
 
     if (metodo === 'GET' || metodo === 'HEAD') {

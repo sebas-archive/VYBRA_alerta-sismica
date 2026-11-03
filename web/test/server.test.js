@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
+import { EventEmitter } from 'node:events';
 import { crearNodoFalso } from '../fake/nodo-falso.js';
 import { crearPoller } from '../poller.js';
 import { crearServidor } from '../server.js';
@@ -127,7 +128,7 @@ test('control: reenvía al nodo correcto', async () => {
 });
 
 test('pulsar: reenvía status y cuerpo del nodo (409 caído, 400 cuerpo malo)', async () => {
-  const post = (u, b) => fetch(`${base}${u}`, { method: 'POST', body: b });
+  const post = (u, b) => fetch(`${base}${u}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: b });
   let r = await post('/api/nodos/1/pulsar', '{"ms":1500}');
   assert.equal(r.status, 200);
   assert.equal((await r.json()).ok, true);
@@ -140,13 +141,13 @@ test('pulsar: reenvía status y cuerpo del nodo (409 caído, 400 cuerpo malo)', 
 });
 
 test('control: cuerpo mayor a 4 KB da 413', async () => {
-  const r = await fetch(`${base}/api/nodos/1/control`, { method: 'POST', body: JSON.stringify({ x: 'a'.repeat(5000) }) });
+  const r = await fetch(`${base}/api/nodos/1/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ x: 'a'.repeat(5000) }) });
   assert.equal(r.status, 413);
 });
 
 test('control: nodo inalcanzable da 502', async () => {
   await falsos[2].cerrar();
-  const r = await fetch(`${base}/api/nodos/3/control`, { method: 'POST', body: '{"accion":"caer"}' });
+  const r = await fetch(`${base}/api/nodos/3/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"accion":"caer"}' });
   assert.equal(r.status, 502);
   assert.deepEqual(await r.json(), { error: 'nodo inalcanzable' });
 });
@@ -154,14 +155,14 @@ test('control: nodo inalcanzable da 502', async () => {
 test('control: nodo colgado da 502 por tiempo', async () => {
   falsos[0].colgar(true);
   const t0 = Date.now();
-  const r = await fetch(`${base}/api/nodos/1/control`, { method: 'POST', body: '{"accion":"caer"}' });
+  const r = await fetch(`${base}/api/nodos/1/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"accion":"caer"}' });
   assert.equal(r.status, 502);
   assert.ok(Date.now() - t0 < 1500);
 });
 
 test('control: n fuera de 1-3 da 404', async () => {
   for (const n of ['0', '4', 'x']) {
-    const r = await fetch(`${base}/api/nodos/${n}/control`, { method: 'POST', body: '{}' });
+    const r = await fetch(`${base}/api/nodos/${n}/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
     assert.equal(r.status, 404);
   }
 });
@@ -185,22 +186,78 @@ test('estaticos: rutas y tipos', async () => {
 });
 
 test('estaticos: no permite ..', async () => {
-  fs.writeFileSync(path.join(dir, '..', 'secreto-prueba.txt'), 'x');
+  const fuera = path.join(dir, '..', 'secreto-prueba.html');
+  fs.writeFileSync(fuera, 'SECRETO');
+  fs.writeFileSync(path.join(dir, 'secreto-prueba.html'), 'DENTRO');
   try {
-    for (const ruta of ['/..%2f..%2fetc/passwd', '/%2e%2e/secreto-prueba.txt', '/..%2fsecreto-prueba.txt',
-      '/../secreto-prueba.txt', '/%2fetc/passwd', '//etc/passwd', '/a%00b']) {
+    // Control positivo: el mismo nombre dentro de dir sí se sirve.
+    const ok = await fetch(`${base}/secreto-prueba.html`);
+    assert.equal(ok.status, 200);
+    assert.equal(await ok.text(), 'DENTRO');
+    for (const ruta of ['/..%2fsecreto-prueba.html', '/..%5csecreto-prueba.html',
+      `/%2f${fuera.slice(1)}`, `//${fuera.slice(1)}`, '/a%00b.html']) {
       const r = await fetch(`${base}${ruta}`);
       assert.equal(r.status, 404, ruta);
+      assert.notEqual(await r.text(), 'SECRETO', ruta);
     }
-    // Petición cruda sin normalizar el cliente.
-    const estado = await new Promise((ok, mal) => {
-      const u = new URL(base);
-      const q = http.request({ host: u.hostname, port: u.port, path: '/../secreto-prueba.txt' }, (res) => { res.resume(); ok(res.statusCode); });
-      q.on('error', mal); q.end();
-    });
-    assert.equal(estado, 404);
+    // Peticiones crudas: fetch normaliza ".." y "%2e%2e" antes de enviarlas.
+    const u = new URL(base);
+    for (const ruta of ['/../secreto-prueba.html', '/%2e%2e/secreto-prueba.html', '/%2E%2E/secreto-prueba.html']) {
+      const [estado, texto] = await new Promise((ok2, mal) => {
+        const q = http.request({ host: u.hostname, port: u.port, path: ruta }, (res) => {
+          let t = ''; res.on('data', (d) => { t += d; }); res.on('end', () => ok2([res.statusCode, t]));
+        });
+        q.on('error', mal); q.end();
+      });
+      assert.equal(estado, 404, ruta);
+      assert.notEqual(texto, 'SECRETO', ruta);
+    }
   } finally {
-    fs.rmSync(path.join(dir, '..', 'secreto-prueba.txt'), { force: true });
+    fs.rmSync(fuera, { force: true });
+  }
+});
+
+test('control: sin application/json da 415 y no llega al nodo', async () => {
+  for (const ct of ['text/plain', undefined]) {
+    const r = await fetch(`${base}/api/nodos/1/control`, {
+      method: 'POST', headers: ct ? { 'content-type': ct } : {}, body: '{"accion":"caer"}',
+    });
+    assert.equal(r.status, 415);
+  }
+  assert.equal(falsos[0].peticiones.some((x) => x.metodo === 'POST'), false);
+});
+
+test('control: JSON inválido da 400 y no llega al nodo', async () => {
+  const r = await fetch(`${base}/api/nodos/1/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{no' });
+  assert.equal(r.status, 400);
+  assert.equal(falsos[0].peticiones.some((x) => x.metodo === 'POST'), false);
+});
+
+test('sse: cliente detenido con cola enorme es desconectado', async () => {
+  // Poller falso: solo emite fotos enormes; el cliente no lee nada.
+  const falso = new EventEmitter();
+  falso.foto = () => ({ nodos: [] });
+  const peque = crearServidor({ poller: falso, nodos: [], publicDir: dir, detectores: DETECTORES, maxPendienteSse: 64 * 1024 });
+  await new Promise((r) => peque.listen(0, '127.0.0.1', r));
+  let q;
+  try {
+    await new Promise((ok, mal) => {
+      q = http.get(`http://127.0.0.1:${peque.address().port}/api/stream`, (r) => { r.pause(); ok(); });
+      q.on('error', () => {});
+      q.on('error', mal);
+    });
+    await esperar(() => falso.listenerCount('cambio') === 1);
+    const grande = { nodos: [], foto: 'x'.repeat(8 * 1024 * 1024) };
+    // El primer envío llena los búferes del socket; el siguiente supera el tope y corta.
+    for (let i = 0; i < 5 && falso.listenerCount('cambio') > 0; i++) {
+      falso.emit('cambio', grande);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    await esperar(() => falso.listenerCount('cambio') === 0);
+  } finally {
+    q?.destroy();
+    peque.closeAllConnections();
+    await new Promise((r) => peque.close(r));
   }
 });
 
