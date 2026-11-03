@@ -24,13 +24,123 @@ function escalaBonita(maxM) {
   for (const m of [5, 2, 1]) if (m * pot <= maxM) return m * pot;
   return pot;
 }
-const textoLargo = (m) => (m >= 1000 ? `${m / 1000} km` : `${m} m`);
+const textoLargo = (m) => (m >= 1000 ? `${m / 1000} km` : m >= 1 ? `${m} m` : `${Math.round(m * 100)} cm`);
+
+// ---------- Zoom y desplazamiento ----------
+// Cada <svg> guarda su vista (zoom z y desplazamiento ox/oy en unidades del viewBox) entre redibujos.
+const ANCHO_MIN_M = 3;          // lo más cerca: unos 3 m de ancho visible
+const vistas = new WeakMap();
+const limitar = (v, a, b) => Math.min(b, Math.max(a, v));
+
+function vistaDe(svg) {
+  let v = vistas.get(svg);
+  if (!v) {
+    v = { z: 1, ox: 0, oy: 0, zMax: 1, args: null, punteros: new Map(), pellizco: null, pendiente: false };
+    vistas.set(svg, v);
+    instalarInteraccion(svg, v);
+  }
+  return v;
+}
+
+function redibujar(svg, v) {
+  if (v.pendiente) return;
+  v.pendiente = true;
+  requestAnimationFrame(() => { v.pendiente = false; if (v.args) dibujarMapa(svg, v.args); });
+}
+
+// Acerca o aleja manteniendo fijo el punto (cx, cy) del viewBox.
+function zoomEn(svg, v, factor, cx = ANCHO / 2, cy = ALTO / 2) {
+  const z = limitar(v.z * factor, 1, v.zMax);
+  if (z === v.z) return;
+  const wx = (cx - ANCHO / 2 - v.ox) / v.z, wy = (cy - ALTO / 2 - v.oy) / v.z;
+  v.z = z;
+  v.ox = z === 1 ? 0 : cx - ANCHO / 2 - wx * z;
+  v.oy = z === 1 ? 0 : cy - ALTO / 2 - wy * z;
+  acotar(v);
+  redibujar(svg, v);
+}
+
+function acotar(v) {
+  const mx = (ANCHO / 2) * v.z, my = (ALTO / 2) * v.z;
+  v.ox = limitar(v.ox, -mx, mx);
+  v.oy = limitar(v.oy, -my, my);
+}
+
+function aViewBox(svg, ev) {
+  const r = svg.getBoundingClientRect();
+  return { x: ((ev.clientX - r.left) * ANCHO) / r.width, y: ((ev.clientY - r.top) * ALTO) / r.height };
+}
+
+function instalarInteraccion(svg, v) {
+  // Rueda: zoom alrededor del cursor.
+  svg.addEventListener('wheel', (ev) => {
+    if (!v.args) return;
+    ev.preventDefault();
+    const p = aViewBox(svg, ev);
+    zoomEn(svg, v, ev.deltaY < 0 ? 1.25 : 0.8, p.x, p.y);
+  }, { passive: false });
+
+  // Punteros: un dedo/mouse arrastra; dos dedos pellizcan.
+  svg.addEventListener('pointerdown', (ev) => {
+    if (!v.args) return;
+    v.punteros.set(ev.pointerId, aViewBox(svg, ev));
+    svg.setPointerCapture?.(ev.pointerId);
+    if (v.punteros.size === 2) {
+      const [a, b] = [...v.punteros.values()];
+      v.pellizco = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+    }
+  });
+  svg.addEventListener('pointermove', (ev) => {
+    if (!v.punteros.has(ev.pointerId)) return;
+    const antes = v.punteros.get(ev.pointerId);
+    const ahora = aViewBox(svg, ev);
+    v.punteros.set(ev.pointerId, ahora);
+    if (v.punteros.size === 2 && v.pellizco) {
+      const [a, b] = [...v.punteros.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      zoomEn(svg, v, d / v.pellizco.d, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      v.pellizco.d = d;
+    } else if (v.punteros.size === 1 && v.z > 1) {
+      v.ox += ahora.x - antes.x; v.oy += ahora.y - antes.y;
+      acotar(v);
+      redibujar(svg, v);
+    }
+  });
+  const soltar = (ev) => { v.punteros.delete(ev.pointerId); if (v.punteros.size < 2) v.pellizco = null; };
+  svg.addEventListener('pointerup', soltar);
+  svg.addEventListener('pointercancel', soltar);
+
+  // Botones + / − / Ver todo, debajo del mapa (HTML para que el toque sea cómodo en celular).
+  const barra = document.createElement('div');
+  barra.className = 'mapa-zoom';
+  barra.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:8px;flex-wrap:wrap';
+  const ayuda = document.createElement('span');
+  ayuda.textContent = 'Pellizca el mapa o usa + / − para acercar';
+  ayuda.style.cssText = 'font-size:12px;color:var(--text-3);flex-basis:100%;text-align:right;order:2';
+  const boton = (texto, etiqueta, accion) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = texto; b.setAttribute('aria-label', etiqueta);
+    b.style.cssText = 'min-width:44px;min-height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font:600 15px var(--font);cursor:pointer';
+    b.addEventListener('click', accion);
+    barra.appendChild(b);
+    return b;
+  };
+  v.btnMas = boton('+', 'Acercar el mapa', () => zoomEn(svg, v, 1.6));
+  v.btnMenos = boton('−', 'Alejar el mapa', () => zoomEn(svg, v, 1 / 1.6));
+  v.btnTodo = boton('Ver todo', 'Ver todos los puntos', () => { v.z = 1; v.ox = 0; v.oy = 0; redibujar(svg, v); });
+  barra.appendChild(ayuda);
+  svg.after(barra);
+  v.barra = barra;
+}
 
 // svg: elemento <svg> donde dibujar.
 // ubicaciones: {"N": {lat, lon, precision}}; foto: foto del poller; persona: {lat, lon, precision?} | null;
 // zona: {lat, lon, radioM, nivel?: 'leve'|'moderado'|'fuerte'|'severo'} | null; enfoque: número de nodo a resaltar | null.
 // Devuelve la lista de nodos (números) de la foto sin ubicación.
-export function dibujarMapa(svg, { ubicaciones = {}, foto = null, persona = null, zona = null, enfoque = null } = {}) {
+export function dibujarMapa(svg, args = {}) {
+  const { ubicaciones = {}, foto = null, persona = null, zona = null, enfoque = null } = args;
+  const v = vistaDe(svg);
+  v.args = args;
   svg.replaceChildren();
   svg.setAttribute('viewBox', `0 0 ${ANCHO} ${ALTO}`);
   svg.setAttribute('width', '100%');
@@ -55,6 +165,7 @@ export function dibujarMapa(svg, { ubicaciones = {}, foto = null, persona = null
       x: ANCHO / 2, y: ALTO / 2, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
       fill: 'var(--text-2)', 'font-size': 16, 'font-family': 'var(--font)',
     }, MENSAJE_VACIO));
+    if (v.barra) v.barra.hidden = true;
     return sinUbicar;
   }
 
@@ -67,8 +178,25 @@ export function dibujarMapa(svg, { ubicaciones = {}, foto = null, persona = null
     puntos.push({ lat: zona.lat + dLat, lon: zona.lon + dLon }, { lat: zona.lat - dLat, lon: zona.lon - dLon });
   }
   const margen = 56;
-  const p = proyectar(puntos, ANCHO, ALTO, margen);
+  const base = proyectar(puntos, ANCHO, ALTO, margen);
+  // Vista con zoom: escala alrededor del centro y desplaza.
+  v.zMax = Math.max(1, (base.metrosPorPx * ANCHO) / ANCHO_MIN_M);
+  if (v.z > v.zMax) { v.z = v.zMax; acotar(v); }
+  const p = {
+    x: (q) => (base.x(q) - ANCHO / 2) * v.z + ANCHO / 2 + v.ox,
+    y: (q) => (base.y(q) - ALTO / 2) * v.z + ALTO / 2 + v.oy,
+    metrosPorPx: base.metrosPorPx / v.z,
+  };
   const px = (m) => Math.max(0, m / p.metrosPorPx);
+  if (v.barra) {
+    v.barra.hidden = false;
+    v.btnMas.disabled = v.z >= v.zMax;
+    v.btnMenos.disabled = v.z <= 1;
+    v.btnTodo.disabled = v.z === 1 && v.ox === 0 && v.oy === 0;
+  }
+  // Con zoom, un dedo mueve el mapa; sin zoom, el dedo desplaza la página.
+  svg.style.touchAction = v.z > 1 ? 'none' : 'pan-y';
+  svg.style.cursor = v.z > 1 ? 'grab' : 'default';
 
   // Zona del sismo, debajo de todo lo demás.
   if (zona) {
@@ -88,23 +216,36 @@ export function dibujarMapa(svg, { ubicaciones = {}, foto = null, persona = null
     svg.appendChild(g);
   }
 
-  // Nodos: halo, círculo, etiqueta.
+  // Nodos: halo, círculo, etiqueta. Las etiquetas se acomodan para no taparse entre sí.
   const resumen = [];
-  for (const n of ubicados) {
+  const etiquetas = [];
+  const lugarEtiqueta = (x, y) => {
+    let ly = y;
+    while (etiquetas.some((b) => Math.abs(b.x - x) < 120 && Math.abs(b.y - ly) < 15)) ly += 15;
+    etiquetas.push({ x, y: ly });
+    return ly;
+  };
+  const orden = [...ubicados].sort((a, b) => p.y(ubicaciones[a]) - p.y(ubicaciones[b]) || a - b);
+  for (const n of orden) {
     const u = ubicaciones[n];
     const { color, texto } = colorNodo(foto, n);
     const c = TOKEN[color];
     const movido = info(n)?.estado?.movido === true;
     const cx = f1(p.x(u)), cy = f1(p.y(u));
     const g = el('g', { 'data-nodo': n });
-    if (u.precision > 0) g.appendChild(el('circle', { cx, cy, r: f1(Math.max(14, px(u.precision))), fill: c, 'fill-opacity': 0.12, stroke: c, 'stroke-opacity': 0.35, 'stroke-width': 1 }));
+    if (u.precision > 0) {
+      // Con zoom el halo puede ser más grande que el mapa: entonces solo se dibuja el borde, sin teñir el fondo.
+      const r = Math.max(14, px(u.precision));
+      g.appendChild(el('circle', { cx, cy, r: f1(r), fill: r > ANCHO * 0.6 ? 'none' : c, 'fill-opacity': 0.12, stroke: c, 'stroke-opacity': 0.35, 'stroke-width': 1, 'stroke-dasharray': r > ANCHO * 0.6 ? '6 4' : 'none' }));
+    }
     if (enfoque === n) g.appendChild(el('circle', { cx, cy, r: 22, fill: 'none', stroke: 'var(--text)', 'stroke-width': 2 }));
     const attrs = { cx, cy, r: 14, fill: c, stroke: movido ? 'var(--text)' : 'var(--surface)', 'stroke-width': 2.5 };
     if (movido) attrs['stroke-dasharray'] = '4 3';
     g.appendChild(el('circle', attrs));
     g.appendChild(el('text', { x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#fff', 'font-size': 13, 'font-weight': 700, 'font-family': 'var(--font)' }, String(n)));
-    g.appendChild(el('text', { x: cx, y: f1(p.y(u) + 32), 'text-anchor': 'middle', fill: 'var(--text)', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, `Detector ${n} · ${texto}`));
-    if (movido) g.appendChild(el('text', { x: cx, y: f1(p.y(u) + 46), 'text-anchor': 'middle', fill: 'var(--warn)', 'font-size': 11, 'font-family': 'var(--font)' }, 'se movió'));
+    const ly = lugarEtiqueta(cx, f1(p.y(u) + 32));
+    g.appendChild(el('text', { x: cx, y: ly, 'text-anchor': 'middle', fill: 'var(--text)', stroke: 'var(--surface-2)', 'stroke-width': 3, 'paint-order': 'stroke', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, `Detector ${n} · ${texto}`));
+    if (movido) g.appendChild(el('text', { x: cx, y: lugarEtiqueta(cx, ly + 14), 'text-anchor': 'middle', fill: 'var(--warn)', 'font-size': 11, 'font-family': 'var(--font)' }, 'se movió'));
     svg.appendChild(g);
     resumen.push(`Detector ${n}: ${texto}${movido ? ' (se movió)' : ''}`);
   }

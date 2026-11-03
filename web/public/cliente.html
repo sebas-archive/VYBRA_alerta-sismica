@@ -219,7 +219,17 @@
     .btn-on-alert { flex: 1; padding: 0 12px; font-size: 1rem; white-space: nowrap; }
     .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
   }
-  @media (max-width: 380px) { .svc .lbl { display: none; } }
+  @media (max-width: 480px) {
+    /* En celular la top bar no cabe completa: el chip de servicio queda como un punto con su color */
+    .topbar-in { gap: var(--s2); }
+    .brand { min-width: 0; }
+    .brand span { overflow: hidden; text-overflow: ellipsis; }
+    .svc { padding: 6px; }
+    .svc i { width: 10px; height: 10px; }
+    .svc .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .top-actions { gap: 6px; flex-shrink: 0; }
+    .top-actions .btn-icon { width: 40px; min-height: 40px; }
+  }
 </style>
 </head>
 <body>
