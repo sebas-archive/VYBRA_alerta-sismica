@@ -16,9 +16,10 @@ export function horaEvento(ev) {
 
 const REINTENTO_MS = 2000;
 
-// Se suscribe a /api/stream. alRecibir(foto) en cada mensaje; alCambiarConexion('conectado'|'reconectando').
+// Se suscribe a /api/stream. alRecibir(foto) en cada mensaje; alCambiarConexion('conectado'|'reconectando');
+// alVivo(t) con cada latido del servidor (cada ~5 s): los datos siguen al día aunque no cambien.
 // Devuelve una función para cerrar la suscripción.
-export function suscribir(alRecibir, alCambiarConexion = () => {}) {
+export function suscribir(alRecibir, alCambiarConexion = () => {}, alVivo = () => {}) {
   let fuente = null;
   let temporizador = null;
   let estado = null;
@@ -38,6 +39,12 @@ export function suscribir(alRecibir, alCambiarConexion = () => {}) {
       try { foto = JSON.parse(e.data); } catch { return; }
       avisar('conectado');
       alRecibir(foto);
+    });
+    fuente.addEventListener('vivo', (e) => {
+      let d;
+      try { d = JSON.parse(e.data); } catch { return; }
+      avisar('conectado');
+      alVivo(typeof d?.t === 'number' ? d.t : Date.now());
     });
     fuente.onerror = () => {
       avisar('reconectando');

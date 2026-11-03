@@ -667,6 +667,8 @@
   }
   // ---------- Datos en vivo ----------
   // Cada alerta confirmada por el clúster es un sismo. Todas vienen de pulsaciones: se marcan SIMULACRO.
+  const idAlerta = a => `${a.id}-${(a.eventos || [])[0] || ''}`;
+  const ALERTA_VIEJA_S = 60; // más antigua que esto no se muestra a pantalla completa
   function quakesDe(foto) {
     const dets = Array.isArray(foto.detectores) ? foto.detectores : [];
     const evs = {};
@@ -680,7 +682,7 @@
       const trig = evs[ids[0]];
       const horas = lista.map(horaEvento).filter(h => h != null);
       const ms = trig && horaEvento(trig) != null ? horaEvento(trig) : (horas.length ? Math.max(...horas) : null);
-      out.push({ id: `${a.id}-${ids[0] || ''}`, idx: a.id, t: ms == null ? null : ms / 1000, level: Math.round(a.promedio), avg: a.promedio,
+      out.push({ id: idAlerta(a), idx: a.id, t: ms == null ? null : ms / 1000, level: Math.round(a.promedio), avg: a.promedio,
         k: KEY_DE_NIVEL[a.nivel] || 'moderado', ...estimate(puntos), simulated: true, stations: ids.length,
         pga: Math.max(...puntos.map(d => d.pga)) });
     });
@@ -691,9 +693,16 @@
     S.quorum = !!foto.quorum; S.lastCheck = nowS();
     S.quakes = quakesDe(foto);
     const primera = S.seen === null;
-    if (primera) S.seen = new Set();
+    // Todo lo que trae la primera foto ya existía al abrir la página, aunque su log aún no
+    // haya llegado (p. ej. mientras el PC recarga el log): se marca visto sin mostrarlo.
+    if (primera) S.seen = new Set((foto.alertas || []).map(idAlerta));
     let nueva = null;
-    S.quakes.forEach(q => { if (!S.seen.has(q.id)) { S.seen.add(q.id); if (!primera) nueva = q; } });
+    S.quakes.forEach(q => {
+      if (S.seen.has(q.id)) return;
+      S.seen.add(q.id);
+      const vieja = q.t != null && nowS() - q.t > ALERTA_VIEJA_S;
+      if (!primera && !vieja) nueva = q;
+    });
     actualizarSvc();
     renderAll();
     // Solo las alertas que llegan con la página abierta se muestran a pantalla completa
@@ -794,7 +803,11 @@
   applyTheme(store.get('theme', 'system'));
   go(location.hash.slice(1) || 'ahora');
   renderAll();
-  suscribir(aplicarFoto, estado => { S.conn = estado; actualizarSvc(); renderAll(); });
+  // El latido "vivo" del servidor confirma que los datos siguen al día aunque no cambien.
+  suscribir(aplicarFoto, estado => { S.conn = estado; actualizarSvc(); renderAll(); }, () => {
+    S.lastCheck = nowS();
+    $$('[data-check]').forEach(n => n.textContent = rel(S.lastCheck));
+  });
 </script>
 </body>
 </html>

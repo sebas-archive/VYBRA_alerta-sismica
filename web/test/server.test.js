@@ -99,6 +99,30 @@ test('sse: cambio se propaga', async () => {
   s.cerrar();
 });
 
+test('sse: latido vivo periódico aunque no haya cambios', async () => {
+  const falso = new EventEmitter();
+  falso.foto = () => ({ nodos: [] });
+  const rapido = crearServidor({ poller: falso, nodos: [], publicDir: dir, detectores: DETECTORES, vivoMs: 40 });
+  await new Promise((r) => rapido.listen(0, '127.0.0.1', r));
+  const baseAntes = base;
+  base = `http://127.0.0.1:${rapido.address().port}`;
+  const s = abrirSSE();
+  try {
+    await s.listo;
+    await esperar(() => s.eventos.filter((e) => e.evento === 'vivo').length >= 2, 1000);
+    assert.equal(s.eventos[0].evento, 'estado');
+    const vivo = s.eventos.find((e) => e.evento === 'vivo');
+    assert.equal(typeof vivo.datos.t, 'number');
+    assert.ok(Math.abs(vivo.datos.t - Date.now()) < 5000);
+    assert.equal(s.eventos.filter((e) => e.evento === 'estado').length, 1); // sin cambios, una sola foto
+  } finally {
+    s.cerrar();
+    base = baseAntes;
+    rapido.closeAllConnections();
+    await new Promise((r) => rapido.close(r));
+  }
+});
+
 test('sse: sin fugas de listeners al desconectar', async () => {
   const base0 = poller.listenerCount('cambio');
   const clientes = [1, 2, 3, 4].map(abrirSSE);
@@ -131,7 +155,13 @@ test('pulsar: reenvía status y cuerpo del nodo (409 caído, 400 cuerpo malo)', 
   const post = (u, b) => fetch(`${base}${u}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: b });
   let r = await post('/api/nodos/1/pulsar', '{"ms":1500}');
   assert.equal(r.status, 200);
-  assert.equal((await r.json()).ok, true);
+  let c = await r.json();
+  assert.equal(c.ok, true);
+  assert.equal(c.resultado, 'pendiente'); // seguidor: queda en su cola de reenvío al líder
+  falsos[0].estado.rol = 'lider';
+  r = await post('/api/nodos/1/pulsar', '{"ms":1500}');
+  c = await r.json();
+  assert.equal(c.resultado, 'aceptada'); // el líder lo agrega a su log
   falsos[0].estado.caido = true;
   r = await post('/api/nodos/1/pulsar', '{"ms":1500}');
   assert.equal(r.status, 409);

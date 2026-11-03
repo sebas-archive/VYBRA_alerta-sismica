@@ -107,9 +107,12 @@ export function crearNodoFalso({ n, puerto = 0 }) {
       if (estado.caido) return json(res, 409, { error: 'caido' });
       if (estado.log_lleno) return json(res, 507, { error: 'log lleno' });
       contadorPulsos += 1;
+      // Como el firmware: el líder lo agrega a su log ("aceptada"); un seguidor o candidato lo
+      // deja en su cola de reenvío al líder ("pendiente").
       return json(res, 200, {
         ok: true, id: `nodo-${n}-fake-${contadorPulsos}`,
-        nivel: Math.min(10, 1 + Math.floor(ms / 450)), resultado: 'aceptada',
+        nivel: Math.min(10, 1 + Math.floor(ms / 450)),
+        resultado: estado.rol === 'lider' ? 'aceptada' : 'pendiente',
       });
     }
     return json(res, 404, { error: 'no existe' });

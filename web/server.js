@@ -9,7 +9,7 @@ import { NODOS, PUERTO, DETECTORES } from './config.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const LIMITE_CUERPO = 4096;
-const PING_MS = 15000;
+const VIVO_MS = 5000;  // latido SSE: mantiene viva la conexión y dice "el PC sigue al día"
 const MAX_PENDIENTE = 1024 * 1024;
 
 const TIPOS = {
@@ -55,7 +55,7 @@ function leerCuerpo(req, res) {
   });
 }
 
-export function crearServidor({ poller, nodos, publicDir = path.join(AQUI, 'public'), detectores = DETECTORES, timeoutNodoMs = 1000, maxPendienteSse = MAX_PENDIENTE }) {
+export function crearServidor({ poller, nodos, publicDir = path.join(AQUI, 'public'), detectores = DETECTORES, timeoutNodoMs = 1000, maxPendienteSse = MAX_PENDIENTE, vivoMs = VIVO_MS }) {
   const raiz = path.resolve(publicDir);
 
   function estatico(res, nombre) {
@@ -89,7 +89,9 @@ export function crearServidor({ poller, nodos, publicDir = path.join(AQUI, 'publ
       res.write(texto);
     };
     const enviar = (foto) => escribir(`event: estado\ndata: ${JSON.stringify({ ...foto, detectores: detectores })}\n\n`);
-    const ping = setInterval(() => escribir(': ping\n\n'), PING_MS);
+    // Las fotos solo salen cuando algo cambia: el latido "vivo" le confirma a la vista que los
+    // datos siguen al día aunque no cambien (y evita que proxies corten la conexión ociosa).
+    const ping = setInterval(() => escribir(`event: vivo\ndata: ${JSON.stringify({ t: Date.now() })}\n\n`), vivoMs);
     poller.on('cambio', enviar);
     let limpio = false;
     const limpiar = () => {

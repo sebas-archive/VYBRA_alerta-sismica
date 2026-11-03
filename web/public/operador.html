@@ -272,6 +272,8 @@
   /* ---------- Toasts / diálogo ---------- */
   .toasts { position: fixed; right: var(--s4); bottom: var(--s4); display: grid; gap: var(--s2); z-index: 50; width: min(360px, calc(100vw - 32px)); }
   .toast { background: var(--text); color: var(--bg); padding: var(--s3) var(--s4); border-radius: 8px; font-size: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.2); animation: tin .2s var(--ease); }
+  .toast.info { border-left: 4px solid var(--info); }
+  .toast.warn { border-left: 4px solid var(--warn); }
   @keyframes tin { from { opacity: 0; transform: translateY(8px); } }
   dialog { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); padding: var(--s6); max-width: 480px; width: calc(100% - 32px); }
   dialog::backdrop { background: rgba(10, 16, 20, .45); }
@@ -836,9 +838,9 @@
         ${note}<div class="spacer"></div>${btn}</article>`;
     }).join('');
   }
-  const TL_KIND = { postulo: 'candidate', voto: 'vote', gano: 'win', perdio_lider: 'info', cayo: 'down', recupero: 'recover', log_lleno: 'down' };
+  const TL_KIND = { postulo: 'candidate', voto: 'vote', gano: 'win', perdio_lider: 'info', cayo: 'down', recupero: 'recover', log_lleno: 'down', resincroniza: 'recover' };
   function renderTimeline() {
-    const f = { all: () => true, lider: e => e.tipo === 'gano', eleccion: e => ['postulo', 'voto', 'gano', 'perdio_lider'].includes(e.tipo), caidas: e => ['cayo', 'recupero'].includes(e.tipo) }[S.tl];
+    const f = { all: () => true, lider: e => e.tipo === 'gano', eleccion: e => ['postulo', 'voto', 'gano', 'perdio_lider'].includes(e.tipo), caidas: e => ['cayo', 'recupero', 'resincroniza'].includes(e.tipo) }[S.tl];
     const icons = { vote: 'i-vote', candidate: 'i-vote', win: 'i-crown', down: 'i-power', recover: 'i-refresh', info: 'i-info' };
     const items = S.timeline.filter(f);
     $('#timeline').innerHTML = items.length ? items.map(e => {
@@ -905,11 +907,26 @@
     const r = await pulsar(id, ms);
     const c = r.cuerpo || {};
     if (r.status === 200) {
-      const txt = c.resultado === 'pendiente' ? `Recibido por Servidor ${id}, pendiente: no hay líder o mayoría para confirmarlo.`
-        : c.resultado === 'duplicada' ? `Servidor ${id} ya tenía este evento (duplicado).`
-        : `Servidor ${id} aceptó el evento (nivel ${esc(c.nivel)}).`;
-      S.detMsg[id] = { cls: c.resultado === 'pendiente' ? 'warn' : 'ok', text: txt };
-      toast(`Detector ${id}: ${c.resultado === 'pendiente' ? 'evento pendiente' : c.resultado === 'duplicada' ? 'evento duplicado' : `evento aceptado, nivel ${c.nivel}`}`);
+      // Un seguidor siempre responde "pendiente" (lo deja en su cola y lo reenvía al líder); el
+      // líder responde "aceptada" al agregarlo a su log. Ninguno de los dos es aún "confirmado":
+      // eso depende de que haya líder y mayoría.
+      let cls, txt, tst;
+      if (c.resultado === 'pendiente' && S.leader != null && S.quorum) {
+        cls = 'info'; txt = `Recibido por Servidor ${id}. Reenviado al líder Servidor ${esc(S.leader)}; se confirma cuando la mayoría lo tenga.`;
+        tst = `Detector ${id}: reenviado al líder Servidor ${S.leader}; se confirma cuando la mayoría lo tenga`;
+      } else if (c.resultado === 'pendiente') {
+        cls = 'warn'; txt = `Recibido por Servidor ${id}, pendiente: no hay líder o mayoría para confirmarlo.`;
+        tst = `Detector ${id}: evento pendiente, no hay líder o mayoría`;
+      } else if (c.resultado === 'duplicada') {
+        cls = 'ok'; txt = `Servidor ${id} ya tenía este evento (duplicado).`; tst = `Detector ${id}: evento duplicado`;
+      } else if (!S.quorum) {
+        cls = 'warn'; txt = `Aceptado por el líder (Servidor ${id}), pero sin mayoría queda pendiente.`;
+        tst = `Detector ${id}: aceptado por el líder, pero sin mayoría queda pendiente`;
+      } else {
+        cls = 'ok'; txt = `Servidor ${id} aceptó el evento (nivel ${esc(c.nivel)}).`; tst = `Detector ${id}: evento aceptado, nivel ${c.nivel}`;
+      }
+      S.detMsg[id] = { cls, text: txt };
+      toast(tst, cls === 'ok' ? '' : cls);
     } else if (r.status === 507) {
       S.detMsg[id] = { cls: 'err', text: `Rechazado: log lleno (${LOG_TOPE} entradas).` }; toast('Rechazado: log lleno');
     } else if (r.status === 409) {
@@ -1180,8 +1197,8 @@
   }
 
   // ================= Otros =================
-  function toast(msg) {
-    const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  function toast(msg, kind) {  // kind: '' | 'info' | 'warn'
+    const el = document.createElement('div'); el.className = kind ? `toast ${kind}` : 'toast'; el.textContent = msg;
     $('#toasts').appendChild(el); setTimeout(() => el.remove(), 5000);
   }
   function announce(msg) { $('#sr-live').textContent = msg; }
