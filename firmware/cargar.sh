@@ -76,8 +76,16 @@ arduino-cli compile --fqbn "$FQBN" \
 
 if [[ $WIFI -eq 1 ]]; then
   echo "== Cargando por WiFi en $PUERTO (sismo-nodo-$NODO)"
-  arduino-cli upload --fqbn "$FQBN" -p "$PUERTO" --protocol network \
-    --upload-field "password=$OTA_CLAVE" --input-dir "$BUILD" "$DIR/detector"
+  # espota directo a la IP fija: no depende de mDNS. La placa se conecta de vuelta al PC
+  # por TCP en el puerto 32323, que el firewall debe permitir desde la red de las placas:
+  #   sudo ufw allow from 192.168.80.0/24 to any port 32323 proto tcp
+  ESPOTA="$(ls "$HOME"/.arduino15/packages/esp32/hardware/esp32/*/tools/espota.py 2>/dev/null | sort -V | tail -1)"
+  [[ -n "$ESPOTA" ]] || { echo "No encuentro espota.py (soporte ESP32 de arduino-cli)." >&2; exit 1; }
+  if ! timeout 120 python3 -I "$ESPOTA" -i "$PUERTO" -p 3232 -P 32323 -a "$OTA_CLAVE" -f "$BUILD/detector.ino.bin"; then
+    echo "La carga por WiFi falló. Revisa que el puerto 32323 esté abierto en el firewall:" >&2
+    echo "  sudo ufw allow from 192.168.80.0/24 to any port 32323 proto tcp" >&2
+    exit 1
+  fi
   echo "== Listo. nodo-$NODO se reinicia con el firmware nuevo."
   exit 0
 fi

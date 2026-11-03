@@ -46,6 +46,11 @@ Para saber qué placa tienes conectada: `firmware/quien.sh` → "Detector 2 (SIS
 
 ## 3. Carga por WiFi (OTA)
 
+- [ ] Una sola vez: abre el puerto que usa la carga por WiFi (la placa se conecta de vuelta al PC):
+  ```bash
+  sudo ufw allow from 192.168.80.0/24 to any port 32323 proto tcp
+  ```
+
 - [ ] `firmware/cargar.sh 2 --wifi` → carga sin cable y el nodo 2 vuelve al clúster como seguidor.
 
 ## 4. Interfaz
