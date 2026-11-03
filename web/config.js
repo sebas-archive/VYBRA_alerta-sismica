@@ -16,7 +16,8 @@ function nodosDesdeEntorno(texto) {
 }
 
 export const NODOS = nodosDesdeEntorno(process.env.NODOS);
-export const PUERTO = 8080;
+export const PUERTO = 8090;
+export const PUERTO_HTTPS = 8091;
 export const DETECTORES = [
   { n: 1, lat: 1.2250, lon: -77.2850 },
   { n: 2, lat: 1.2050, lon: -77.2700 },

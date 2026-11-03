@@ -6,3 +6,6 @@ firmware/test/bin/
 node_modules/
 # Espacio de trabajo de los agentes
 .superpowers/
+# Certificado y datos locales del servidor
+web/certs/
+web/datos/

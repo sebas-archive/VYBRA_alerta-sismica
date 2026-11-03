@@ -16,13 +16,14 @@ export function crearNodoFalso({ n, puerto = 0 }) {
     lider_conocido: 0, log_len: 0, commit_index: 0, pendientes: 0,
     log_lleno: false, sucesos_seq: 0, con_hora: true,
     ip: `192.168.80.20${n}`, rssi: -50, uptime_ms: 0,
+    movido: false, con_huella: false,
   };
   const log = [];
   const sucesos = [];
   const alertas = [];
   const peticiones = [];
   let enVuelo = 0;
-  const control = { retardoLog: 0, maxConcurrentes: 0 };
+  const control = { retardoLog: 0, maxConcurrentes: 0, huellaMs: 300 };
 
   function json(res, codigo, cuerpo) {
     res.writeHead(codigo, {
@@ -95,6 +96,12 @@ export function crearNodoFalso({ n, puerto = 0 }) {
       else if (cuerpo.accion === 'recuperar') estado.caido = false;
       else return json(res, 400, { error: 'accion invalida' });
       return json(res, 200, { ok: true, caido: estado.caido });
+    }
+    if (req.method === 'POST' && ruta === '/huella') {
+      if (estado.caido) return json(res, 409, { error: 'caido' });
+      // Como el firmware: responde 202 y toma la huella en cuanto puede.
+      setTimeout(() => { estado.con_huella = true; estado.movido = false; }, control.huellaMs).unref();
+      return json(res, 202, { ok: true });
     }
     if (req.method === 'POST' && ruta === '/pulsar') {
       if (!jsonValido || cuerpo === null || typeof cuerpo !== 'object') {

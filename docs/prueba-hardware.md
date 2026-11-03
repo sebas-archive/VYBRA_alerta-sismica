@@ -8,6 +8,16 @@ Checklist para cargar el firmware Raft en las 3 placas y comprobar la demostraci
 - **No abras las IP de los nodos (`192.168.80.201`–`.203`) en un navegador.** Atienden de a un cliente y el navegador los puede dejar ocupados varios segundos; el panel los mostraría como inalcanzables.
 - **Antes de probar alertas, revisa que los 3 nodos tengan hora:** en Clúster Raft no debe aparecer "sin hora", y `con_hora` debe ser `true` en `/api/estado`. Un evento sin hora nunca forma alerta.
 
+## Puertos del servidor del PC
+
+- **HTTP `8090`**: panel (`/`) y vista pública (`/publico`).
+- **HTTPS `8091`**: mismas rutas, con certificado autofirmado (se genera solo en `web/certs/` con `openssl`). El celular lo necesita para usar el GPS al ubicar un nodo; acepta el aviso de certificado la primera vez.
+- Si el firewall bloquea al celular, abre el 8091 a la red de las placas:
+  ```bash
+  sudo ufw allow from 192.168.80.0/24 to any port 8091 proto tcp
+  ```
+- Las ubicaciones de los nodos se guardan en `web/datos/ubicaciones.json`.
+
 ## 1. Carga por USB (una placa a la vez)
 
 Para cada placa N = 1, 2, 3:

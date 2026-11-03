@@ -7,9 +7,12 @@ import http from 'node:http';
 import { EventEmitter } from 'node:events';
 import { crearNodoFalso } from '../fake/nodo-falso.js';
 import { crearPoller } from '../poller.js';
+import https from 'node:https';
 import { crearServidor } from '../server.js';
+import { crearUbicaciones } from '../ubicaciones.js';
+import { asegurarCertificado } from '../certificado.js';
 
-let falsos = [], poller, servidor, base, dir;
+let falsos = [], poller, servidor, base, dir, archivoUbi, ubicaciones, llamadasHuella, reloj;
 const DETECTORES = [{ n: 1, lat: 1, lon: 2 }];
 
 async function esperar(cond, ms = 3000) {
@@ -32,7 +35,14 @@ beforeEach(async () => {
   fs.writeFileSync(path.join(dir, 'mapa.svg'), '<svg/>');
   const nodos = falsos.map((f) => ({ n: f.n, url: f.url }));
   poller = crearPoller({ nodos, intervaloMs: 30, timeoutMs: 80 });
-  servidor = crearServidor({ poller, nodos, publicDir: dir, detectores: DETECTORES, timeoutNodoMs: 300 });
+  archivoUbi = path.join(dir, 'datos', 'ubicaciones.json');
+  ubicaciones = crearUbicaciones(archivoUbi);
+  llamadasHuella = [];
+  reloj = 1000000;
+  servidor = crearServidor({
+    poller, nodos, publicDir: dir, detectores: DETECTORES, timeoutNodoMs: 300, ubicaciones,
+    ahora: () => reloj,
+  });
   await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${servidor.address().port}`;
   poller.iniciar();
@@ -268,6 +278,7 @@ test('sse: cliente detenido con cola enorme es desconectado', async () => {
   const falso = new EventEmitter();
   falso.foto = () => ({ nodos: [] });
   const peque = crearServidor({ poller: falso, nodos: [], publicDir: dir, detectores: DETECTORES, maxPendienteSse: 64 * 1024 });
+  const base0 = falso.listenerCount('cambio'); // el reintento de huella también escucha
   await new Promise((r) => peque.listen(0, '127.0.0.1', r));
   let q;
   try {
@@ -276,14 +287,14 @@ test('sse: cliente detenido con cola enorme es desconectado', async () => {
       q.on('error', () => {});
       q.on('error', mal);
     });
-    await esperar(() => falso.listenerCount('cambio') === 1);
+    await esperar(() => falso.listenerCount('cambio') === base0 + 1);
     const grande = { nodos: [], foto: 'x'.repeat(8 * 1024 * 1024) };
     // El primer envío llena los búferes del socket; el siguiente supera el tope y corta.
-    for (let i = 0; i < 5 && falso.listenerCount('cambio') > 0; i++) {
+    for (let i = 0; i < 5 && falso.listenerCount('cambio') > base0; i++) {
       falso.emit('cambio', grande);
       await new Promise((r) => setTimeout(r, 50));
     }
-    await esperar(() => falso.listenerCount('cambio') === 0);
+    await esperar(() => falso.listenerCount('cambio') === base0);
   } finally {
     q?.destroy();
     peque.closeAllConnections();
@@ -295,4 +306,117 @@ test('estaticos: sin operador.html responde 404 sin caerse', async () => {
   fs.rmSync(path.join(dir, 'operador.html'));
   const r = await fetch(`${base}/`);
   assert.equal(r.status, 404);
+});
+
+const UBI = { lat: 1.21, lon: -77.28, precision: 12 };
+const postUbi = (n, cuerpo, tipo = 'application/json') => fetch(`${base}/api/nodos/${n}/ubicacion`, {
+  method: 'POST', headers: { 'Content-Type': tipo }, body: typeof cuerpo === 'string' ? cuerpo : JSON.stringify(cuerpo),
+});
+
+test('ubicacion: valida coordenadas', async () => {
+  const malos = [{ ...UBI, lat: 91 }, { ...UBI, lat: -91 }, { ...UBI, lon: 181 }, { ...UBI, lon: -181 },
+    { ...UBI, precision: -1 }, { ...UBI, precision: 'x' }, { lat: 1, lon: 1 }, 'no json', []];
+  for (const m of malos) {
+    const r = await postUbi(2, m);
+    assert.equal(r.status, 400, JSON.stringify(m));
+    assert.ok((await r.json()).error);
+  }
+  assert.equal((await postUbi(4, UBI)).status, 404);
+  assert.equal((await postUbi(2, UBI, 'text/plain')).status, 415);
+  assert.equal(fs.existsSync(archivoUbi), false);
+  assert.equal(falsos[1].peticiones.filter((p) => p.ruta === '/huella').length, 0);
+});
+
+test('ubicacion: guarda y aparece en la foto', async () => {
+  const r = await postUbi(2, UBI);
+  assert.equal(r.status, 200);
+  const { ubicacion } = await r.json();
+  assert.deepEqual({ ...ubicacion, t: 0 }, { ...UBI, t: 0 });
+  assert.ok(Number.isFinite(ubicacion.t));
+  const j = await (await fetch(`${base}/api/estado`)).json();
+  assert.deepEqual(j.ubicaciones['2'], ubicacion);
+  const sse = abrirSSE();
+  await sse.listo;
+  await esperar(() => sse.eventos.length >= 1);
+  assert.deepEqual(sse.eventos[0].datos.ubicaciones['2'], ubicacion);
+  sse.cerrar();
+  // Sobrevive a un servidor nuevo sobre el mismo archivo.
+  const otro = crearServidor({ poller, nodos: [], publicDir: dir, ubicaciones: crearUbicaciones(archivoUbi) });
+  await new Promise((ok) => otro.listen(0, '127.0.0.1', ok));
+  const j2 = await (await fetch(`http://127.0.0.1:${otro.address().port}/api/estado`)).json();
+  assert.deepEqual(j2.ubicaciones['2'], ubicacion);
+  await new Promise((ok) => { otro.close(ok); otro.closeAllConnections(); });
+});
+
+test('ubicacion: pide huella al nodo', async () => {
+  assert.equal((await postUbi(2, UBI)).status, 200);
+  await esperar(() => falsos[1].peticiones.some((p) => p.metodo === 'POST' && p.ruta === '/huella'));
+  await esperar(() => falsos[1].estado.con_huella);
+});
+
+test('ubicacion: reintenta huella como máximo 1 vez por minuto', async () => {
+  const f = falsos[1];
+  f.control.huellaMs = 1e9; // el nodo nunca llega a tener huella
+  const propias = [];
+  const nodos = falsos.map((x) => ({ n: x.n, url: x.url }));
+  const p2 = crearPoller({ nodos, intervaloMs: 20, timeoutMs: 80 });
+  let t = 5000000;
+  const ubi = crearUbicaciones(null);
+  ubi.fijar(2, UBI);
+  const s2 = crearServidor({ poller: p2, nodos, publicDir: dir, ubicaciones: ubi, ahora: () => t, pedirHuella: async (n) => { propias.push(n); } });
+  p2.iniciar();
+  try {
+    await esperar(() => propias.length >= 1);
+    for (let min = 1; min <= 3; min++) {
+      await new Promise((r) => setTimeout(r, 100)); // varios ciclos del poller con el mismo reloj
+      t += 61000;
+      f.estado.log_len += 1; // fuerza un cambio de foto
+      await esperar(() => propias.length >= min + 1);
+    }
+    await new Promise((r) => setTimeout(r, 150));
+    assert.ok(propias.length <= 4, `llamadas: ${propias.length}`);
+    assert.ok(propias.every((n) => n === 2));
+  } finally {
+    p2.detener();
+    s2.closeAllConnections?.();
+  }
+});
+
+test('ubicacion: no reintenta nodos sin ubicación, con huella o caídos', async () => {
+  const propias = [];
+  const nodos = falsos.map((x) => ({ n: x.n, url: x.url }));
+  const p2 = crearPoller({ nodos, intervaloMs: 20, timeoutMs: 80 });
+  const ubi = crearUbicaciones(null);
+  ubi.fijar(1, UBI); ubi.fijar(2, UBI);
+  falsos[0].estado.con_huella = true;
+  falsos[1].estado.caido = true;
+  crearServidor({ poller: p2, nodos, publicDir: dir, ubicaciones: ubi, pedirHuella: async (n) => { propias.push(n); } });
+  p2.iniciar();
+  await new Promise((r) => setTimeout(r, 300));
+  p2.detener();
+  assert.deepEqual(propias, []);
+});
+
+test('https: sirve /api/estado en el puerto seguro', async () => {
+  const certs = fs.mkdtempSync(path.join(os.tmpdir(), 'cert-'));
+  const { cert, key } = await asegurarCertificado(certs);
+  const sec = https.createServer({ cert, key });
+  const nodos = falsos.map((x) => ({ n: x.n, url: x.url }));
+  const s2 = crearServidor({ poller, nodos, publicDir: dir, ubicaciones, https: { cert, key } });
+  await new Promise((ok) => s2.listen(0, '127.0.0.1', ok));
+  try {
+    const estado = await new Promise((ok, mal) => {
+      https.get({ host: '127.0.0.1', port: s2.address().port, path: '/api/estado', rejectUnauthorized: false }, (res) => {
+        let b = '';
+        res.on('data', (c) => { b += c; });
+        res.on('end', () => ok({ status: res.statusCode, cuerpo: JSON.parse(b) }));
+      }).on('error', mal);
+    });
+    assert.equal(estado.status, 200);
+    assert.ok(Array.isArray(estado.cuerpo.nodos));
+  } finally {
+    sec.close();
+    await new Promise((ok) => { s2.close(ok); s2.closeAllConnections(); });
+    fs.rmSync(certs, { recursive: true, force: true });
+  }
 });
