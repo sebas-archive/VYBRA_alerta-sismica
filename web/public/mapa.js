@@ -226,28 +226,60 @@ export function dibujarMapa(svg, args = {}) {
     return ly;
   };
   const orden = [...ubicados].sort((a, b) => p.y(ubicaciones[a]) - p.y(ubicaciones[b]) || a - b);
+
+  // Nodos que caen en el mismo punto de la pantalla (el GPS de un celular no distingue
+  // menos de ~10 m) se abren en abanico alrededor del punto real, con una línea hacia él.
+  const SEPARACION_PX = 30;
+  const grupos = [];
+  for (const n of orden) {
+    const x = p.x(ubicaciones[n]), y = p.y(ubicaciones[n]);
+    const g = grupos.find((gr) => Math.hypot(gr.x - x, gr.y - y) < SEPARACION_PX);
+    if (g) { g.nodos.push(n); g.x = (g.x * (g.nodos.length - 1) + x) / g.nodos.length; g.y = (g.y * (g.nodos.length - 1) + y) / g.nodos.length; }
+    else grupos.push({ x, y, nodos: [n] });
+  }
+  const posicion = new Map();
+  let abanico = false;
+  for (const gr of grupos) {
+    if (gr.nodos.length === 1) { const n = gr.nodos[0]; posicion.set(n, { x: p.x(ubicaciones[n]), y: p.y(ubicaciones[n]) }); continue; }
+    abanico = true;
+    const radio = 30 + 6 * gr.nodos.length;
+    gr.nodos.sort((a, b) => a - b).forEach((n, i) => {
+      const ang = -Math.PI / 2 + (2 * Math.PI * i) / gr.nodos.length;
+      posicion.set(n, { x: gr.x + radio * Math.cos(ang), y: gr.y + radio * Math.sin(ang), real: { x: p.x(ubicaciones[n]), y: p.y(ubicaciones[n]) } });
+    });
+    svg.appendChild(el('circle', { cx: f1(gr.x), cy: f1(gr.y), r: 4, fill: 'var(--text-2)' }));
+  }
+
   for (const n of orden) {
     const u = ubicaciones[n];
     const { color, texto } = colorNodo(foto, n);
     const c = TOKEN[color];
     const movido = info(n)?.estado?.movido === true;
-    const cx = f1(p.x(u)), cy = f1(p.y(u));
+    const pos = posicion.get(n);
+    const cx = f1(pos.x), cy = f1(pos.y);
     const g = el('g', { 'data-nodo': n });
+    if (pos.real) g.appendChild(el('line', { x1: f1(pos.real.x), y1: f1(pos.real.y), x2: cx, y2: cy, stroke: 'var(--text-2)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }));
     if (u.precision > 0) {
       // Con zoom el halo puede ser más grande que el mapa: entonces solo se dibuja el borde, sin teñir el fondo.
       const r = Math.max(14, px(u.precision));
-      g.appendChild(el('circle', { cx, cy, r: f1(r), fill: r > ANCHO * 0.6 ? 'none' : c, 'fill-opacity': 0.12, stroke: c, 'stroke-opacity': 0.35, 'stroke-width': 1, 'stroke-dasharray': r > ANCHO * 0.6 ? '6 4' : 'none' }));
+      const hx = pos.real ? f1(pos.real.x) : cx, hy = pos.real ? f1(pos.real.y) : cy;
+      g.appendChild(el('circle', { cx: hx, cy: hy, r: f1(r), fill: r > ANCHO * 0.6 ? 'none' : c, 'fill-opacity': 0.12, stroke: c, 'stroke-opacity': 0.35, 'stroke-width': 1, 'stroke-dasharray': r > ANCHO * 0.6 ? '6 4' : 'none' }));
     }
     if (enfoque === n) g.appendChild(el('circle', { cx, cy, r: 22, fill: 'none', stroke: 'var(--text)', 'stroke-width': 2 }));
     const attrs = { cx, cy, r: 14, fill: c, stroke: movido ? 'var(--text)' : 'var(--surface)', 'stroke-width': 2.5 };
     if (movido) attrs['stroke-dasharray'] = '4 3';
     g.appendChild(el('circle', attrs));
     g.appendChild(el('text', { x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#fff', 'font-size': 13, 'font-weight': 700, 'font-family': 'var(--font)' }, String(n)));
-    const ly = lugarEtiqueta(cx, f1(p.y(u) + 32));
+    const ly = lugarEtiqueta(cx, f1(pos.y + 32));
     g.appendChild(el('text', { x: cx, y: ly, 'text-anchor': 'middle', fill: 'var(--text)', stroke: 'var(--surface-2)', 'stroke-width': 3, 'paint-order': 'stroke', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, `Detector ${n} · ${texto}`));
     if (movido) g.appendChild(el('text', { x: cx, y: lugarEtiqueta(cx, ly + 14), 'text-anchor': 'middle', fill: 'var(--warn)', 'font-size': 11, 'font-family': 'var(--font)' }, 'se movió'));
     svg.appendChild(g);
     resumen.push(`Detector ${n}: ${texto}${movido ? ' (se movió)' : ''}`);
+  }
+
+  if (abanico) {
+    svg.appendChild(el('text', { x: ANCHO - 16, y: ALTO - 18, 'text-anchor': 'end', fill: 'var(--text-2)', 'font-size': 11, 'font-family': 'var(--font)' },
+      'Detectores en el mismo punto: separados para verlos'));
   }
 
   // Barra de escala (abajo a la izquierda).
