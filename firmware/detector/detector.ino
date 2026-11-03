@@ -48,7 +48,9 @@ const uint32_t ESCANEO_PRIMERO_MS = 15000;  // huella: el primero 15 s tras arra
 const uint32_t ESCANEO_SEGUNDO_MS = 30000;  // el segundo a los 30 s (la unión de ambos ya decide)
 const uint32_t ESCANEO_CADA_MS = 120000;    // y después uno cada 2 min
 const uint32_t ESCANEO_MIN_MS = 15000;      // nunca dos con menos de 15 s entre ellos
-const uint32_t ESCANEO_MS_POR_CANAL = 60;   // activo: pregunta a los AP en vez de esperar beacons
+// Escaneo activo: pregunta a los AP en vez de esperar beacons. Peor caso ~14 canales × 60 ms ≈ 0,85 s.
+const uint32_t ESCANEO_MIN_MS_POR_CANAL = 30;   // mínimo por canal (el core trae 100, mayor que el máximo)
+const uint32_t ESCANEO_MS_POR_CANAL = 60;       // máximo por canal
 const uint32_t ESCANEO_LIMITE_MS = 10000;   // si no termina en 10 s, se da por perdido
 const size_t MAX_APS_HUELLA = 8;
 
@@ -282,6 +284,7 @@ void vigilarHuella(uint64_t ahora) {
   if (!puedeEscanear(ahora)) return;
   escaneosLanzados++;
   inicioEscaneo = ahora;   // también si falla al lanzarse: así no se insiste en cada vuelta
+  WiFi.setScanActiveMinTime(ESCANEO_MIN_MS_POR_CANAL);   // así el mínimo no queda por encima del máximo
   int r = WiFi.scanNetworks(true, false, false, ESCANEO_MS_POR_CANAL);   // asíncrono y activo
   escaneando = r == WIFI_SCAN_RUNNING;
 }

@@ -189,3 +189,24 @@ PRUEBA(union_evita_falso_positivo_3_y_3) {
   d.nuevoEscaneo(a);
   CHECK(!d.movido());
 }
+
+PRUEBA(movido_en_marcha_en_3_evaluaciones) {
+  // Lo mueven andando: el escaneo de antes de moverlo sigue en el historial una evaluación más.
+  DetectorMovimiento d;
+  std::vector<Ap> ref = lista(8);
+  d.fijarReferencia(ref);
+  d.nuevoEscaneo(ref);
+  d.nuevoEscaneo(ref);
+  std::vector<Ap> otros;
+  for (int i = 0; i < 6; i++) {
+    char b[24];
+    std::snprintf(b, sizeof b, "11:22:33:44:55:%02x", i);
+    otros.push_back({b, -50 - i});
+  }
+  d.nuevoEscaneo(otros);  // unión con el de antes: todavía parece igual
+  CHECK(!d.movido());
+  d.nuevoEscaneo(otros);
+  CHECK(!d.movido());
+  d.nuevoEscaneo(otros);
+  CHECK(d.movido());
+}
