@@ -42,6 +42,7 @@ const uint32_t PULSO_MAX_MS = 60000;        // tope para POST /pulsar
 const uint32_t ANTIRREBOTE_MS = 20;
 const uint32_t WIFI_LIMITE_MS = 30000;      // sin WiFi en 30 s al arrancar: reinicia
 const uint32_t WIFI_REINTENTO_MS = 20000;   // ya andando: pide reconexión cada 20 s si se cayó
+const uint32_t WIFI_REINICIO_MS = 180000;   // 3 min sin WiFi: reinicia la placa (Raft guarda término y voto)
 const uint32_t NTP_CADA_MS = 10UL * 60 * 1000;
 const int MAX_PAQUETES_POR_LOOP = 8;
 const uint32_t ESCANEO_PRIMERO_MS = 15000;  // huella: el primero 15 s tras arrancar
@@ -91,6 +92,8 @@ uint64_t tPulso = 0;
 
 uint64_t proximoNtp = 0;
 uint64_t proximoReintentoWifi = 0;
+uint64_t wifiCaidoDesde = 0;   // 0 = conectado
+uint32_t reintentosWifi = 0;
 uint32_t ultimoSucesoImpreso = 0;
 
 // Huella WiFi. El escaneo es asíncrono: se lanza y se revisa en cada vuelta del loop.
@@ -118,14 +121,19 @@ void pedirHora() { configTime(GMT_OFFSET_S, 0, "pool.ntp.org", "time.google.com"
 
 // ---------------------------------------------------------------- WiFi
 
-void conectarWiFi() {
+// IP fija, gateway y DNS (el gateway también es el DNS: lo necesita NTP).
+void aplicarIpFija() {
   IPAddress ip, gw, mascara;
   ip.fromString(IP_NODOS[NODO - 1]);
   gw.fromString(GATEWAY);
   mascara.fromString(MASCARA);
+  WiFi.config(ip, gw, mascara, gw);
+}
+
+void conectarWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);   // sin ahorro de energía: menos latencia en UDP
-  WiFi.config(ip, gw, mascara, gw);   // el gateway también es el DNS (lo necesita NTP)
+  aplicarIpFija();
   WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   uint32_t t0 = millis();
@@ -142,14 +150,32 @@ void conectarWiFi() {
 }
 
 // Ya andando: la reconexión la hace el propio WiFi; si tarda, se vuelve a pedir sin esperar.
+// Si el router se apaga, WiFi.reconnect() del ESP32 a veces se queda trabado. Se escala:
+// cada 20 s reconnect(); cada 3 intentos, reconexión completa; a los 3 min, reinicio.
 void vigilarWiFi(uint64_t ahora) {
   if (WiFi.status() == WL_CONNECTED) {
+    wifiCaidoDesde = 0;
+    reintentosWifi = 0;
     proximoReintentoWifi = ahora + WIFI_REINTENTO_MS;
     return;
   }
+  if (wifiCaidoDesde == 0) wifiCaidoDesde = ahora;
+  if (ahora - wifiCaidoDesde > WIFI_REINICIO_MS) {
+    Serial.println("Sin WiFi hace 3 min, reiniciando");
+    delay(100);   // deja salir el mensaje; ya no hay red que atender
+    ESP.restart();
+  }
   if (ahora >= proximoReintentoWifi) {
-    Serial.println("WiFi caído, pidiendo reconexión");
-    WiFi.reconnect();
+    reintentosWifi++;
+    if (reintentosWifi % 3 == 0) {
+      Serial.println("WiFi caído, reconexión completa");
+      WiFi.disconnect(false, false);
+      aplicarIpFija();
+      WiFi.begin(WIFI_SSID, WIFI_PASS);
+    } else {
+      Serial.println("WiFi caído, pidiendo reconexión");
+      WiFi.reconnect();
+    }
     proximoReintentoWifi = ahora + WIFI_REINTENTO_MS;
   }
 }
