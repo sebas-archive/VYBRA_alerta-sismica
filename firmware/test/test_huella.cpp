@@ -88,3 +88,39 @@ PRUEBA(fijar_referencia_limpia) {
   d.nuevoEscaneo({});
   CHECK(!d.movido());  // el contador también se limpió
 }
+
+PRUEBA(ap_nuevos_mas_fuertes_no_mueven) {
+  // Referencia de 8; el escaneo actual trae los mismos 8 y 10 AP nuevos más fuertes.
+  std::vector<Ap> ref = lista(8);
+  std::vector<Ap> actual = ref;
+  for (int i = 0; i < 10; i++) {
+    char b[24];
+    std::snprintf(b, sizeof b, "11:22:33:44:55:%02x", i);
+    actual.push_back({b, -20 - i});
+  }
+  std::vector<Ap> completo = mejoresAps(actual, actual.size());  // como detector.ino: sin recortar
+  CHECK_EQ(completo.size(), 18u);
+  CHECK_EQ(parecido(ref, completo), 1.0f);
+  CHECK(parecido(ref, mejoresAps(actual)) < 0.5f);  // con solo los 8 mejores se perdería todo
+  DetectorMovimiento d;
+  d.fijarReferencia(ref);
+  d.nuevoEscaneo(completo);
+  d.nuevoEscaneo(completo);
+  CHECK(!d.movido());
+}
+
+PRUEBA(restaurar_movido) {
+  DetectorMovimiento d;
+  d.restaurarMovido(true);
+  CHECK(!d.movido());  // sin referencia no aplica
+  d.fijarReferencia(lista(5));
+  d.restaurarMovido(true);
+  CHECK(d.movido());
+  d.nuevoEscaneo(lista(5));
+  CHECK(d.movido());  // un escaneo bueno no lo desmarca: solo una referencia nueva
+  d.fijarReferencia(lista(5));
+  CHECK(!d.movido());
+  d.restaurarMovido(false);
+  d.nuevoEscaneo({});
+  CHECK(!d.movido());  // el contador arranca de cero
+}

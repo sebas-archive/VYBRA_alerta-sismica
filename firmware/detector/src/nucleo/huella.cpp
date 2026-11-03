@@ -39,6 +39,11 @@ void DetectorMovimiento::fijarReferencia(const std::vector<Ap>& ref) {
   movido_ = false;
 }
 
+void DetectorMovimiento::restaurarMovido(bool movido) {
+  movido_ = movido && !ref_.empty();
+  malosSeguidos_ = 0;
+}
+
 void DetectorMovimiento::nuevoEscaneo(const std::vector<Ap>& actual) {
   if (ref_.empty()) return;  // sin referencia no hay nada que comparar
   if (parecido(ref_, actual) < 0.5f) {

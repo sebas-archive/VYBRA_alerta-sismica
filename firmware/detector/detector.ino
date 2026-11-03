@@ -13,6 +13,7 @@
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 #include <esp_timer.h>
+#include <esp_wifi.h>
 #include <time.h>
 #include <sys/time.h>
 #include "config.h"
@@ -65,7 +66,7 @@ struct PersistenciaNvs : nucleo::Persistencia {
 };
 
 PersistenciaNvs persistencia;
-Preferences prefsUbic;   // namespace "ubic", clave "ref": huella de referencia en JSON
+Preferences prefsUbic;   // namespace "ubic": "ref" huella de referencia en JSON, "mov" si lo movieron
 nucleo::Raft* raft = nullptr;   // se crea en setup(), cuando ya hay semilla aleatoria
 WiFiUDP udp;
 WebServer servidor(80);
@@ -188,7 +189,10 @@ void cargarHuella() {
     ref.push_back({item[0].as<const char*>(), item[1].as<int>()});
   }
   detectorMov.fijarReferencia(nucleo::mejoresAps(ref, MAX_APS_HUELLA));
-  Serial.printf("huella de referencia cargada: %u AP\n", (unsigned)ref.size());
+  // Si ya se había movido antes de reiniciar, sigue movido y el suceso no se registra otra vez.
+  detectorMov.restaurarMovido(prefsUbic.getBool("mov", false));
+  movidoAvisado = detectorMov.movido();
+  Serial.printf("huella de referencia cargada: %u AP%s\n", (unsigned)ref.size(), movidoAvisado ? " (movido)" : "");
 }
 
 void guardarHuella(const std::vector<nucleo::Ap>& ref) {
@@ -224,18 +228,23 @@ void procesarEscaneo(int n) {
   }
   WiFi.scanDelete();
   if (vistas.empty()) return;   // sin AP no sirve de referencia ni cuenta como escaneo malo
-  std::vector<nucleo::Ap> mejores = nucleo::mejoresAps(vistas, MAX_APS_HUELLA);
   if (huellaPedida && !raft->caido()) {
+    // La referencia son los más fuertes; la comparación usa todo lo visto (sin repetidos).
+    std::vector<nucleo::Ap> mejores = nucleo::mejoresAps(vistas, MAX_APS_HUELLA);
     detectorMov.fijarReferencia(mejores);   // también limpia "movido"
     guardarHuella(mejores);
+    prefsUbic.putBool("mov", false);
     huellaPedida = false;
     movidoAvisado = false;
     Serial.printf("huella de referencia nueva: %u AP\n", (unsigned)mejores.size());
     return;
   }
-  detectorMov.nuevoEscaneo(mejores);
+  // Parecido = proporción de la referencia que sigue visible: se compara contra el escaneo completo,
+  // así unos AP nuevos más fuertes no desplazan a los de referencia.
+  detectorMov.nuevoEscaneo(nucleo::mejoresAps(vistas, vistas.size()));
   if (detectorMov.movido() && !movidoAvisado) {
     raft->registrarSuceso("movido", "Servidor " + std::to_string(NODO) + " detectó que lo movieron");
+    prefsUbic.putBool("mov", true);   // sobrevive a un reinicio
     movidoAvisado = true;
   }
 }
@@ -246,6 +255,7 @@ void vigilarHuella(uint64_t ahora) {
     if (n == WIFI_SCAN_RUNNING) {
       if (ahora - inicioEscaneo < ESCANEO_LIMITE_MS) return;
       Serial.println("escaneo WiFi sin terminar, se descarta");
+      esp_wifi_scan_stop();   // si no, el driver sigue escaneando y el próximo scanNetworks falla
       WiFi.scanDelete();
       escaneando = false;
       return;
@@ -348,8 +358,10 @@ void enEstado() {
   info.rssi = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
   info.uptimeMs = ahoraMs();
   info.conHora = ahoraEpochMs() != 0;
-  info.movido = detectorMov.movido();
-  info.conHuella = detectorMov.tieneReferencia();
+  // Con una huella pedida y aún sin tomar, la vista muestra "Tomando huella WiFi…" (y el servidor
+  // la vuelve a pedir si el nodo reinicia antes del escaneo).
+  info.movido = detectorMov.movido() && !huellaPedida;
+  info.conHuella = detectorMov.tieneReferencia() && !huellaPedida;
   responder(200, nucleo::jsonEstado(*raft, NODO, info));
 }
 

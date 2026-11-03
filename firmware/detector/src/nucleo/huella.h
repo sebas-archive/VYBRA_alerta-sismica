@@ -27,6 +27,8 @@ class DetectorMovimiento {
   const std::vector<Ap>& referencia() const { return ref_; }
   void nuevoEscaneo(const std::vector<Ap>& actual);
   bool movido() const { return movido_; }
+  // Tras reiniciar: vuelve a marcar "movido" si se había guardado así. Sin referencia no aplica.
+  void restaurarMovido(bool movido);
 
  private:
   std::vector<Ap> ref_;
