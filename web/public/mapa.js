@@ -232,7 +232,7 @@ export function dibujarMapa(svg, args = {}) {
 
   // Nodos que caen en el mismo punto de la pantalla (el GPS de un celular no distingue
   // menos de ~10 m) se separan alrededor de ese punto para que se vean todos.
-  const SEPARACION_PX = 30;
+  const SEPARACION_PX = 22;
   const grupos = [];
   for (const n of orden) {
     const x = p.x(ubicaciones[n]), y = p.y(ubicaciones[n]);
@@ -245,7 +245,7 @@ export function dibujarMapa(svg, args = {}) {
   for (const gr of grupos) {
     if (gr.nodos.length === 1) { const n = gr.nodos[0]; posicion.set(n, { x: p.x(ubicaciones[n]), y: p.y(ubicaciones[n]) }); continue; }
     abanico = true;
-    const radio = 30 + 6 * gr.nodos.length;
+    const radio = 20 + 4 * gr.nodos.length;
     gr.nodos.sort((a, b) => a - b).forEach((n, i) => {
       const ang = -Math.PI / 2 + (2 * Math.PI * i) / gr.nodos.length;
       posicion.set(n, { x: gr.x + radio * Math.cos(ang), y: gr.y + radio * Math.sin(ang), real: { x: p.x(ubicaciones[n]), y: p.y(ubicaciones[n]) } });
@@ -262,13 +262,13 @@ export function dibujarMapa(svg, args = {}) {
     const g = el('g', { 'data-nodo': n });
     // Anillo pequeño fijo alrededor del nodo en vez del círculo de precisión del GPS (10–20 m),
     // que tapaba a los detectores vecinos. La precisión queda en la descripción del mapa.
-    g.appendChild(el('circle', { cx, cy, r: 18, fill: c, 'fill-opacity': 0.15, stroke: c, 'stroke-opacity': 0.4, 'stroke-width': 1 }));
-    if (enfoque === n) g.appendChild(el('circle', { cx, cy, r: 22, fill: 'none', stroke: 'var(--text)', 'stroke-width': 2 }));
-    const attrs = { cx, cy, r: 14, fill: c, stroke: movido ? 'var(--text)' : 'var(--surface)', 'stroke-width': 2.5 };
+    g.appendChild(el('circle', { cx, cy, r: 12, fill: c, 'fill-opacity': 0.15, stroke: c, 'stroke-opacity': 0.4, 'stroke-width': 1 }));
+    if (enfoque === n) g.appendChild(el('circle', { cx, cy, r: 14, fill: 'none', stroke: 'var(--text)', 'stroke-width': 2 }));
+    const attrs = { cx, cy, r: 9, fill: c, stroke: movido ? 'var(--text)' : 'var(--surface)', 'stroke-width': 2 };
     if (movido) attrs['stroke-dasharray'] = '4 3';
     g.appendChild(el('circle', attrs));
-    g.appendChild(el('text', { x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#fff', 'font-size': 13, 'font-weight': 700, 'font-family': 'var(--font)' }, String(n)));
-    const ly = lugarEtiqueta(cx, f1(pos.y + 32));
+    g.appendChild(el('text', { x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#fff', 'font-size': 10, 'font-weight': 700, 'font-family': 'var(--font)' }, String(n)));
+    const ly = lugarEtiqueta(cx, f1(pos.y + 24));
     g.appendChild(el('text', { x: cx, y: ly, 'text-anchor': 'middle', fill: 'var(--text)', stroke: 'var(--surface-2)', 'stroke-width': 3, 'paint-order': 'stroke', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, `Detector ${n} · ${texto}`));
     if (movido) g.appendChild(el('text', { x: cx, y: lugarEtiqueta(cx, ly + 14), 'text-anchor': 'middle', fill: 'var(--warn)', 'font-size': 11, 'font-family': 'var(--font)' }, 'se movió'));
     svg.appendChild(g);
