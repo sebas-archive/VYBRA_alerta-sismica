@@ -60,6 +60,8 @@ class Raft {
   Propuesta proponer(Evento ev, uint64_t ahoraMs);
   void caer(uint64_t ahoraMs);
   void recuperar(uint64_t ahoraMs);
+  // Suceso que viene de fuera del núcleo (por ejemplo, la huella WiFi detectó que movieron la placa).
+  void registrarSuceso(const std::string& tipo, const std::string& texto);
 
   Rol rol() const { return rol_; }
   uint32_t termino() const { return termino_; }

@@ -477,6 +477,8 @@ void Raft::recuperar(uint64_t ahoraMs) {
 
 // ---------------------------------------------------------------- sucesos
 
+void Raft::registrarSuceso(const std::string& tipo, const std::string& texto) { suceso(tipo.c_str(), texto); }
+
 void Raft::suceso(const char* tipo, const std::string& texto) {
   Suceso s;
   s.seq = ++sucesosSeq_;

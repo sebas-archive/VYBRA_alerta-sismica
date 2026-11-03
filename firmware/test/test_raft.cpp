@@ -279,6 +279,21 @@ PRUEBA(sucesos_tope_50) {
   CHECK_EQ(r.sucesos().back().t, reloj());
 }
 
+PRUEBA(registrar_suceso_externo) {
+  PersistenciaMem p;
+  ConfigRaft c;
+  c.yo = 2;
+  c.semilla = kSemilla;
+  Raft r(c, p, reloj);
+  uint32_t antes = r.sucesosSeq();
+  r.registrarSuceso("movido", "Servidor 2 detectó que lo movieron");
+  CHECK_EQ(r.sucesosSeq(), antes + 1);
+  CHECK(tieneSuceso(r, "movido"));
+  CHECK_EQ(r.sucesos().back().seq, antes + 1);
+  CHECK_EQ(r.sucesos().back().texto, std::string("Servidor 2 detectó que lo movieron"));
+  CHECK_EQ(r.sucesos().back().t, reloj());
+}
+
 PRUEBA(con_perdida_20_por_ciento_igual_elige) {
   RedSimulada red(kSemilla);
   red.setPerdida(0.2);

@@ -2,7 +2,8 @@
 // Hardware: pulsador entre D4 y GND (diagonal en la protoboard). LED azul integrado en GPIO 2.
 // Más tiempo presionado = sismo más fuerte: nivel 1 + uno cada 450 ms, máximo 10.
 //
-// Este archivo es solo pegamento con el hardware: WiFi, UDP, HTTP, NVS, botón, LED, NTP y OTA.
+// Este archivo es solo pegamento con el hardware: WiFi, UDP, HTTP, NVS, botón, LED, NTP, OTA y
+// el escaneo de la huella WiFi (para saber si movieron la placa).
 // Toda la lógica (elección, replicación, alertas y JSON) está en src/nucleo/ y se prueba en el PC.
 // El loop nunca se bloquea: Raft necesita latir cada 300 ms.
 #include <WiFi.h>
@@ -16,6 +17,7 @@
 #include <sys/time.h>
 #include "config.h"
 #include "src/nucleo/api.h"
+#include "src/nucleo/huella.h"
 #include "src/nucleo/mensajes.h"
 #include "src/nucleo/raft.h"
 
@@ -40,6 +42,11 @@ const uint32_t WIFI_LIMITE_MS = 30000;      // sin WiFi en 30 s al arrancar: rei
 const uint32_t WIFI_REINTENTO_MS = 20000;   // ya andando: pide reconexión cada 20 s si se cayó
 const uint32_t NTP_CADA_MS = 10UL * 60 * 1000;
 const int MAX_PAQUETES_POR_LOOP = 8;
+const uint32_t ESCANEO_CADA_MS = 120000;    // huella: un escaneo cada 2 min
+const uint32_t ESCANEO_MIN_MS = 60000;      // y nunca dos con menos de 1 min entre ellos
+const uint32_t ESCANEO_MS_POR_CANAL = 40;   // pasivo: solo escucha beacons
+const uint32_t ESCANEO_LIMITE_MS = 10000;   // si no termina en 10 s, se da por perdido
+const size_t MAX_APS_HUELLA = 8;
 
 // ---------------------------------------------------------------- estado global
 
@@ -58,6 +65,7 @@ struct PersistenciaNvs : nucleo::Persistencia {
 };
 
 PersistenciaNvs persistencia;
+Preferences prefsUbic;   // namespace "ubic", clave "ref": huella de referencia en JSON
 nucleo::Raft* raft = nullptr;   // se crea en setup(), cuando ya hay semilla aleatoria
 WiFiUDP udp;
 WebServer servidor(80);
@@ -76,6 +84,14 @@ uint64_t tPulso = 0;
 uint64_t proximoNtp = 0;
 uint64_t proximoReintentoWifi = 0;
 uint32_t ultimoSucesoImpreso = 0;
+
+// Huella WiFi. El escaneo es asíncrono: se lanza y se revisa en cada vuelta del loop.
+nucleo::DetectorMovimiento detectorMov;
+bool huellaPedida = false;     // POST /huella: el próximo escaneo fija la referencia
+bool escaneando = false;
+bool huboEscaneo = false;      // ya se lanzó al menos uno desde el arranque
+uint64_t inicioEscaneo = 0;    // cuándo se lanzó el último
+bool movidoAvisado = false;    // para registrar el suceso "movido" una sola vez por transición
 
 // ---------------------------------------------------------------- tiempo
 
@@ -153,6 +169,100 @@ void enviarSalidas() {
     udp.write((const uint8_t*)datos.data(), datos.size());
     udp.endPacket();
   }
+}
+
+// ---------------------------------------------------------------- huella WiFi
+
+// Referencia guardada como [["aa:bb:..",-55],...]. Si falta o no sirve, queda sin referencia.
+void cargarHuella() {
+  prefsUbic.begin("ubic", false);
+  String texto = prefsUbic.getString("ref", "");
+  if (texto.length() == 0) return;
+  JsonDocument doc;
+  if (deserializeJson(doc, texto) || !doc.is<JsonArray>()) return;
+  JsonArray lista = doc.as<JsonArray>();
+  if (lista.size() == 0 || lista.size() > MAX_APS_HUELLA) return;
+  std::vector<nucleo::Ap> ref;
+  for (JsonVariant item : lista) {
+    if (!item.is<JsonArray>() || item.size() != 2 || !item[0].is<const char*>() || !item[1].is<int>()) return;
+    ref.push_back({item[0].as<const char*>(), item[1].as<int>()});
+  }
+  detectorMov.fijarReferencia(nucleo::mejoresAps(ref, MAX_APS_HUELLA));
+  Serial.printf("huella de referencia cargada: %u AP\n", (unsigned)ref.size());
+}
+
+void guardarHuella(const std::vector<nucleo::Ap>& ref) {
+  JsonDocument doc;
+  JsonArray lista = doc.to<JsonArray>();
+  for (const nucleo::Ap& ap : ref) {
+    JsonArray item = lista.add<JsonArray>();
+    item.add(ap.bssid);
+    item.add(ap.rssi);
+  }
+  std::string s;
+  serializeJson(doc, s);
+  prefsUbic.putString("ref", s.c_str());
+}
+
+// Escanear desvía la radio unos cientos de ms: no se hace siendo líder con entradas sin replicar.
+bool puedeEscanear(uint64_t ahora) {
+  if (WiFi.status() != WL_CONNECTED) return false;
+  if (raft->rol() == nucleo::Rol::Lider && raft->commitIndex() < raft->logLen()) return false;
+  if (huboEscaneo && ahora - inicioEscaneo < ESCANEO_MIN_MS) return false;
+  if (huellaPedida && !raft->caido()) return true;   // la referencia pedida va en cuanto se pueda
+  if (!huboEscaneo) return ahora >= ESCANEO_MIN_MS;  // el primero periódico, 1 min tras arrancar
+  return ahora - inicioEscaneo >= ESCANEO_CADA_MS;
+}
+
+// Con el escaneo terminado: fija la referencia pedida o compara contra la que hay.
+void procesarEscaneo(int n) {
+  std::vector<nucleo::Ap> vistas;
+  for (int i = 0; i < n; i++) {
+    String bssid = WiFi.BSSIDstr(i);
+    bssid.toLowerCase();
+    vistas.push_back({bssid.c_str(), (int)WiFi.RSSI(i)});
+  }
+  WiFi.scanDelete();
+  if (vistas.empty()) return;   // sin AP no sirve de referencia ni cuenta como escaneo malo
+  std::vector<nucleo::Ap> mejores = nucleo::mejoresAps(vistas, MAX_APS_HUELLA);
+  if (huellaPedida && !raft->caido()) {
+    detectorMov.fijarReferencia(mejores);   // también limpia "movido"
+    guardarHuella(mejores);
+    huellaPedida = false;
+    movidoAvisado = false;
+    Serial.printf("huella de referencia nueva: %u AP\n", (unsigned)mejores.size());
+    return;
+  }
+  detectorMov.nuevoEscaneo(mejores);
+  if (detectorMov.movido() && !movidoAvisado) {
+    raft->registrarSuceso("movido", "Servidor " + std::to_string(NODO) + " detectó que lo movieron");
+    movidoAvisado = true;
+  }
+}
+
+void vigilarHuella(uint64_t ahora) {
+  if (escaneando) {
+    int n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_RUNNING) {
+      if (ahora - inicioEscaneo < ESCANEO_LIMITE_MS) return;
+      Serial.println("escaneo WiFi sin terminar, se descarta");
+      WiFi.scanDelete();
+      escaneando = false;
+      return;
+    }
+    escaneando = false;
+    if (n < 0) {   // WIFI_SCAN_FAILED: se reintenta en el próximo turno permitido
+      WiFi.scanDelete();
+      return;
+    }
+    procesarEscaneo(n);
+    return;
+  }
+  if (!puedeEscanear(ahora)) return;
+  huboEscaneo = true;
+  inicioEscaneo = ahora;   // también si falla al lanzarse: así no se insiste en cada vuelta
+  int r = WiFi.scanNetworks(true, false, true, ESCANEO_MS_POR_CANAL);   // asíncrono y pasivo
+  escaneando = r == WIFI_SCAN_RUNNING;
 }
 
 // ---------------------------------------------------------------- eventos
@@ -238,8 +348,8 @@ void enEstado() {
   info.rssi = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
   info.uptimeMs = ahoraMs();
   info.conHora = ahoraEpochMs() != 0;
-  info.movido = false;     // se conecta con la huella WiFi en la tarea siguiente
-  info.conHuella = false;
+  info.movido = detectorMov.movido();
+  info.conHuella = detectorMov.tieneReferencia();
   responder(200, nucleo::jsonEstado(*raft, NODO, info));
 }
 
@@ -290,6 +400,14 @@ void enPulsar() {
   responder(200, s);
 }
 
+// POST /huella → 202 {"ok":true}: el próximo escaneo permitido fija la huella de referencia.
+// 409 si el nodo está caído.
+void enHuella() {
+  if (raft->caido()) return responderError(409, "caido");
+  huellaPedida = true;
+  responder(202, "{\"ok\":true}");
+}
+
 // Preflight CORS del navegador y rutas desconocidas.
 void enOtro() {
   if (servidor.method() == HTTP_OPTIONS) {
@@ -309,6 +427,7 @@ void iniciarHttp() {
   servidor.on("/alertas", HTTP_GET, enAlertas);
   servidor.on("/control", HTTP_POST, enControl);
   servidor.on("/pulsar", HTTP_POST, enPulsar);
+  servidor.on("/huella", HTTP_POST, enHuella);
   servidor.onNotFound(enOtro);
   servidor.begin();
 }
@@ -346,6 +465,7 @@ void setup() {
 
   for (int i = 0; i < 3; i++) ipNodos[i].fromString(IP_NODOS[i]);
   persistencia.abrir();
+  cargarHuella();
 
   conectarWiFi();
   pedirHora();
@@ -376,6 +496,7 @@ void loop() {
   servidor.handleClient();
   enviarSalidas();
   ArduinoOTA.handle();
+  vigilarHuella(ahora);
 
   if (ahora >= proximoNtp) {
     pedirHora();
