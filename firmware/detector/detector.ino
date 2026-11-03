@@ -373,7 +373,8 @@ void enEstado() {
   // la vuelve a pedir si el nodo reinicia antes del escaneo).
   info.movido = detectorMov.movido() && !huellaPedida;
   info.conHuella = detectorMov.tieneReferencia() && !huellaPedida;
-  // Para la página de estado: distingue "tomando referencia…" de "sin referencia".
+  // Solo lo usa la página de estado del propio nodo (GET /): distingue "tomando referencia…" de
+  // "sin referencia". El panel web no lo lee.
   servidor.sendHeader("X-Huella-Pedida", huellaPedida ? "1" : "0");
   responder(200, nucleo::jsonEstado(*raft, NODO, info));
 }
@@ -437,7 +438,7 @@ void enHuella() {
 // GET / → página de estado del nodo (pagina.h).
 void enRaiz() {
   sinCache();
-  servidor.send(200, "text/html; charset=utf-8", PAGINA);
+  servidor.send_P(200, "text/html; charset=utf-8", PAGINA, sizeof(PAGINA) - 1);   // sin copiarla al heap
 }
 
 // Preflight CORS del navegador y rutas desconocidas.
