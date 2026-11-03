@@ -17,6 +17,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include "config.h"
+#include "pagina.h"
 #include "src/nucleo/api.h"
 #include "src/nucleo/huella.h"
 #include "src/nucleo/mensajes.h"
@@ -66,7 +67,9 @@ struct PersistenciaNvs : nucleo::Persistencia {
 };
 
 PersistenciaNvs persistencia;
-Preferences prefsUbic;   // namespace "ubic": "ref" huella de referencia en JSON, "mov" si lo movieron
+// namespace "ubic": "ref" huella de referencia en JSON, "mov" si lo movieron,
+// "pide" si hay una huella pedida por POST /huella que aún no se tomó (sobrevive a un reinicio).
+Preferences prefsUbic;
 nucleo::Raft* raft = nullptr;   // se crea en setup(), cuando ya hay semilla aleatoria
 WiFiUDP udp;
 WebServer servidor(80);
@@ -177,6 +180,9 @@ void enviarSalidas() {
 // Referencia guardada como [["aa:bb:..",-55],...]. Si falta o no sirve, queda sin referencia.
 void cargarHuella() {
   prefsUbic.begin("ubic", false);
+  // Una huella pedida antes de reiniciar sigue pendiente: /estado no muestra la referencia vieja.
+  huellaPedida = prefsUbic.getBool("pide", false);
+  if (huellaPedida) Serial.println("huella pedida antes de reiniciar: se toma en el próximo escaneo");
   String texto = prefsUbic.getString("ref", "");
   if (texto.length() == 0) return;
   JsonDocument doc;
@@ -234,6 +240,7 @@ void procesarEscaneo(int n) {
     detectorMov.fijarReferencia(mejores);   // también limpia "movido"
     guardarHuella(mejores);
     prefsUbic.putBool("mov", false);
+    prefsUbic.putBool("pide", false);
     huellaPedida = false;
     movidoAvisado = false;
     Serial.printf("huella de referencia nueva: %u AP\n", (unsigned)mejores.size());
@@ -328,7 +335,11 @@ void leerBoton(uint64_t ahora) {
 
 // ---------------------------------------------------------------- HTTP
 
+// Todas las respuestas: sin caché. "Connection: close" ya lo agrega WebServer en cada envío.
+void sinCache() { servidor.sendHeader("Cache-Control", "no-store"); }
+
 void responder(int codigo, const std::string& json) {
+  sinCache();
   servidor.sendHeader("Access-Control-Allow-Origin", "*");
   servidor.send(codigo, "application/json", json.c_str());
 }
@@ -362,6 +373,8 @@ void enEstado() {
   // la vuelve a pedir si el nodo reinicia antes del escaneo).
   info.movido = detectorMov.movido() && !huellaPedida;
   info.conHuella = detectorMov.tieneReferencia() && !huellaPedida;
+  // Para la página de estado: distingue "tomando referencia…" de "sin referencia".
+  servidor.sendHeader("X-Huella-Pedida", huellaPedida ? "1" : "0");
   responder(200, nucleo::jsonEstado(*raft, NODO, info));
 }
 
@@ -417,12 +430,20 @@ void enPulsar() {
 void enHuella() {
   if (raft->caido()) return responderError(409, "caido");
   huellaPedida = true;
+  prefsUbic.putBool("pide", true);   // si reinicia antes del escaneo, sigue pedida
   responder(202, "{\"ok\":true}");
+}
+
+// GET / → página de estado del nodo (pagina.h).
+void enRaiz() {
+  sinCache();
+  servidor.send(200, "text/html; charset=utf-8", PAGINA);
 }
 
 // Preflight CORS del navegador y rutas desconocidas.
 void enOtro() {
   if (servidor.method() == HTTP_OPTIONS) {
+    sinCache();
     servidor.sendHeader("Access-Control-Allow-Origin", "*");
     servidor.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     servidor.sendHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -433,6 +454,7 @@ void enOtro() {
 }
 
 void iniciarHttp() {
+  servidor.on("/", HTTP_GET, enRaiz);
   servidor.on("/estado", HTTP_GET, enEstado);
   servidor.on("/log", HTTP_GET, enLog);
   servidor.on("/sucesos", HTTP_GET, enSucesos);

@@ -5,7 +5,7 @@ Checklist para cargar el firmware Raft en las 3 placas y comprobar la demostraci
 ## Reglas durante la prueba y la demostración
 
 - **Dos nodos caídos solo con "Simular caída"** desde el panel. Para desenchufar placas de verdad, hazlo **de a una** y espera "3 / 3 copias idénticas" en Registros antes de desenchufar otra.
-- **No abras las IP de los nodos (`192.168.80.201`–`.203`) en un navegador.** Atienden de a un cliente y el navegador los puede dejar ocupados varios segundos; el panel los mostraría como inalcanzables.
+- Cada nodo tiene una página de estado en `http://192.168.80.20N/`. Sirve para revisar una placa; no la dejes abierta durante la demo: el servidor del ESP32 atiende de a un cliente y el panel puede ver ese nodo un momento como inalcanzable (a Raft no le afecta).
 - **Antes de probar alertas, revisa que los 3 nodos tengan hora:** en Clúster Raft no debe aparecer "sin hora", y `con_hora` debe ser `true` en `/api/estado`. Un evento sin hora nunca forma alerta.
 
 ## Puertos del servidor del PC
@@ -42,6 +42,7 @@ Para saber qué placa tienes conectada: `firmware/quien.sh` → "Detector 2 (SIS
   ```
   Esperado: exactamente un `"rol":"lider"` y el mismo `lider_conocido` en los 3.
 - [ ] El LED azul de cada placa queda fijo (hay líder).
+- [ ] Abre `http://192.168.80.201/`, `http://192.168.80.202/` y `http://192.168.80.203/` (de a una): cada página dice "Detector N", muestra "Funcionando" en verde y el mismo "Líder: Servidor N" en las 3. Ciérralas al terminar.
 
 ## 3. Carga por WiFi (OTA)
 
