@@ -12,6 +12,8 @@ struct InfoRed {
   int rssi;
   uint64_t uptimeMs;
   bool conHora;  // NTP ya sincronizó
+  bool movido;     // la huella WiFi cambió: el nodo ya no está donde se ubicó
+  bool conHuella;  // el nodo tiene una huella de referencia guardada
 };
 
 // Tamaño de página de /log.

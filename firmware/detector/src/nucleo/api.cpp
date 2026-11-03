@@ -41,6 +41,8 @@ std::string jsonEstado(const Raft& r, int nodo, const InfoRed& red) {
   doc["ip"] = red.ip;
   doc["rssi"] = red.rssi;
   doc["uptime_ms"] = red.uptimeMs;
+  doc["movido"] = red.movido;
+  doc["con_huella"] = red.conHuella;
   return texto(doc);
 }
 

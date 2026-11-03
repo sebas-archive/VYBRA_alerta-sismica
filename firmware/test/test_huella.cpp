@@ -1,0 +1,90 @@
+#include "nucleo/huella.h"
+#include "prueba.h"
+using namespace nucleo;
+
+// Lista de n AP con BSSID distintos y RSSI -40, -45, -50...
+static std::vector<Ap> lista(int n, int delta = 0) {
+  std::vector<Ap> v;
+  for (int i = 0; i < n; i++) {
+    char b[24];
+    std::snprintf(b, sizeof b, "aa:bb:cc:dd:ee:%02x", i);
+    v.push_back({b, -40 - 5 * i + delta});
+  }
+  return v;
+}
+
+PRUEBA(mejores_ordena_y_recorta) {
+  std::vector<Ap> v = lista(10);
+  v.push_back({"aa:bb:cc:dd:ee:03", -90});  // repetido y más débil: se descarta
+  std::vector<Ap> r = {v[7], v[2], v[9], v[0], v[5], v[10], v[1], v[8], v[3], v[6], v[4]};
+  std::vector<Ap> m = mejoresAps(r);
+  CHECK_EQ(m.size(), 8u);
+  for (size_t i = 1; i < m.size(); i++) CHECK(m[i - 1].rssi >= m[i].rssi);
+  for (size_t i = 0; i < m.size(); i++)
+    for (size_t j = i + 1; j < m.size(); j++) CHECK(m[i].bssid != m[j].bssid);
+  CHECK_EQ(m[0].rssi, -40);
+  CHECK_EQ(m[3].bssid, std::string("aa:bb:cc:dd:ee:03"));
+  CHECK_EQ(m[3].rssi, -55);  // se conserva el más fuerte del repetido
+}
+
+PRUEBA(parecido_igual_es_1) {
+  CHECK_EQ(parecido(lista(5), lista(5)), 1.0f);
+}
+
+PRUEBA(parecido_tolera_12db) {
+  CHECK_EQ(parecido(lista(5), lista(5, 12)), 1.0f);
+  CHECK_EQ(parecido(lista(5), lista(5, 13)), 0.0f);
+}
+
+PRUEBA(parecido_mitad) {
+  std::vector<Ap> a = lista(8);
+  std::vector<Ap> b(a.begin(), a.begin() + 4);
+  CHECK_EQ(parecido(a, b), 0.5f);
+}
+
+PRUEBA(parecido_referencia_vacia_es_1) {
+  CHECK_EQ(parecido({}, lista(3)), 1.0f);
+}
+
+PRUEBA(sin_referencia_no_movido) {
+  DetectorMovimiento d;
+  CHECK(!d.tieneReferencia());
+  d.nuevoEscaneo(lista(5, 30));
+  d.nuevoEscaneo(lista(5, 30));
+  CHECK(!d.movido());
+}
+
+PRUEBA(movido_tras_2_seguidos) {
+  DetectorMovimiento d;
+  d.fijarReferencia(lista(5));
+  CHECK(d.tieneReferencia());
+  CHECK_EQ(d.referencia().size(), 5u);
+  std::vector<Ap> malo = lista(5, 30);
+  malo.resize(1);  // parecido 0.2 a lo sumo
+  d.nuevoEscaneo({});
+  CHECK(!d.movido());
+  d.nuevoEscaneo(malo);
+  CHECK(d.movido());
+}
+
+PRUEBA(uno_malo_y_uno_bueno_no_movido) {
+  DetectorMovimiento d;
+  d.fijarReferencia(lista(5));
+  std::vector<Ap> malo = lista(1);  // parecido 0.2
+  d.nuevoEscaneo(malo);
+  d.nuevoEscaneo(lista(5, 3));
+  d.nuevoEscaneo(malo);
+  CHECK(!d.movido());
+}
+
+PRUEBA(fijar_referencia_limpia) {
+  DetectorMovimiento d;
+  d.fijarReferencia(lista(5));
+  d.nuevoEscaneo({});
+  d.nuevoEscaneo({});
+  CHECK(d.movido());
+  d.fijarReferencia(lista(5));
+  CHECK(!d.movido());
+  d.nuevoEscaneo({});
+  CHECK(!d.movido());  // el contador también se limpió
+}

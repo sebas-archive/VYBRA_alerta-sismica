@@ -238,6 +238,8 @@ void enEstado() {
   info.rssi = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
   info.uptimeMs = ahoraMs();
   info.conHora = ahoraEpochMs() != 0;
+  info.movido = false;     // se conecta con la huella WiFi en la tarea siguiente
+  info.conHuella = false;
   responder(200, nucleo::jsonEstado(*raft, NODO, info));
 }
 

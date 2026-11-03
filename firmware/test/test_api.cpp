@@ -36,14 +36,14 @@ PRUEBA(estado_menos_de_1kb) {
   int l = elegir(red);
   CHECK(l != 0);
   if (!l) return;
-  InfoRed info{"192.168.80.201", -52, 123456, true};
+  InfoRed info{"192.168.80.201", -52, 123456, true, true, false};
   std::string s = jsonEstado(red.nodo(l), l, info);
   CHECK(s.size() < 1024);
   JsonDocument doc;
   CHECK(parsear(s, doc));
   const char* claves[] = {"nodo", "rol", "caido", "termino", "votado_por", "lider_conocido", "log_len",
                           "commit_index", "pendientes", "log_lleno", "sucesos_seq", "con_hora", "ip",
-                          "rssi", "uptime_ms"};
+                          "rssi", "uptime_ms", "movido", "con_huella"};
   for (const char* k : claves) {
     if (doc[k].isNull()) std::printf("  falta la clave %s\n", k);
     CHECK(!doc[k].isNull());
@@ -65,11 +65,13 @@ PRUEBA(estado_menos_de_1kb) {
   CHECK_EQ(str(doc["ip"]), std::string("192.168.80.201"));
   CHECK_EQ(doc["rssi"].as<int>(), -52);
   CHECK_EQ(doc["uptime_ms"].as<uint64_t>(), 123456u);
+  CHECK_EQ(doc["movido"].as<bool>(), true);
+  CHECK_EQ(doc["con_huella"].as<bool>(), false);
 
   // Un seguidor caído: rol "seguidor" y caido true; uptime de 64 bits sin truncar.
   int s2 = l == 1 ? 2 : 1;
   red.nodo(s2).caer(red.ahora());
-  InfoRed info2{"192.168.80.202", -70, 5000000000ull, false};
+  InfoRed info2{"192.168.80.202", -70, 5000000000ull, false, false, false};
   JsonDocument d2;
   CHECK(parsear(jsonEstado(red.nodo(s2), s2, info2), d2));
   CHECK_EQ(str(d2["rol"]), std::string("seguidor"));
