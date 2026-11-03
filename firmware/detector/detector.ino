@@ -44,9 +44,11 @@ const uint32_t WIFI_LIMITE_MS = 30000;      // sin WiFi en 30 s al arrancar: rei
 const uint32_t WIFI_REINTENTO_MS = 20000;   // ya andando: pide reconexión cada 20 s si se cayó
 const uint32_t NTP_CADA_MS = 10UL * 60 * 1000;
 const int MAX_PAQUETES_POR_LOOP = 8;
-const uint32_t ESCANEO_CADA_MS = 120000;    // huella: un escaneo cada 2 min
-const uint32_t ESCANEO_MIN_MS = 60000;      // y nunca dos con menos de 1 min entre ellos
-const uint32_t ESCANEO_MS_POR_CANAL = 40;   // pasivo: solo escucha beacons
+const uint32_t ESCANEO_PRIMERO_MS = 15000;  // huella: el primero 15 s tras arrancar
+const uint32_t ESCANEO_SEGUNDO_MS = 30000;  // el segundo a los 30 s (la unión de ambos ya decide)
+const uint32_t ESCANEO_CADA_MS = 120000;    // y después uno cada 2 min
+const uint32_t ESCANEO_MIN_MS = 15000;      // nunca dos con menos de 15 s entre ellos
+const uint32_t ESCANEO_MS_POR_CANAL = 60;   // activo: pregunta a los AP en vez de esperar beacons
 const uint32_t ESCANEO_LIMITE_MS = 10000;   // si no termina en 10 s, se da por perdido
 const size_t MAX_APS_HUELLA = 8;
 
@@ -93,7 +95,7 @@ uint32_t ultimoSucesoImpreso = 0;
 nucleo::DetectorMovimiento detectorMov;
 bool huellaPedida = false;     // POST /huella: el próximo escaneo fija la referencia
 bool escaneando = false;
-bool huboEscaneo = false;      // ya se lanzó al menos uno desde el arranque
+uint32_t escaneosLanzados = 0; // desde el arranque (los dos primeros van más seguidos)
 uint64_t inicioEscaneo = 0;    // cuándo se lanzó el último
 bool movidoAvisado = false;    // para registrar el suceso "movido" una sola vez por transición
 
@@ -214,13 +216,15 @@ void guardarHuella(const std::vector<nucleo::Ap>& ref) {
   prefsUbic.putString("ref", s.c_str());
 }
 
-// Escanear desvía la radio unos cientos de ms: no se hace siendo líder con entradas sin replicar.
+// Escanear desvía la radio casi 1 s: no se hace siendo líder con entradas sin replicar.
 bool puedeEscanear(uint64_t ahora) {
   if (WiFi.status() != WL_CONNECTED) return false;
   if (raft->rol() == nucleo::Rol::Lider && raft->commitIndex() < raft->logLen()) return false;
-  if (huboEscaneo && ahora - inicioEscaneo < ESCANEO_MIN_MS) return false;
+  if (escaneosLanzados > 0 && ahora - inicioEscaneo < ESCANEO_MIN_MS) return false;
   if (huellaPedida && !raft->caido()) return true;   // la referencia pedida va en cuanto se pueda
-  if (!huboEscaneo) return ahora >= ESCANEO_MIN_MS;  // el primero periódico, 1 min tras arrancar
+  // Tras arrancar, dos escaneos seguidos (15 s y 30 s) para notar pronto si lo movieron apagado.
+  if (escaneosLanzados == 0) return ahora >= ESCANEO_PRIMERO_MS;
+  if (escaneosLanzados == 1) return ahora >= ESCANEO_SEGUNDO_MS;
   return ahora - inicioEscaneo >= ESCANEO_CADA_MS;
 }
 
@@ -276,9 +280,9 @@ void vigilarHuella(uint64_t ahora) {
     return;
   }
   if (!puedeEscanear(ahora)) return;
-  huboEscaneo = true;
+  escaneosLanzados++;
   inicioEscaneo = ahora;   // también si falla al lanzarse: así no se insiste en cada vuelta
-  int r = WiFi.scanNetworks(true, false, true, ESCANEO_MS_POR_CANAL);   // asíncrono y pasivo
+  int r = WiFi.scanNetworks(true, false, false, ESCANEO_MS_POR_CANAL);   // asíncrono y activo
   escaneando = r == WIFI_SCAN_RUNNING;
 }
 

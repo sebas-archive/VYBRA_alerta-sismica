@@ -124,3 +124,68 @@ PRUEBA(restaurar_movido) {
   d.nuevoEscaneo({});
   CHECK(!d.movido());  // el contador arranca de cero
 }
+
+PRUEBA(union_evita_falso_positivo) {
+  // Cada escaneo ve solo la mitad de la referencia (beacons perdidos), pero entre los dos la ven toda.
+  DetectorMovimiento d;
+  std::vector<Ap> ref = lista(8);
+  d.fijarReferencia(ref);
+  std::vector<Ap> a(ref.begin(), ref.begin() + 4);
+  std::vector<Ap> b(ref.begin() + 4, ref.end());
+  d.nuevoEscaneo(a);
+  d.nuevoEscaneo(b);
+  CHECK(!d.movido());
+  d.nuevoEscaneo(a);
+  d.nuevoEscaneo(b);
+  CHECK(!d.movido());
+}
+
+PRUEBA(movido_real_con_union) {
+  DetectorMovimiento d;
+  d.fijarReferencia(lista(8));
+  std::vector<Ap> otros;
+  for (int i = 0; i < 6; i++) {
+    char b[24];
+    std::snprintf(b, sizeof b, "11:22:33:44:55:%02x", i);
+    otros.push_back({b, -50 - i});
+  }
+  d.nuevoEscaneo(otros);
+  CHECK(!d.movido());
+  d.nuevoEscaneo(otros);
+  CHECK(d.movido());
+}
+
+PRUEBA(union_se_queda_con_rssi_mas_fuerte) {
+  // El AP 0 se ve débil (-80) en un escaneo y bien (-40) en el otro: cuenta como igual.
+  DetectorMovimiento d;
+  d.fijarReferencia(lista(1));
+  d.nuevoEscaneo({{"aa:bb:cc:dd:ee:00", -40}});
+  d.nuevoEscaneo({{"aa:bb:cc:dd:ee:00", -80}});
+  d.nuevoEscaneo({{"aa:bb:cc:dd:ee:00", -40}});
+  CHECK(!d.movido());
+}
+
+PRUEBA(fijar_referencia_limpia_historial) {
+  // Un escaneo anterior a la referencia nueva no debe sumarse a la unión.
+  DetectorMovimiento d;
+  std::vector<Ap> ref = lista(8);
+  d.fijarReferencia(ref);
+  d.nuevoEscaneo(ref);
+  d.fijarReferencia(ref);
+  d.nuevoEscaneo({});
+  d.nuevoEscaneo({});
+  CHECK(d.movido());
+}
+
+PRUEBA(union_evita_falso_positivo_3_y_3) {
+  // Cada escaneo solo ve 3 de 8 (parecido 0.375 < 0.5), pero la unión ve 6 de 8 (0.75).
+  DetectorMovimiento d;
+  std::vector<Ap> ref = lista(8);
+  d.fijarReferencia(ref);
+  std::vector<Ap> a(ref.begin(), ref.begin() + 3);
+  std::vector<Ap> b(ref.begin() + 3, ref.begin() + 6);
+  d.nuevoEscaneo(a);
+  d.nuevoEscaneo(b);
+  d.nuevoEscaneo(a);
+  CHECK(!d.movido());
+}

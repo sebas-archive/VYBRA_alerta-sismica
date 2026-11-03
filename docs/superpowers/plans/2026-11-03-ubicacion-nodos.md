@@ -20,10 +20,11 @@
 - **Ubicaciones:** `web/datos/ubicaciones.json` = `{ "N": {lat, lon, precision, t} }`. Va en `.gitignore`.
 - **Huella:**
   - hasta `8` BSSID con su RSSI;
-  - escaneo pasivo asíncrono de `40` ms por canal;
-  - cada `120 s`, nunca con menos de `60 s` entre escaneos, y nunca siendo líder con entradas sin replicar;
+  - escaneo activo asíncrono de `60` ms por canal;
+  - tras arrancar a los `15 s` y a los `30 s`, luego cada `120 s`; nunca con menos de `15 s` entre escaneos, nunca con otro escaneo en curso, y nunca siendo líder con entradas sin replicar;
   - *parecido* = proporción de BSSID de referencia que siguen visibles con una diferencia de RSSI ≤ `12` dB;
-  - queda `movido` si *parecido* < `0.5` en `2` escaneos seguidos;
+  - *parecido* se mide contra la unión de los `2` últimos escaneos (por BSSID, RSSI más fuerte);
+  - queda `movido` si *parecido* < `0.5` en `2` evaluaciones seguidas;
   - NVS namespace `ubic`.
 - **`POST /huella` en el nodo:** responde `202` y toma la huella en cuanto puede. El servidor la vuelve a pedir si un nodo ubicado trae `con_huella:false`, como máximo una vez por minuto.
 - **`/estado`:** agrega `movido` y `con_huella`, y sigue pesando menos de `1 KB`.
@@ -106,10 +107,10 @@
 
 - [ ] **Step 1: Prueba de `registrarSuceso`, que falle; implementarlo; pasarla.**
 - [ ] **Step 2: Agendar el escaneo en `loop()`.**
-  - Usa `WiFi.scanNetworks(true, false, true, 40)`, que es asíncrono y pasivo.
+  - Usa `WiFi.scanNetworks(true, false, false, 60)`, que es asíncrono y activo (Task 8; antes pasivo de 40 ms).
   - Revisa `WiFi.scanComplete()` en cada vuelta del loop. Convierte el resultado con `mejoresAps` y llama `WiFi.scanDelete()`.
   - Respeta las reglas de frecuencia de las Global Constraints. "Líder con entradas sin replicar" = `rol()==Lider && commitIndex() < logLen()`.
-  - Si `huellaPedida`, escanea en cuanto sea permitido (mínimo 60 s desde el anterior) y fija la referencia. Si no, llama `nuevoEscaneo`.
+  - Si `huellaPedida`, escanea en cuanto sea permitido (mínimo 15 s desde el anterior) y fija la referencia. Si no, llama `nuevoEscaneo`.
 - [ ] **Step 3:** `InfoRed` lleva `movido` y `conHuella` en `/estado`. El LED no cambia.
 - [ ] **Step 4: Compilar los 3 nodos.** Run: `for n in 1 2 3; do arduino-cli compile --fqbn esp32:esp32:esp32 --build-property "compiler.cpp.extra_flags=-DNODO=$n" --build-path firmware/build/nodo-$n firmware/detector; done`. Expected: sin errores ni advertencias de nuestros archivos.
 

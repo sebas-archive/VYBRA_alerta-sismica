@@ -79,11 +79,12 @@ Los ESP32 no tienen GPS ni hay un servicio de geolocalización por WiFi con cobe
 - El botón no aparece en la vista pública.
 
 ### Detectar que un nodo se movió (firmware)
-- **Huella:** lista de hasta 8 BSSID con su RSSI. Se toma con escaneo **pasivo y asíncrono** (`WiFi.scanNetworks(true, false, true, 40)`: 40 ms por canal, unos 0,5 s en total).
-- **Frecuencia:** cada **120 s**. Nunca mientras el nodo es líder con entradas pendientes de replicar, y nunca dos escaneos seguidos con menos de 60 s entre ellos. El escaneo dura menos que el tiempo mínimo de elección (1,5 s), así que no debe provocar elecciones.
+- **Huella:** lista de hasta 8 BSSID con su RSSI. Se toma con escaneo **activo y asíncrono** (`WiFi.scanNetworks(true, false, false, 60)`: 60 ms por canal, unos 0,8 s en total). Un escaneo pasivo de 40 ms por canal solo veía ~40 % de las redes (los beacons salen cada ~102 ms) y daba falsos "movido".
+- **Frecuencia:** tras arrancar, el primero a los **15 s** y el segundo a los **30 s**; después cada **120 s**. Nunca mientras el nodo es líder con entradas pendientes de replicar, nunca mientras otro escaneo corre, y nunca dos escaneos con menos de 15 s entre ellos. El escaneo dura menos que el tiempo mínimo de elección (1,5 s), así que no debe provocar elecciones.
 - **Comparación con la huella de referencia** (la tomada al ubicar):
   - *parecido* = proporción de BSSID de referencia que siguen visibles con una diferencia de RSSI ≤ 12 dB;
-  - si *parecido* < 0,5 en **2 escaneos seguidos**, el nodo queda `movido: true`.
+  - cada evaluación compara la referencia contra la **unión de los 2 últimos escaneos** (por BSSID, con el RSSI más fuerte), porque un escaneo suelto puede perder AP;
+  - si *parecido* < 0,5 en **2 evaluaciones seguidas**, el nodo queda `movido: true`.
 - La huella de referencia es **propia de cada placa**: no se replica por Raft, porque describe el lugar físico de esa placa. Se guarda en NVS (namespace `ubic`) y sobrevive a reinicios y a cargas de firmware por USB u OTA, que no borran NVS. Sin referencia, `movido` es `false`.
 - `/estado` agrega `"movido"` y `"con_huella"`, y aun así debe seguir pesando menos de 1 KB. Nuevo endpoint `POST /huella`.
 - Se registra el suceso "Servidor N detectó que lo movieron".

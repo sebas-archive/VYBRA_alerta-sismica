@@ -1,6 +1,7 @@
 #include "huella.h"
 #include <algorithm>
 #include <cstdlib>
+#include <utility>
 
 namespace nucleo {
 
@@ -35,6 +36,7 @@ float parecido(const std::vector<Ap>& ref, const std::vector<Ap>& actual, int to
 
 void DetectorMovimiento::fijarReferencia(const std::vector<Ap>& ref) {
   ref_ = ref;
+  anterior_.clear();
   malosSeguidos_ = 0;
   movido_ = false;
 }
@@ -46,7 +48,13 @@ void DetectorMovimiento::restaurarMovido(bool movido) {
 
 void DetectorMovimiento::nuevoEscaneo(const std::vector<Ap>& actual) {
   if (ref_.empty()) return;  // sin referencia no hay nada que comparar
-  if (parecido(ref_, actual) < 0.5f) {
+  // Unión por BSSID de este escaneo y el anterior, con el RSSI más fuerte de cada uno.
+  std::vector<Ap> juntos = anterior_;
+  juntos.insert(juntos.end(), actual.begin(), actual.end());
+  const size_t total = juntos.size();
+  juntos = mejoresAps(std::move(juntos), total);
+  anterior_ = actual;
+  if (parecido(ref_, juntos) < 0.5f) {
     if (++malosSeguidos_ >= 2) movido_ = true;
   } else {
     malosSeguidos_ = 0;
