@@ -260,12 +260,9 @@ export function dibujarMapa(svg, args = {}) {
     const pos = posicion.get(n);
     const cx = f1(pos.x), cy = f1(pos.y);
     const g = el('g', { 'data-nodo': n });
-    if (u.precision > 0) {
-      // Con zoom el halo puede ser más grande que el mapa: entonces solo se dibuja el borde, sin teñir el fondo.
-      const r = Math.max(14, px(u.precision));
-      const hx = pos.real ? f1(pos.real.x) : cx, hy = pos.real ? f1(pos.real.y) : cy;
-      g.appendChild(el('circle', { cx: hx, cy: hy, r: f1(r), fill: r > ANCHO * 0.6 ? 'none' : c, 'fill-opacity': 0.12, stroke: c, 'stroke-opacity': 0.35, 'stroke-width': 1, 'stroke-dasharray': r > ANCHO * 0.6 ? '6 4' : 'none' }));
-    }
+    // Anillo pequeño fijo alrededor del nodo en vez del círculo de precisión del GPS (10–20 m),
+    // que tapaba a los detectores vecinos. La precisión queda en la descripción del mapa.
+    g.appendChild(el('circle', { cx, cy, r: 18, fill: c, 'fill-opacity': 0.15, stroke: c, 'stroke-opacity': 0.4, 'stroke-width': 1 }));
     if (enfoque === n) g.appendChild(el('circle', { cx, cy, r: 22, fill: 'none', stroke: 'var(--text)', 'stroke-width': 2 }));
     const attrs = { cx, cy, r: 14, fill: c, stroke: movido ? 'var(--text)' : 'var(--surface)', 'stroke-width': 2.5 };
     if (movido) attrs['stroke-dasharray'] = '4 3';
@@ -275,7 +272,7 @@ export function dibujarMapa(svg, args = {}) {
     g.appendChild(el('text', { x: cx, y: ly, 'text-anchor': 'middle', fill: 'var(--text)', stroke: 'var(--surface-2)', 'stroke-width': 3, 'paint-order': 'stroke', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, `Detector ${n} · ${texto}`));
     if (movido) g.appendChild(el('text', { x: cx, y: lugarEtiqueta(cx, ly + 14), 'text-anchor': 'middle', fill: 'var(--warn)', 'font-size': 11, 'font-family': 'var(--font)' }, 'se movió'));
     svg.appendChild(g);
-    resumen.push(`Detector ${n}: ${texto}${movido ? ' (se movió)' : ''}`);
+    resumen.push(`Detector ${n}: ${texto}${movido ? ' (se movió)' : ''}${u.precision > 0 ? `, ubicado con ±${Math.round(u.precision)} m` : ''}`);
   }
 
   if (abanico) {
