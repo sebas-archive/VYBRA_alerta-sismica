@@ -13,7 +13,6 @@ import { crearUbicaciones } from '../ubicaciones.js';
 import { asegurarCertificado } from '../certificado.js';
 
 let falsos = [], poller, servidor, base, dir, archivoUbi, ubicaciones, llamadasHuella, reloj;
-const DETECTORES = [{ n: 1, lat: 1, lon: 2 }];
 
 async function esperar(cond, ms = 3000) {
   const fin = Date.now() + ms;
@@ -40,7 +39,7 @@ beforeEach(async () => {
   llamadasHuella = [];
   reloj = 1000000;
   servidor = crearServidor({
-    poller, nodos, publicDir: dir, detectores: DETECTORES, timeoutNodoMs: 300, ubicaciones,
+    poller, nodos, publicDir: dir, timeoutNodoMs: 300, ubicaciones,
     ahora: () => reloj,
   });
   await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
@@ -92,7 +91,7 @@ test('sse: cliente nuevo recibe snapshot', async () => {
   assert.ok(Date.now() - t0 < 200);
   assert.equal(s.eventos[0].evento, 'estado');
   assert.ok(Array.isArray(s.eventos[0].datos.nodos));
-  assert.deepEqual(s.eventos[0].datos.detectores, DETECTORES);
+  assert.equal('detectores' in s.eventos[0].datos, false); // sin coordenadas de ejemplo
   s.cerrar();
 });
 
@@ -112,7 +111,7 @@ test('sse: cambio se propaga', async () => {
 test('sse: latido vivo periódico aunque no haya cambios', async () => {
   const falso = new EventEmitter();
   falso.foto = () => ({ nodos: [] });
-  const rapido = crearServidor({ poller: falso, nodos: [], publicDir: dir, detectores: DETECTORES, vivoMs: 40 });
+  const rapido = crearServidor({ poller: falso, nodos: [], publicDir: dir, vivoMs: 40 });
   await new Promise((r) => rapido.listen(0, '127.0.0.1', r));
   const baseAntes = base;
   base = `http://127.0.0.1:${rapido.address().port}`;
@@ -142,12 +141,13 @@ test('sse: sin fugas de listeners al desconectar', async () => {
   await esperar(() => poller.listenerCount('cambio') === base0);
 });
 
-test('api/estado: foto más detectores', async () => {
+test('api/estado: foto y ubicaciones, sin coordenadas de ejemplo', async () => {
   const r = await fetch(`${base}/api/estado`);
   assert.equal(r.status, 200);
   const j = await r.json();
   assert.ok(Array.isArray(j.nodos));
-  assert.deepEqual(j.detectores, DETECTORES);
+  assert.deepEqual(j.ubicaciones, {});
+  assert.equal('detectores' in j, false);
 });
 
 test('control: reenvía al nodo correcto', async () => {
@@ -277,7 +277,7 @@ test('sse: cliente detenido con cola enorme es desconectado', async () => {
   // Poller falso: solo emite fotos enormes; el cliente no lee nada.
   const falso = new EventEmitter();
   falso.foto = () => ({ nodos: [] });
-  const peque = crearServidor({ poller: falso, nodos: [], publicDir: dir, detectores: DETECTORES, maxPendienteSse: 64 * 1024 });
+  const peque = crearServidor({ poller: falso, nodos: [], publicDir: dir, maxPendienteSse: 64 * 1024 });
   const base0 = falso.listenerCount('cambio'); // el reintento de huella también escucha
   await new Promise((r) => peque.listen(0, '127.0.0.1', r));
   let q;
@@ -379,6 +379,129 @@ test('ubicacion: reintenta huella como máximo 1 vez por minuto', async () => {
     p2.detener();
     s2.closeAllConnections?.();
   }
+});
+
+test('ubicacion: guardar envía la foto nueva por SSE sin esperar al poller', async () => {
+  const s = abrirSSE();
+  await s.listo;
+  await esperar(() => s.eventos.length >= 1);
+  const estados = () => s.eventos.filter((e) => e.evento === 'estado');
+  assert.equal(estados()[0].datos.ubicaciones['3'], undefined);
+  poller.detener(); // sin sondeos: el único 'estado' nuevo puede venir del guardado
+  await new Promise((r) => setTimeout(r, 100));
+  const antes = estados().length;
+  assert.equal((await postUbi(3, UBI)).status, 200);
+  await esperar(() => estados().length > antes);
+  const ultima = estados().at(-1).datos;
+  assert.equal(ultima.ubicaciones['3'].lat, UBI.lat);
+  assert.equal(ultima.ubicaciones['3'].lon, UBI.lon);
+  s.cerrar();
+});
+
+// Servidor con pedirHuella simulado y reloj propio; devuelve lo necesario para avanzar el tiempo.
+async function conPedidos(respuestas) {
+  const llamadas = [];
+  const nodos = falsos.map((x) => ({ n: x.n, url: x.url }));
+  const p2 = crearPoller({ nodos, intervaloMs: 20, timeoutMs: 80 });
+  const reloj2 = { t: 7000000 };
+  const s2 = crearServidor({
+    poller: p2, nodos, publicDir: dir, ubicaciones: crearUbicaciones(null), ahora: () => reloj2.t, revisionHuellaMs: 20,
+    pedirHuella: async (n) => { llamadas.push(n); return respuestas.shift() ?? false; },
+  });
+  await new Promise((r) => s2.listen(0, '127.0.0.1', r));
+  p2.iniciar();
+  const post = () => fetch(`http://127.0.0.1:${s2.address().port}/api/nodos/1/ubicacion`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(UBI),
+  });
+  const cerrar = async () => { p2.detener(); s2.closeAllConnections(); await new Promise((r) => s2.close(r)); };
+  return { llamadas, reloj2, post, cerrar, p2 };
+}
+
+test('ubicacion: pedido de huella rechazado (409 o sin respuesta) queda pendiente y se reintenta', async () => {
+  falsos[0].estado.con_huella = true; // nodo movido: tiene su referencia vieja
+  const c = await conPedidos([false, false, true]);
+  try {
+    await esperar(() => c.p2.foto().nodos.every((x) => x.alcanzable));
+    assert.equal((await c.post()).status, 200);
+    await esperar(() => c.llamadas.length === 1);
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(c.llamadas.length, 1); // dentro del minuto no insiste
+    c.reloj2.t += 60000;
+    await esperar(() => c.llamadas.length === 2);
+    c.reloj2.t += 60000;
+    await esperar(() => c.llamadas.length === 3); // este sí lo acepta (202)
+    c.reloj2.t += 60000;
+    await new Promise((r) => setTimeout(r, 100));
+    c.reloj2.t += 60000;
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(c.llamadas.length, 3); // ya no está pendiente: no se pide más
+    assert.ok(c.llamadas.every((n) => n === 1));
+  } finally {
+    await c.cerrar();
+  }
+});
+
+test('ubicacion: pedido de huella aceptado (202) no se repite', async () => {
+  falsos[0].estado.con_huella = true;
+  const c = await conPedidos([true]);
+  try {
+    await esperar(() => c.p2.foto().nodos.every((x) => x.alcanzable));
+    assert.equal((await c.post()).status, 200);
+    await esperar(() => c.llamadas.length === 1);
+    for (let i = 0; i < 3; i++) {
+      c.reloj2.t += 60000;
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    assert.deepEqual(c.llamadas, [1]);
+  } finally {
+    await c.cerrar();
+  }
+});
+
+test('pedirHuella por defecto: solo 202 cuenta como aceptado', async () => {
+  // Con el nodo caído el falso responde 409: queda pendiente y se vuelve a pedir al recuperarse.
+  falsos[0].estado.con_huella = true;
+  falsos[0].estado.caido = true;
+  const avisos = [];
+  const log = console.log;
+  console.log = (m) => { avisos.push(m); };
+  try {
+    assert.equal((await postUbi(1, UBI)).status, 200);
+    await esperar(() => avisos.length === 1);
+  } finally {
+    console.log = log;
+  }
+  assert.match(avisos[0], /No se pudo pedir la huella al nodo 1/); // el 409 cuenta como no aceptado
+  assert.equal(falsos[0].peticiones.filter((p) => p.ruta === '/huella').length, 1);
+  await new Promise((r) => setTimeout(r, 150));
+  reloj += 60000;
+  falsos[0].estado.caido = false; // la foto cambia y el reintento sale
+  await esperar(() => falsos[0].peticiones.filter((p) => p.ruta === '/huella').length === 2);
+  await esperar(() => falsos[0].estado.con_huella === true);
+  reloj += 60000;
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(falsos[0].peticiones.filter((p) => p.ruta === '/huella').length, 2); // aceptado: no más
+});
+
+test('nodo falso: "mover" marca movido con suceso; /huella lo limpia al fijar la referencia', async () => {
+  const f = falsos[0];
+  f.estado.con_huella = true;
+  const post = (ruta, cuerpo) => fetch(`${f.url}${ruta}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+  let r = await post('/control', { accion: 'mover' });
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true, movido: true });
+  assert.equal(f.estado.movido, true);
+  assert.equal(f.sucesos.at(-1).tipo, 'movido');
+  assert.equal(f.sucesos.at(-1).texto, 'Servidor 1 detectó que lo movieron');
+  await post('/control', { accion: 'mover' });
+  assert.equal(f.sucesos.filter((x) => x.tipo === 'movido').length, 1); // una sola vez por transición
+  f.control.huellaMs = 50;
+  r = await post('/huella', {});
+  assert.equal(r.status, 202);
+  assert.equal(f.estado.movido, false); // como el firmware: tomando huella, ni movido ni con huella
+  assert.equal(f.estado.con_huella, false);
+  await esperar(() => f.estado.con_huella === true);
+  assert.equal(f.estado.movido, false);
 });
 
 test('certificado: key.pem 0600 y carpeta 0700', async () => {

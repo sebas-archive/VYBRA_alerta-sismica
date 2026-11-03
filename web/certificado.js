@@ -22,7 +22,8 @@ function ejecutar(cmd, args) {
 
 // Devuelve {cert, key} (texto PEM). Genera con openssl si falta o si cambiaron las IP.
 export async function asegurarCertificado(dir) {
-  const ips = ipsLan();
+  // Ordenadas: si cambia el orden de las interfaces no se regenera el certificado.
+  const ips = [...new Set(ipsLan())].sort();
   const archCert = path.join(dir, 'cert.pem');
   const archKey = path.join(dir, 'key.pem');
   const archSan = path.join(dir, 'san.txt');

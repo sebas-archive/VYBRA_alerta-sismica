@@ -1059,7 +1059,7 @@
     if (status === 200) {
       S.ubic[id] = { busy: false, cls: 'ok', html: `Ubicación guardada (±${prec} m).` };
       toast(`Nodo ${id} ubicado (±${prec} m)`);
-      // El SSE solo avisa cuando cambian los nodos: se trae la foto con la ubicación nueva
+      // El servidor ya la reenvía por SSE a todas las vistas; aquí se trae igual para no esperarlo
       try { const r = await fetch('/api/estado', { cache: 'no-store' }); if (r.ok) { aplicarFoto(await r.json()); return; } } catch (e) { /* llegará por el SSE */ }
     } else {
       S.ubic[id] = { busy: false, cls: 'err', html: status === 0 ? 'Sin conexión con el servidor del PC: no se guardó.' : `Error ${status}: ${esc((cuerpo && cuerpo.error) || 'respuesta inesperada')}.` };

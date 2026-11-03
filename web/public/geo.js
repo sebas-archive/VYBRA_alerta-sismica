@@ -14,7 +14,8 @@ export function colorNodo(foto, n) {
   const nodo = (foto?.nodos ?? []).find((x) => x.n === n);
   if (!nodo || !nodo.alcanzable || !nodo.estado || nodo.estado.caido) return res('rojo');
   const e = nodo.estado;
-  if (foto.lider == null || e.rol === 'candidato' || !e.lider_conocido) return res('azul');
+  // Al día exige reconocer al mismo líder que ve el PC (uno con un líder viejo sigue sincronizando).
+  if (foto.lider == null || e.rol === 'candidato' || !e.lider_conocido || e.lider_conocido !== foto.lider) return res('azul');
   const fuente = foto.fuente == null ? null : foto.nodos.find((x) => x.n === foto.fuente)?.estado;
   if (!fuente) return res('azul');
   if (e.log_len < fuente.log_len || e.commit_index < fuente.commit_index) return res('azul');

@@ -31,6 +31,12 @@ test('color: al día es verde', () => {
   assert.deepEqual(colorNodo(f, 2), { color: 'verde', texto: 'Al día' });
 });
 
+test('color: si reconoce otro líder que el de la foto es azul', () => {
+  const f = foto([nodo(1, est({ rol: 'lider', lider_conocido: 1 })), nodo(2, est({ lider_conocido: 3 }))]);
+  assert.equal(colorNodo(f, 1).color, 'verde');
+  assert.deepEqual(colorNodo(f, 2), { color: 'azul', texto: 'Sincronizando' });
+});
+
 test('distancia: 1 grado de latitud ≈ 111 km (±1%)', () => {
   const d = distanciaM({ lat: 0, lon: 0 }, { lat: 1, lon: 0 });
   assert.ok(Math.abs(d - 111195) / 111195 < 0.01);

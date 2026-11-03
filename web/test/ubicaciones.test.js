@@ -41,5 +41,7 @@ test('certificado: SAN incluye las IPv4', async () => {
   // Segunda llamada reutiliza el mismo certificado.
   const otra = await asegurarCertificado(d);
   assert.equal(otra.cert, cert);
+  // Las IP van ordenadas: un cambio de orden de las interfaces no regenera el certificado.
+  assert.equal(fs.readFileSync(path.join(d, 'san.txt'), 'utf8'), `san:${['localhost', '127.0.0.1', ...[...new Set(ips)].sort()].join(',')}`);
   fs.rmSync(d, { recursive: true });
 });

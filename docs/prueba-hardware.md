@@ -12,6 +12,7 @@ Checklist para cargar el firmware Raft en las 3 placas y comprobar la demostraci
 
 - **HTTP `8090`**: panel (`/`) y vista pública (`/publico`).
 - **HTTPS `8091`**: mismas rutas, con certificado autofirmado (se genera solo en `web/certs/` con `openssl`). El celular lo necesita para usar el GPS al ubicar un nodo; acepta el aviso de certificado la primera vez.
+- Para cambiar los puertos usa las variables `PUERTO` y `PUERTO_HTTPS`, siempre juntas y con HTTPS = HTTP + 1 (las páginas buscan el HTTPS en el puerto siguiente al que se abrieron).
 - Si el firewall bloquea al celular, abre el 8091 a la red de las placas:
   ```bash
   sudo ufw allow from 192.168.80.0/24 to any port 8091 proto tcp

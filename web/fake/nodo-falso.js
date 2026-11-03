@@ -42,6 +42,16 @@ export function crearNodoFalso({ n, puerto = 0 }) {
     });
   }
 
+  // Agrega un suceso (asigna seq) y sube sucesos_seq.
+  function agregarSuceso(s = {}) {
+    const seq = estado.sucesos_seq + 1;
+    const suceso = { seq, t: Date.now(), tipo: 'voto', texto: '', termino: estado.termino, ...s };
+    suceso.seq = seq;
+    sucesos.push(suceso);
+    estado.sucesos_seq = seq;
+    return suceso;
+  }
+
   const servidor = http.createServer(async (req, res) => {
     enVuelo += 1;
     control.maxConcurrentes = Math.max(control.maxConcurrentes, enVuelo);
@@ -94,12 +104,23 @@ export function crearNodoFalso({ n, puerto = 0 }) {
       }
       if (cuerpo.accion === 'caer') estado.caido = true;
       else if (cuerpo.accion === 'recuperar') estado.caido = false;
+      else if (cuerpo.accion === 'mover') {
+        // Solo en el falso: simula que el escaneo WiFi detectó que movieron la placa.
+        if (!estado.movido) {
+          estado.movido = true;
+          agregarSuceso({ tipo: 'movido', texto: `Servidor ${n} detectó que lo movieron` });
+        }
+        return json(res, 200, { ok: true, movido: true });
+      }
       else return json(res, 400, { error: 'accion invalida' });
       return json(res, 200, { ok: true, caido: estado.caido });
     }
     if (req.method === 'POST' && ruta === '/huella') {
       if (estado.caido) return json(res, 409, { error: 'caido' });
-      // Como el firmware: responde 202 y toma la huella en cuanto puede.
+      // Como el firmware: responde 202 y toma la huella en cuanto puede; mientras tanto informa
+      // sin huella (la vista muestra "Tomando huella WiFi…") y la referencia nueva limpia "movido".
+      estado.con_huella = false;
+      estado.movido = false;
       setTimeout(() => { estado.con_huella = true; estado.movido = false; }, control.huellaMs).unref();
       return json(res, 202, { ok: true });
     }
@@ -145,15 +166,7 @@ export function crearNodoFalso({ n, puerto = 0 }) {
       estado.commit_index = log.length;
       return entrada;
     },
-    // Agrega un suceso (asigna seq) y sube sucesos_seq.
-    agregarSuceso(s = {}) {
-      const seq = estado.sucesos_seq + 1;
-      const suceso = { seq, t: Date.now(), tipo: 'voto', texto: '', termino: estado.termino, ...s };
-      suceso.seq = seq;
-      sucesos.push(suceso);
-      estado.sucesos_seq = seq;
-      return suceso;
-    },
+    agregarSuceso,
     // true: /estado deja de responder; false: vuelve a responder (libera las retenidas).
     colgar(valor) {
       colgado = !!valor;

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearPoller } from './poller.js';
-import { NODOS, PUERTO, PUERTO_HTTPS, DETECTORES } from './config.js';
+import { NODOS, PUERTO, PUERTO_HTTPS } from './config.js';
 import { crearUbicaciones } from './ubicaciones.js';
 import { asegurarCertificado, ipsLan } from './certificado.js';
 
@@ -59,28 +59,31 @@ function leerCuerpo(req, res) {
   });
 }
 
-// Pide al nodo que tome su huella Wi-Fi. Los errores se tragan (se avisa una sola vez).
+// Pide al nodo que tome su huella Wi-Fi. Devuelve true solo si el nodo la aceptó (202).
+// Los errores se tragan (se avisa una sola vez): el pedido queda pendiente y se reintenta.
 function pedirHuellaPorDefecto(nodos, timeoutMs) {
   let avisado = false;
   return async (n) => {
     const nodo = nodos.find((x) => x.n === n);
-    if (!nodo) return;
+    if (!nodo) return false;
     try {
-      await fetch(`${nodo.url}/huella`, {
+      const r = await fetch(`${nodo.url}/huella`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
         signal: AbortSignal.timeout(timeoutMs),
       });
-    } catch {
-      if (!avisado) { avisado = true; console.log(`No se pudo pedir la huella al nodo ${n}; se reintenta luego.`); }
-    }
+      await r.body?.cancel();
+      if (r.status === 202) return true;
+    } catch { /* inalcanzable o sin respuesta a tiempo */ }
+    if (!avisado) { avisado = true; console.log(`No se pudo pedir la huella al nodo ${n}; se reintenta luego.`); }
+    return false;
   };
 }
 
 // Manejador HTTP compartido por el servidor HTTP y el HTTPS.
 export function crearManejador({
-  poller, nodos, publicDir = path.join(AQUI, 'public'), detectores = DETECTORES, timeoutNodoMs = 1000,
+  poller, nodos, publicDir = path.join(AQUI, 'public'), timeoutNodoMs = 1000,
   maxPendienteSse = MAX_PENDIENTE, vivoMs = VIVO_MS,
   ubicaciones = crearUbicaciones(null), pedirHuella = pedirHuellaPorDefecto(nodos, timeoutNodoMs), ahora = Date.now,
   revisionHuellaMs = REVISION_HUELLA_MS,
@@ -88,18 +91,29 @@ export function crearManejador({
   const raiz = path.resolve(publicDir);
   const conUbicaciones = (foto) => ({ ...foto, ubicaciones: ubicaciones.todas() });
 
-  // Reintento de huella: un nodo ubicado, alcanzable, no caído y sin huella la recibe de nuevo,
-  // a lo sumo una vez por minuto.
+  // Avisos para los SSE abiertos cuando cambia algo que el poller no ve (las ubicaciones).
+  const avisos = new Set();
+
+  // Pide la huella; si el nodo la acepta (202) deja de estar pendiente.
   const ultimoPedido = new Map();
+  const pendientes = new Set(); // nodos reubicados cuyo pedido de huella aún no fue aceptado
+  function pedir(n) {
+    ultimoPedido.set(n, ahora());
+    Promise.resolve(pedirHuella(n)).then((ok) => { if (ok === true) pendientes.delete(n); }).catch(() => {});
+  }
+
+  // Reintento de huella, a lo sumo una vez por minuto y nodo, para un nodo ubicado, alcanzable y
+  // no caído que no tiene huella o cuyo pedido tras reubicarlo no fue aceptado (uno movido sigue
+  // con su referencia vieja: con_huella no basta para saberlo).
   function pedirSiHaceFalta(foto) {
     const ubic = ubicaciones.todas();
     const t = ahora();
     for (const x of foto.nodos) {
-      if (!ubic[x.n] || !x.alcanzable || !x.estado || x.estado.caido || x.estado.con_huella !== false) continue;
+      if (!ubic[x.n] || !x.alcanzable || !x.estado || x.estado.caido) continue;
+      if (x.estado.con_huella !== false && !pendientes.has(x.n)) continue;
       const antes = ultimoPedido.get(x.n);
       if (antes !== undefined && t - antes < REINTENTO_HUELLA_MS) continue;
-      ultimoPedido.set(x.n, t);
-      Promise.resolve(pedirHuella(x.n)).catch(() => {});
+      pedir(x.n);
     }
   }
   poller.on('cambio', pedirSiHaceFalta);
@@ -138,17 +152,20 @@ export function crearManejador({
       if (res.writableLength > maxPendienteSse) return res.destroy();
       res.write(texto);
     };
-    const enviar = (foto) => escribir(`event: estado\ndata: ${JSON.stringify({ ...conUbicaciones(foto), detectores: detectores })}\n\n`);
+    const enviar = (foto) => escribir(`event: estado\ndata: ${JSON.stringify(conUbicaciones(foto))}\n\n`);
+    const reenviar = () => enviar(poller.foto());
     // Las fotos solo salen cuando algo cambia: el latido "vivo" le confirma a la vista que los
     // datos siguen al día aunque no cambien (y evita que proxies corten la conexión ociosa).
     const ping = setInterval(() => escribir(`event: vivo\ndata: ${JSON.stringify({ t: Date.now() })}\n\n`), vivoMs);
     poller.on('cambio', enviar);
+    avisos.add(reenviar);
     let limpio = false;
     const limpiar = () => {
       if (limpio) return;
       limpio = true;
       clearInterval(ping);
       poller.off('cambio', enviar);
+      avisos.delete(reenviar);
     };
     req.on('close', limpiar);
     res.on('close', limpiar);
@@ -204,8 +221,9 @@ export function crearManejador({
       console.error('No se pudo guardar la ubicación:', e.message);
       return responderJson(res, 500, { error: 'no se pudo guardar' });
     }
-    ultimoPedido.set(n, ahora());
-    Promise.resolve(pedirHuella(n)).catch(() => {});
+    pendientes.add(n);
+    pedir(n);
+    for (const aviso of avisos) aviso(); // la ubicación nueva llega ya a todas las vistas
     responderJson(res, 200, { ubicacion: guardada });
   }
 
@@ -220,7 +238,7 @@ export function crearManejador({
     const metodo = req.method;
 
     if (metodo === 'GET' || metodo === 'HEAD') {
-      if (pathname === '/api/estado') return responderJson(res, 200, { ...conUbicaciones(poller.foto()), detectores });
+      if (pathname === '/api/estado') return responderJson(res, 200, conUbicaciones(poller.foto()));
       if (pathname === '/api/stream') return stream(req, res);
       if (pathname === '/') return estatico(res, 'operador.html');
       if (pathname === '/publico') return estatico(res, 'cliente.html');
