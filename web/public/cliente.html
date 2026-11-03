@@ -477,7 +477,7 @@
   // Severidad de un sismo = nivel de la alerta que emitió el nodo (baja | media | alta).
   const KEY_DE_NIVEL = { baja: 'moderado', media: 'fuerte', alta: 'severo' };
   const RANGO = { leve: 1, moderado: 3, fuerte: 5, severo: 8 };
-  const qKey = q => q.k || qKey(q);
+  const qKey = q => q.k || sevKey(q.level);
   const sevBadgeK = k => `<span class="sev sev-${k}">${SEV[k].name} · Mercalli ${SEV[k].merc}</span>`;
 
   // ---------- Geografía ----------
