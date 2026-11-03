@@ -39,11 +39,14 @@ PRUEBA(estado_menos_de_1kb) {
   InfoRed info{"192.168.80.201", -52, 123456, true, true, false};
   std::string s = jsonEstado(red.nodo(l), l, info);
   CHECK(s.size() < 1024);
+  // Peor caso de largo: números grandes en todos los campos.
+  InfoRed grande{"192.168.180.255", -100, 18446744073709551615ull, false, false, false};
+  CHECK(jsonEstado(red.nodo(l), l, grande).size() < 1024);
   JsonDocument doc;
   CHECK(parsear(s, doc));
   const char* claves[] = {"nodo", "rol", "caido", "termino", "votado_por", "lider_conocido", "log_len",
                           "commit_index", "pendientes", "log_lleno", "sucesos_seq", "con_hora", "ip",
-                          "rssi", "uptime_ms", "movido", "con_huella"};
+                          "rssi", "uptime_ms", "movido", "con_huella", "situacion"};
   for (const char* k : claves) {
     if (doc[k].isNull()) std::printf("  falta la clave %s\n", k);
     CHECK(!doc[k].isNull());
@@ -67,6 +70,7 @@ PRUEBA(estado_menos_de_1kb) {
   CHECK_EQ(doc["uptime_ms"].as<uint64_t>(), 123456u);
   CHECK_EQ(doc["movido"].as<bool>(), true);
   CHECK_EQ(doc["con_huella"].as<bool>(), false);
+  CHECK_EQ(str(doc["situacion"]), std::string("funcionando"));
 
   // Un seguidor caído: rol "seguidor" y caido true; uptime de 64 bits sin truncar.
   int s2 = l == 1 ? 2 : 1;
@@ -78,6 +82,7 @@ PRUEBA(estado_menos_de_1kb) {
   CHECK_EQ(d2["caido"].as<bool>(), true);
   CHECK_EQ(d2["con_hora"].as<bool>(), false);
   CHECK_EQ(d2["uptime_ms"].as<uint64_t>(), 5000000000ull);
+  CHECK_EQ(str(d2["situacion"]), std::string("caido"));
 }
 
 PRUEBA(log_paginado_de_a_50) {
@@ -234,4 +239,80 @@ PRUEBA(alertas_forma) {
   CHECK_EQ(str(a["eventos"][1]), std::string("a-1"));
   CHECK_EQ(a["termino"].as<uint32_t>(), L.termino());
   CHECK_EQ(a["lider"].as<int>(), l);
+}
+
+// ---------------------------------------------------------------- situacion (página de estado)
+
+static std::string sit(const Raft& r) { return situacion(r); }
+
+PRUEBA(situacion_lider_estable_funciona_en_los_3) {
+  RedSimulada red(kSemilla);
+  int l = elegir(red);
+  CHECK(l != 0);
+  if (!l) return;
+  CHECK(red.nodo(l).proponer(evento("s-1", 1, 0), red.ahora()) == Propuesta::Aceptada);
+  red.avanzar(1000);
+  CHECK_EQ(red.nodo(l).commitIndex(), red.nodo(l).logLen());
+  for (int n = 1; n <= 3; n++) CHECK_EQ(sit(red.nodo(n)), std::string("funcionando"));
+  // Caído: "caido", aunque antes funcionara.
+  red.nodo(l).caer(red.ahora());
+  CHECK_EQ(sit(red.nodo(l)), std::string("caido"));
+}
+
+PRUEBA(situacion_sin_lider_sincroniza) {
+  RedSimulada red(kSemilla);
+  // Recién arrancados: nadie conoce un líder.
+  for (int n = 1; n <= 3; n++) CHECK_EQ(sit(red.nodo(n)), std::string("sincronizando"));
+  int l = elegir(red);
+  CHECK(l != 0);
+  if (!l) return;
+  // Cae el líder y los otros dos quedan aislados entre sí: elecciones sin ganador.
+  red.nodo(l).caer(red.ahora());
+  int a = l == 1 ? 2 : 1, b = 6 - l - a;
+  red.partir({a}, {b});
+  red.avanzar(5000);
+  CHECK(!red.lideres());
+  CHECK(red.nodo(a).rol() == Rol::Candidato || red.nodo(a).lider() == 0);
+  CHECK_EQ(sit(red.nodo(a)), std::string("sincronizando"));
+  CHECK_EQ(sit(red.nodo(b)), std::string("sincronizando"));
+  CHECK_EQ(sit(red.nodo(l)), std::string("caido"));
+}
+
+PRUEBA(situacion_seguidor_reiniciado_sincroniza_hasta_alcanzar) {
+  RedSimulada red(kSemilla);
+  int l = elegir(red);
+  CHECK(l != 0);
+  if (!l) return;
+  for (int i = 0; i < 40; i++)
+    CHECK(red.nodo(l).proponer(evento("r-" + std::to_string(i), 1, 0), red.ahora()) == Propuesta::Aceptada);
+  red.avanzar(1000);
+  int f = l == 1 ? 2 : 1;
+  // Se reinicia y los appends con entradas hacia él se pierden: conoce al líder pero no su log.
+  red.reiniciar(f);
+  red.setFiltro([f](int, int a, const Msg& m) { return a == f && m.tipo == Tipo::Append && !m.entradas.empty(); });
+  red.avanzar(1000);
+  CHECK_EQ(red.nodo(f).lider(), l);
+  CHECK(red.nodo(f).commitIndex() < red.nodo(f).commitLider());
+  CHECK_EQ(sit(red.nodo(f)), std::string("sincronizando"));
+  CHECK_EQ(sit(red.nodo(l)), std::string("funcionando"));
+  red.setFiltro(nullptr);
+  red.avanzar(1000);
+  CHECK_EQ(red.nodo(f).commitIndex(), red.nodo(l).commitIndex());
+  CHECK_EQ(sit(red.nodo(f)), std::string("funcionando"));
+}
+
+PRUEBA(situacion_lider_solo_con_propuesta_sin_confirmar) {
+  RedSimulada red(kSemilla);
+  int l = elegir(red);
+  CHECK(l != 0);
+  if (!l) return;
+  for (int n = 1; n <= 3; n++)
+    if (n != l) red.nodo(n).caer(red.ahora());
+  red.avanzar(500);
+  CHECK(red.nodo(l).rol() == Rol::Lider);
+  CHECK_EQ(sit(red.nodo(l)), std::string("funcionando"));
+  CHECK(red.nodo(l).proponer(evento("solo-1", l, 0), red.ahora()) == Propuesta::Aceptada);
+  red.avanzar(1000);
+  CHECK(red.nodo(l).commitIndex() < red.nodo(l).logLen());
+  CHECK_EQ(sit(red.nodo(l)), std::string("sincronizando"));
 }

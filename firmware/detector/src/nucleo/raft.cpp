@@ -41,6 +41,7 @@ void Raft::subirTermino(uint32_t t) {
   guardar();
   pasarASeguidor();
   lider_ = 0;
+  commitLider_ = 0;
 }
 
 void Raft::pasarASeguidor() {
@@ -54,6 +55,7 @@ void Raft::postularse(uint64_t ahoraMs) {
   guardar();  // antes de pedir votos
   rol_ = Rol::Candidato;
   lider_ = 0;
+  commitLider_ = 0;
   votos_.clear();
   votos_.insert(cfg_.yo);
   reiniciarTemporizador(ahoraMs);
@@ -166,6 +168,7 @@ void Raft::alAppend(const Msg& m, uint64_t ahoraMs) {
   // Hay un líder legítimo en este término.
   if (rol_ != Rol::Seguidor) pasarASeguidor();
   lider_ = m.de;
+  commitLider_ = m.commit;  // aunque el lote no encaje: dice hasta dónde hay que llegar
   reiniciarTemporizador(ahoraMs);
 
   // Chequeo de consistencia (sección 5.3). Al fallar, match_idx lleva una pista para que el
@@ -461,6 +464,7 @@ void Raft::caer(uint64_t) {
   caido_ = true;
   pasarASeguidor();
   lider_ = 0;
+  commitLider_ = 0;
   salidas_.clear();
   temporizadorListo_ = false;
   suceso("cayo", servidor() + " simuló una caída");
@@ -471,6 +475,7 @@ void Raft::recuperar(uint64_t ahoraMs) {
   caido_ = false;
   pasarASeguidor();
   lider_ = 0;
+  commitLider_ = 0;
   reiniciarTemporizador(ahoraMs);
   suceso("recupero", servidor() + " se recuperó");
 }

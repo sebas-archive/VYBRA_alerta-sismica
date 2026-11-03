@@ -24,6 +24,13 @@ static std::string texto(const JsonDocument& doc) {
   return s;
 }
 
+const char* situacion(const Raft& r) {
+  if (r.caido()) return "caido";
+  if (r.lider() == 0 || r.rol() == Rol::Candidato) return "sincronizando";
+  if (r.rol() == Rol::Lider) return r.commitIndex() < r.logLen() ? "sincronizando" : "funcionando";
+  return r.commitIndex() < r.commitLider() ? "sincronizando" : "funcionando";
+}
+
 std::string jsonEstado(const Raft& r, int nodo, const InfoRed& red) {
   JsonDocument doc;
   doc["nodo"] = nodo;
@@ -43,6 +50,7 @@ std::string jsonEstado(const Raft& r, int nodo, const InfoRed& red) {
   doc["uptime_ms"] = red.uptimeMs;
   doc["movido"] = red.movido;
   doc["con_huella"] = red.conHuella;
+  doc["situacion"] = situacion(r);
   return texto(doc);
 }
 

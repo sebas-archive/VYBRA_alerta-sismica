@@ -209,3 +209,26 @@ test('poller: nunca dos pedidos simultáneos al mismo nodo (sync de log lenta)',
   assert.equal(llamadas(falsos[0], '/log').length, 3);
   for (const f of falsos) assert.equal(f.control.maxConcurrentes, 1, `nodo ${f.n}`);
 });
+
+test('nodo falso: /estado trae situacion como el firmware (18 claves)', async () => {
+  const leer = async (f) => (await fetch(`${f.url}/estado`)).json();
+  // Sin líder conocido: sincronizando.
+  let e = await leer(falsos[0]);
+  assert.equal(Object.keys(e).length, 18);
+  assert.equal(e.situacion, 'sincronizando');
+  liderEs(1);
+  assert.equal((await leer(falsos[0])).situacion, 'funcionando');
+  assert.equal((await leer(falsos[1])).situacion, 'funcionando');
+  // Líder con una entrada sin confirmar.
+  falsos[0].estado.log_len = 1;
+  assert.equal((await leer(falsos[0])).situacion, 'sincronizando');
+  // Seguidor detrás del commit del líder.
+  falsos[1].control.commitLider = 3;
+  assert.equal((await leer(falsos[1])).situacion, 'sincronizando');
+  falsos[1].estado.commit_index = 3;
+  assert.equal((await leer(falsos[1])).situacion, 'funcionando');
+  falsos[2].estado.caido = true;
+  e = await leer(falsos[2]);
+  assert.equal(e.situacion, 'caido');
+  assert.equal(falsos[2].estado.situacion, undefined); // el estado mutable no se ensucia
+});

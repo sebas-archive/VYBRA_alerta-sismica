@@ -70,6 +70,8 @@ class Raft {
   bool caido() const { return caido_; }
   uint32_t logLen() const { return (uint32_t)log_.size(); }
   uint32_t commitIndex() const { return commitIndex_; }
+  // Seguidor: `commit` del último append del líder actual (0 sin líder conocido).
+  uint32_t commitLider() const { return commitLider_; }
   size_t pendientes() const { return pendientes_.size(); }  // en cola de reenvío, sin ack ni confirmar
   bool logLleno() const { return log_.size() >= cfg_.topeLog; }
   const std::vector<Entrada>& log() const { return log_; }
@@ -140,6 +142,7 @@ class Raft {
   // Log replicado y su máquina de estados.
   std::vector<Entrada> log_;
   uint32_t commitIndex_ = 0;
+  uint32_t commitLider_ = 0;     // último commit informado por el líder actual
   uint32_t ultimoAplicado_ = 0;  // entradas ya aplicadas a sismo_ (siempre ≤ commitIndex_)
   bool avisoLleno_ = false;      // ya se registró el suceso "log_lleno"
   // Líder: nextIdx_ es optimista (avanza al enviar); matchIdx_ solo con respuestas ok.

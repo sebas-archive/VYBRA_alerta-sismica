@@ -776,3 +776,55 @@ PRUEBA(lider_que_baja_reinicia_temporizador) {
   CHECK_EQ(r.termino(), 2u);
   for (const Salida& s : r.sacarSalidas()) CHECK(s.msg.tipo != Tipo::VoteReq);
 }
+
+// commitLider(): el último `commit` que llegó en un append del líder actual (0 sin líder).
+PRUEBA(commit_lider_es_el_del_ultimo_append) {
+  PersistenciaMem p;
+  ConfigRaft c;
+  c.yo = 2;
+  c.semilla = kSemilla;
+  Raft r(c, p, reloj);
+  CHECK_EQ(r.commitLider(), 0u);
+  // Append del líder 1 que no encaja (prev_idx más allá del log): igual informa su commit.
+  Msg a(Tipo::Append);
+  a.de = 1; a.termino = 1; a.prev_idx = 5; a.prev_term = 1; a.commit = 5;
+  r.recibir(a, 100);
+  CHECK_EQ(r.lider(), 1);
+  CHECK_EQ(r.commitLider(), 5u);
+  CHECK_EQ(r.commitIndex(), 0u);
+  // Un append de un término viejo no cuenta.
+  Msg v(Tipo::Append);
+  v.de = 3; v.termino = 0; v.commit = 9;
+  r.recibir(v, 110);
+  CHECK_EQ(r.commitLider(), 5u);
+  // Un término nuevo (sin líder conocido) lo borra; caer() también.
+  Msg q(Tipo::VoteReq);
+  q.de = 3; q.termino = 2;
+  r.recibir(q, 120);
+  CHECK_EQ(r.lider(), 0);
+  CHECK_EQ(r.commitLider(), 0u);
+  Msg b(Tipo::Append);
+  b.de = 3; b.termino = 2; b.commit = 0;
+  r.recibir(b, 130);
+  CHECK_EQ(r.commitLider(), 0u);
+  CHECK_EQ(r.lider(), 3);
+  a.termino = 2; a.de = 3; a.commit = 4;
+  r.recibir(a, 140);
+  CHECK_EQ(r.commitLider(), 4u);
+  r.caer(150);
+  CHECK_EQ(r.commitLider(), 0u);
+}
+
+PRUEBA(commit_lider_en_cluster_estable) {
+  RedSimulada red(kSemilla);
+  int l = elegir(red);
+  CHECK(l != 0);
+  if (!l) return;
+  CHECK(red.nodo(l).proponer(evento("cl-1", 1), red.ahora()) == Propuesta::Aceptada);
+  red.avanzar(1000);
+  for (int n = 1; n <= 3; n++) {
+    if (n == l) continue;
+    CHECK_EQ(red.nodo(n).commitLider(), red.nodo(l).commitIndex());
+    CHECK_EQ(red.nodo(n).commitIndex(), red.nodo(n).commitLider());
+  }
+}

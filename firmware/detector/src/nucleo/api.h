@@ -19,6 +19,13 @@ struct InfoRed {
 // Tamaño de página de /log.
 constexpr uint32_t kPaginaLog = 50;
 
+// Situación para la página de estado y el panel:
+//  "caido"         = caída simulada.
+//  "sincronizando" = sin líder conocido, candidato, seguidor detrás del commit del líder,
+//                    o líder con entradas sin confirmar.
+//  "funcionando"   = en otro caso.
+const char* situacion(const Raft& r);
+
 std::string jsonEstado(const Raft& r, int nodo, const InfoRed& red);  // < 1 KB
 std::string jsonLog(const Raft& r, uint32_t desde);      // entradas [desde, desde+49], 1-based
 std::string jsonSucesos(const Raft& r, uint32_t desde);  // sucesos con seq > desde

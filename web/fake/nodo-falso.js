@@ -23,7 +23,21 @@ export function crearNodoFalso({ n, puerto = 0 }) {
   const alertas = [];
   const peticiones = [];
   let enVuelo = 0;
-  const control = { retardoLog: 0, maxConcurrentes: 0, huellaMs: 300 };
+  // commitLider: commit del líder que "vio" este seguidor (null = al día con el líder).
+  const control = { retardoLog: 0, maxConcurrentes: 0, huellaMs: 300, commitLider: null };
+
+  // Como situacion() del núcleo (api.cpp): se calcula con el estado actual en cada respuesta.
+  function situacion() {
+    if (estado.caido) return 'caido';
+    if (!estado.lider_conocido || estado.rol === 'candidato') return 'sincronizando';
+    if (estado.rol === 'lider') return estado.commit_index < estado.log_len ? 'sincronizando' : 'funcionando';
+    const commitLider = control.commitLider ?? estado.commit_index;
+    return estado.commit_index < commitLider ? 'sincronizando' : 'funcionando';
+  }
+  function cuerpoEstado() {
+    estado.uptime_ms = Date.now() - inicio;
+    return { ...estado, situacion: situacion() };
+  }
 
   function json(res, codigo, cuerpo) {
     res.writeHead(codigo, {
@@ -76,10 +90,7 @@ export function crearNodoFalso({ n, puerto = 0 }) {
     }
 
     if (colgado && (ruta === '/estado' || req.method === 'POST')) { colgadas.add(res); return; } // nunca responde
-    if (req.method === 'GET' && ruta === '/estado') {
-      estado.uptime_ms = Date.now() - inicio;
-      return json(res, 200, estado);
-    }
+    if (req.method === 'GET' && ruta === '/estado') return json(res, 200, cuerpoEstado());
     if (req.method === 'GET' && ruta === '/log') {
       const desde = Math.max(1, parseInt(url.searchParams.get('desde') || '1', 10) || 1);
       if (control.retardoLog) await new Promise((r) => setTimeout(r, control.retardoLog));
@@ -171,7 +182,7 @@ export function crearNodoFalso({ n, puerto = 0 }) {
     colgar(valor) {
       colgado = !!valor;
       if (!colgado) {
-        for (const res of colgadas) { estado.uptime_ms = Date.now() - inicio; json(res, 200, estado); }
+        for (const res of colgadas) json(res, 200, cuerpoEstado());
         colgadas.clear();
       }
     },
