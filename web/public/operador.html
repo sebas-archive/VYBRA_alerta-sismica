@@ -224,24 +224,24 @@
   .pill.ok { background: var(--ok-bg); color: var(--ok); }
   .pill.info { background: var(--info-bg); color: var(--info); }
   .pill.err { background: var(--err-bg); color: var(--err); }
-  .press { display: grid; justify-items: center; gap: var(--s2); padding: var(--s2) 0; }
-  .press-btn {
-    position: relative; width: 128px; height: 128px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
-    background: transparent; touch-action: none; user-select: none; -webkit-user-select: none;
+  .sismo { display: grid; gap: var(--s2); padding: var(--s1) 0; }
+  .sismo-titulo { font-size: 13px; color: var(--text-2); }
+  .sismo-btns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s2); }
+  .sismo-btn {
+    display: grid; gap: 2px; justify-items: center; padding: 10px 4px; min-height: 56px; cursor: pointer;
+    border-radius: 8px; border: 1px solid var(--border-strong); border-top-width: 4px; background: var(--surface);
+    color: var(--text); font: 600 14px var(--font); transition: background .15s, transform .08s;
   }
-  .press-btn .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
-  .ring-bg { fill: none; stroke: var(--surface-3); stroke-width: 8; }
-  .ring-fg { fill: none; stroke: var(--sev-moderado); stroke-width: 8; stroke-linecap: round; transition: stroke .15s; }
-  .press-cap {
-    position: absolute; inset: 14px; border-radius: 50%;
-    background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--brand) 70%, white) 0%, var(--brand) 70%);
-    box-shadow: inset 0 -7px 0 color-mix(in srgb, var(--brand) 65%, black), 0 0 0 5px var(--trace);
-    display: grid; place-items: center; color: var(--brand-ink); font-weight: 600; font-size: 13px; transition: transform .08s, box-shadow .08s;
-  }
-  .press-btn.down .press-cap { transform: scale(.96); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--brand) 65%, black), 0 0 0 5px var(--trace); }
-  .press-btn:not(.down) .ring-fg { opacity: 0; }
-  .press-label { text-align: center; min-height: 44px; font-size: 14px; }
-  .press-label b { display: block; font-size: 16px; }
+  .sismo-btn small { font-weight: 500; font-size: 11.5px; color: var(--text-2); }
+  .sismo-btn:hover:not(:disabled) { background: var(--surface-2); }
+  .sismo-btn:active:not(:disabled) { transform: translateY(1px); }
+  .sismo-btn:disabled { cursor: not-allowed; opacity: .5; }
+  .sismo-btn.leve { border-top-color: var(--sev-leve); }
+  .sismo-btn.moderado { border-top-color: var(--sev-moderado); }
+  .sismo-btn.fuerte { border-top-color: var(--sev-fuerte); }
+  .sismo-btn.severo { border-top-color: var(--sev-severo); }
+  .sismo-nota { font-size: 12.5px; color: var(--text-3); min-height: 18px; }
+  @media (max-width: 420px) { .sismo-btns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .det-route { font-size: 14px; min-height: 42px; }
   .det-card .kv { border-top: 1px solid var(--border); padding-top: var(--s3); }
 
@@ -473,7 +473,7 @@
 
   <!-- DETECTORES -->
   <section id="panel-detectores" role="tabpanel" aria-labelledby="tab-detectores" tabindex="-1" hidden>
-    <div class="page-head"><div><h1>Detectores</h1><p class="muted" id="det-help">Mantén presionado: más tiempo, sismo más fuerte. La pulsación se envía al nodo como si se hubiera presionado su botón. Si 2 detectores reportan dentro de 10 s, se emite alerta. Con teclado, mantén presionado Espacio o Enter.</p></div></div>
+    <div class="page-head"><div><h1>Detectores</h1><p class="muted" id="det-help">Elige la intensidad del sismo en el detector: el nodo lo recibe como si se hubiera presionado su botón el tiempo equivalente. Si 2 detectores reportan dentro de 10 s, se emite alerta. El botón físico de cada prototipo sigue funcionando igual: más tiempo presionado, sismo más fuerte.</p></div></div>
     <div class="det-grid" id="det-grid"></div>
   </section>
 
@@ -512,7 +512,7 @@
   <ul>
     <li><kbd>1</kbd>–<kbd>6</kbd> cambian de módulo</li>
     <li><kbd>←</kbd> <kbd>→</kbd> recorren las pestañas con el foco en ellas</li>
-    <li>En un detector, mantén <kbd>Espacio</kbd> o <kbd>Enter</kbd> para simular un sismo</li>
+    <li>En Detectores, un clic en Leve, Moderado, Fuerte o Severo simula un sismo en ese detector</li>
   </ul>
   <p class="muted" style="margin-bottom:16px">Las alertas confirmadas se envían también a la <a href="/publico" target="_blank" rel="noopener">vista pública</a> (ábrela en otra pestaña).</p>
   <form method="dialog"><button class="btn btn-primary">Entendido</button></form>
@@ -546,7 +546,10 @@
   const NIVEL = { baja: { key: 'moderado', name: 'Alerta baja' }, media: { key: 'fuerte', name: 'Alerta media' }, alta: { key: 'severo', name: 'Alerta alta' } };
   const alertLevel = a => NIVEL[a.nivel] || { key: 'moderado', name: 'Alerta' };
   const sevBadge = l => { const s = sevOf(l); return `<span class="sev sev-${s.key}">Mercalli ${s.merc} · ${s.name}</span>`; };
-  const levelFor = ms => Math.min(10, 1 + Math.floor(ms / 450));
+  // Intensidades del panel: nivel fijo y la pulsación equivalente (el nodo calcula 1 + ms/450).
+  const INTENSIDADES = [{ key: 'leve', nombre: 'Leve', nivel: 2 }, { key: 'moderado', nombre: 'Moderado', nivel: 4 },
+    { key: 'fuerte', nombre: 'Fuerte', nivel: 6 }, { key: 'severo', nombre: 'Severo', nivel: 9 }];
+  const msParaNivel = nivel => (nivel - 1) * 450 + 225;
 
   const S = {
     tab: 'panorama', foto: null, conn: 'reconectando',
@@ -555,7 +558,7 @@
     log: [], events: [], alerts: [], timeline: [],
     paused: false, pauseAt: 0, win: 60, scale: 'comun', show: { 1: true, 2: true, 3: true },
     hidden: {}, expanded: {}, selAlert: null, reg: 'log', tl: 'all', fdet: 'all',
-    press: {}, detMsg: {}, busy: {},
+    detMsg: {}, busy: {},
   };
   const srv = id => S.servers.find(s => s.id === id);
   const alive = () => S.servers.filter(s => s.reach && !s.caido);
@@ -853,54 +856,19 @@
   function buildDetectors() {
     $('#det-grid').innerHTML = IDS.map(id => `<article class="card det-card" id="det-${id}">
       <header><div><h3>Detector ${id}</h3><p class="subtle" data-f="sub">${nodeName(id)}</p></div><span class="pill" data-f="status"></span></header>
-      <div class="press">
-        <button class="press-btn" type="button" data-press="${id}" aria-describedby="det-help" aria-label="Detector ${id}: mantener presionado para simular un sismo">
-          <svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="54"/><circle class="ring-fg" cx="60" cy="60" r="54" pathLength="100" stroke-dasharray="0 100"/></svg>
-          <span class="press-cap" aria-hidden="true"></span>
-        </button>
-        <p class="press-label" data-f="live" aria-live="polite">Listo para pulsar</p>
+      <div class="sismo" role="group" aria-label="Simular sismo en el detector ${id}" aria-describedby="det-help">
+        <span class="sismo-titulo">Simular sismo</span>
+        <div class="sismo-btns">${INTENSIDADES.map(x => `<button type="button" class="sismo-btn ${x.key}" data-sismo="${id}" data-nivel="${x.nivel}" aria-label="Sismo ${x.nombre.toLowerCase()} (nivel ${x.nivel}) en el detector ${id}">${x.nombre}<small>nivel ${x.nivel}</small></button>`).join('')}</div>
+        <p class="sismo-nota" data-f="nota"></p>
       </div>
       <p class="det-route" data-f="route"></p>
       <dl class="kv"><dt>Última lectura</dt><dd data-f="sev"></dd><dt>PGA</dt><dd data-f="pga"></dd><dt>Último reporte</dt><dd data-f="time"></dd></dl>
     </article>`).join('');
-    $$('[data-press]').forEach(btn => {
-      const id = +btn.dataset.press;
-      btn.addEventListener('pointerdown', e => { if (e.button !== 0) return; btn.setPointerCapture(e.pointerId); startPress(id); });
-      btn.addEventListener('pointerup', () => endPress(id));
-      btn.addEventListener('pointercancel', () => endPress(id, true));
-      btn.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); startPress(id); } else if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); });
-      btn.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); endPress(id); } });
-      btn.addEventListener('blur', () => endPress(id, true));
-      btn.addEventListener('contextmenu', e => e.preventDefault());
-    });
-  }
-  function startPress(id) {
-    if (S.press[id]) return;
-    const card = $('#det-' + id);
-    S.press[id] = { t0: performance.now(), level: 1 };
-    card.querySelector('.press-btn').classList.add('down');
-    updateDetectors();
-    (function loop() {
-      const p = S.press[id]; if (!p) return;
-      const ms = performance.now() - p.t0; p.level = levelFor(ms);
-      const s = sevOf(p.level);
-      const ring = card.querySelector('.ring-fg');
-      ring.setAttribute('stroke-dasharray', `${p.level * 10} 100`); ring.style.stroke = `var(--sev-${s.key})`;
-      card.querySelector('[data-f="live"]').innerHTML = `<b>Mercalli ${s.merc} · ${s.name}</b>nivel ${p.level} de 10, ${(ms / 1000).toFixed(1)} s`;
-      requestAnimationFrame(loop);
-    })();
-  }
-  function endPress(id, cancel) {
-    const p = S.press[id]; if (!p) return;
-    delete S.press[id];
-    const ms = performance.now() - p.t0;
-    const card = $('#det-' + id);
-    card.querySelector('.press-btn').classList.remove('down');
-    card.querySelector('.ring-fg').setAttribute('stroke-dasharray', '0 100');
-    card.querySelector('[data-f="live"]').textContent = 'Listo para pulsar';
-    if (cancel) { updateDetectors(); return; }
-    if (ms < 80) { S.detMsg[id] = { cls: 'muted', text: 'Pulsación muy corta (menos de 80 ms): el nodo la ignora.' }; updateDetectors(); return; }
-    enviarPulso(id, Math.min(ms, 60000));
+    $$('[data-sismo]').forEach(btn => btn.addEventListener('click', () => {
+      const id = +btn.dataset.sismo, nivel = +btn.dataset.nivel;
+      if (S.detMsg[id] && S.detMsg[id].sending) return;
+      enviarPulso(id, msParaNivel(nivel));
+    }));
   }
   async function enviarPulso(id, ms) {
     S.detMsg[id] = { cls: 'muted', text: 'Enviando la pulsación al nodo…', sending: true }; updateDetectors();
@@ -945,8 +913,7 @@
       const e = lastEventOf(id), s = srv(id), m = S.detMsg[id];
       card.querySelector('[data-f="sub"]').textContent = s && s.ip ? `${nodeName(id)} · ${s.ip}` : nodeName(id);
       const pill = card.querySelector('[data-f="status"]');
-      if (S.press[id]) { pill.className = 'pill info'; pill.innerHTML = 'Pulsando…'; }
-      else if (m && m.sending) { pill.className = 'pill info'; pill.innerHTML = 'Enviando…'; }
+      if (m && m.sending) { pill.className = 'pill info'; pill.innerHTML = 'Enviando…'; }
       else if (s && s.role === 'down') { pill.className = 'pill err'; pill.innerHTML = esc(downTxt(s)); }
       else if (e && e.t != null) { pill.className = 'pill ok'; pill.innerHTML = `${ic('i-check')}Reportó <span data-rel="${e.t}">${rel(e.t)}</span>`; }
       else if (e) { pill.className = 'pill ok'; pill.innerHTML = `${ic('i-check')}Reportó (sin hora)`; }
@@ -959,6 +926,10 @@
       if (s && s.reach && s.pend) html += ` <span style="color:var(--warn)">${s.pend} evento(s) esperando reenvío al líder.</span>`;
       if (m && !m.sending) html += `<br><span style="color:var(--${m.cls === 'muted' ? 'text-2' : m.cls})">${m.text}</span>`;
       route.innerHTML = html;
+      // Botones de intensidad: deshabilitados si el nodo no puede recibir el sismo, con el motivo a la vista
+      const caido = s && s.role === 'down', enviando = m && m.sending;
+      card.querySelectorAll('[data-sismo]').forEach(b => { b.disabled = !!(caido || enviando); });
+      card.querySelector('[data-f="nota"]').textContent = caido ? `No disponible: ${downTxt(s)}.` : enviando ? 'Enviando el sismo al nodo…' : '';
       card.querySelector('[data-f="sev"]').innerHTML = e ? `${sevBadge(e.level)}<div class="subtle">nivel ${esc(e.level)} de 10</div>` : '–';
       card.querySelector('[data-f="pga"]').textContent = e ? `${e.pga.toFixed(3)} g` : '–';
       card.querySelector('[data-f="time"]').innerHTML = e ? timeCell(e.t) : '–';
@@ -1264,7 +1235,7 @@
   });
   $('#tablist').addEventListener('scroll', updateFades, { passive: true });
   document.addEventListener('keydown', e => {
-    if (e.altKey || e.ctrlKey || e.metaKey || Object.keys(S.press).length) return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.target.matches('input, select, textarea') || $('#help-dlg').open) return;
     const n = +e.key; if (n >= 1 && n <= 6) selectTab(TABS[n - 1]);
   });
