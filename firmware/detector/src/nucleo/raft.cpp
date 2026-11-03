@@ -182,6 +182,10 @@ void Raft::alAppend(const Msg& m, uint64_t ahoraMs) {
     return;
   }
   if (m.prev_idx > 0 && terminoEn(m.prev_idx) != m.prev_term) {
+    if (m.prev_idx <= commitIndex_) {  // choca con lo confirmado: el clúster lo olvidó
+      resincronizar(m.de);
+      return;
+    }
     uint32_t t = terminoEn(m.prev_idx), i = m.prev_idx;
     while (i > 1 && terminoEn(i - 1) == t) i--;
     r.ok = false;
@@ -200,7 +204,10 @@ void Raft::alAppend(const Msg& m, uint64_t ahoraMs) {
         ultimoNuevo = idx;
         continue;
       }
-      if (idx <= commitIndex_) break;  // no debería pasar con un líder legítimo
+      if (idx <= commitIndex_) {  // ídem: choca con lo confirmado
+        resincronizar(m.de);
+        return;
+      }
       log_.resize(idx - 1);
     }
     if (logLleno()) break;
@@ -220,6 +227,26 @@ void Raft::alAppend(const Msg& m, uint64_t ahoraMs) {
   r.match_idx = ultimoNuevo;
   enviar(m.de, r);
   procesarAdelantados(ahoraMs);
+}
+
+// Un líder legítimo (término >= el nuestro) choca con una entrada que ya confirmamos. Con logs
+// durables eso es imposible (sección 5.4.3: el líder tiene todo lo confirmado); acá los logs
+// viven en RAM y, si se reinician en frío el líder y otro nodo, la mayoría olvida lo
+// confirmado y se elige con un log más nuevo. Insistir dejaría a este nodo divergente para
+// siempre (el líder no puede retroceder por debajo de nuestro commitIndex_), así que se
+// descarta el log y se copia de cero el del líder: la mayoría ya decidió sin nosotros.
+void Raft::resincronizar(int lider) {
+  log_.clear();
+  sismo_ = Sismo{};
+  commitIndex_ = 0;
+  ultimoAplicado_ = 0;
+  adelantados_.clear();
+  revisarLleno();
+  suceso("resincroniza", servidor() + " borró su log y se resincroniza con el líder");
+  Msg r(Tipo::AppendResp);
+  r.ok = false;
+  r.match_idx = 0;  // el líder reenvía desde el índice 1
+  enviar(lider, r);
 }
 
 void Raft::guardarAdelantado(const Msg& m) {

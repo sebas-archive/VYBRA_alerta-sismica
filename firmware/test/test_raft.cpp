@@ -655,6 +655,86 @@ PRUEBA(append_respeta_8_entradas) {
   CHECK(!red.violacionSeguridad());
 }
 
+// Reinicio en frío del líder y de un seguidor: el que sobrevive conserva su log confirmado y,
+// aislado mientras tanto, termina con un término mayor. Los dos reiniciados se eligen entre sí
+// (logs vacíos e iguales) y confirman un InicioTermino que choca con lo confirmado del
+// sobreviviente. Sin autocorrección ese nodo quedaba divergente para siempre: el líder le
+// reenviaba el mismo prev_idx en conflicto una y otra vez.
+PRUEBA(reinicio_de_lider_y_seguidor_resincroniza_al_sobreviviente) {
+  RedSimulada red(kSemilla);
+  int l = elegir(red);
+  CHECK(l != 0);
+  if (!l) return;
+  for (int i = 0; i < 6; i++)
+    CHECK(red.nodo(l).proponer(evento("rs-" + std::to_string(i), 1 + i % 3), red.ahora()) ==
+          Propuesta::Aceptada);
+  red.avanzar(1000);
+  CHECK(prefijosIguales(red));
+  int x = otro(l), c = otro(l, x);
+  uint32_t commitX = red.nodo(x).commitIndex();
+  CHECK(commitX >= 7u);
+  // x queda aislado (se postula y sube de término); l y c arrancan con el log vacío.
+  red.partir({x}, {l, c});
+  red.reiniciar(l);
+  red.reiniciar(c);
+  red.avanzar(8000);
+  auto l2 = red.lideres();
+  CHECK(l2.has_value());
+  if (!l2) return;
+  CHECK(*l2 != x);
+  CHECK(red.nodo(x).termino() > red.nodo(*l2).termino());  // el sobreviviente tiene el término mayor
+  CHECK_EQ(red.nodo(x).commitIndex(), commitX);           // y conserva su log confirmado
+  CHECK(red.nodo(*l2).commitIndex() >= 1u);
+  CHECK(red.nodo(*l2).log()[0].termino > red.nodo(x).log().back().termino);
+  red.unir();
+  red.avanzar(10000);
+  CHECK(red.lideres().has_value());
+  CHECK(tieneSuceso(red.nodo(x), "resincroniza"));
+  CHECK(prefijosIguales(red));
+  CHECK(!red.violacionSeguridad());
+  auto l3 = red.lideres();
+  if (!l3) return;
+  CHECK(red.nodo(*l3).proponer(evento("rs-tras", *l3), red.ahora()) == Propuesta::Aceptada);
+  red.avanzar(1000);
+  for (int n = 1; n <= 3; n++) {
+    CHECK(confirmado(red.nodo(n), "rs-tras"));
+    CHECK(enSismo(red.nodo(n), "rs-tras"));
+    CHECK_EQ(red.nodo(n).logLen(), red.nodo(*l3).logLen());
+  }
+  CHECK(prefijosIguales(red));
+  CHECK(!red.violacionSeguridad());
+}
+
+// Un líder legítimo nunca choca con lo confirmado: en un clúster sano no hay resincronización.
+PRUEBA(sin_reinicios_no_hay_resincronizacion) {
+  RedSimulada red(kSemilla);
+  red.setPerdida(0.1);
+  red.setRetraso(1, 40);
+  int l = elegir(red);
+  CHECK(l != 0);
+  for (int ronda = 0; ronda < 6; ronda++) {
+    int n = 1 + ronda % 3;
+    red.nodo(n).proponer(evento("sr-" + std::to_string(ronda), n), red.ahora());
+    red.avanzar(500);
+    // Caídas simuladas (la RAM se conserva) y particiones alternadas.
+    if (ronda % 2 == 0) {
+      red.partir({n}, {otro(n), otro(n, otro(n))});
+    } else {
+      red.unir();
+      red.nodo(n).caer(red.ahora());
+      red.avanzar(3000);
+      red.nodo(n).recuperar(red.ahora());
+    }
+    red.avanzar(3000);
+  }
+  red.unir();
+  red.setPerdida(0);
+  red.avanzar(5000);
+  for (int n = 1; n <= 3; n++) CHECK(!tieneSuceso(red.nodo(n), "resincroniza"));
+  CHECK(prefijosIguales(red));
+  CHECK(!red.violacionSeguridad());
+}
+
 PRUEBA(lider_que_baja_reinicia_temporizador) {
   PersistenciaMem p;
   ConfigRaft c;

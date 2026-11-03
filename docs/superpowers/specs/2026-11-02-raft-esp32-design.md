@@ -58,6 +58,7 @@ Lo que el público tiene que poder ver:
 - Latido del líder cada **300 ms** (es lo que dice la interfaz).
 - Tiempo de elección aleatorio entre **1500 y 3000 ms**.
 - `currentTerm` y `votedFor` se guardan en flash (NVS, librería `Preferences`) cada vez que cambian, como pide Raft. El log se guarda solo en RAM: un nodo que se reinicia vuelve con log vacío y el líder se lo reenvía completo. Para ponerse al día rápido, el líder manda el siguiente lote apenas recibe el `append_resp` del anterior, sin esperar al próximo latido.
+- **Resincronización:** como el log no es durable, si se reinician en frío el líder y otro nodo, esos dos pueden elegirse entre sí con el log vacío y confirmar entradas que chocan con lo que el tercero ya tenía confirmado (la mayoría lo olvidó). Cuando un líder del término actual choca con una entrada en o bajo su `commit_index`, ese nodo borra su log, registra el suceso `resincroniza` y copia de cero el del líder. Con logs durables eso no puede pasar, así que en operación normal nunca se activa.
 - **Log lleno:** tope de 1000 entradas (~100 KB de RAM). Al llegar a 900 el panel muestra un aviso; en 1000 el líder rechaza eventos nuevos (quedan "rechazados: log lleno" en el panel) y nunca sobrescribe entradas. Para seguir, se reinician los 3 nodos (se pierde el historial). En una demostración no debería pasar.
 
 ### Entradas del log
@@ -86,7 +87,7 @@ Lo que el público tiene que poder ver:
 ### HTTP de cada nodo (puerto 80, librería `WebServer` incluida en el core ESP32)
 - `GET /estado` → JSON **liviano (< 1 KB)**, se consulta seguido: `nodo`, `rol` (lider / seguidor / candidato), `caido`, `termino`, `votado_por`, `lider_conocido`, `log_len`, `commit_index`, `pendientes` (cuántos), `sucesos_seq` (contador de sucesos), `con_hora`, `ip`, `rssi` y `uptime_ms`.
 - `GET /log?desde=N` → entradas desde el índice N, de a máximo 50, cada una con su estado (confirmada o no) y, si es evento, si forma parte de una alerta. Los eventos y las alertas se reconstruyen en el PC aplicando estas entradas con la misma regla. El nodo también expone `GET /alertas` para que el PC compruebe que coinciden.
-- `GET /sucesos?desde=S` → sucesos Raft del nodo con número y hora (se postuló, votó por X, ganó, perdió el líder, cayó, se recuperó). Guarda los últimos 50.
+- `GET /sucesos?desde=S` → sucesos Raft del nodo con número y hora (se postuló, votó por X, ganó, perdió el líder, cayó, se recuperó, se resincronizó). Guarda los últimos 50.
 - `POST /control` → caer / recuperar.
 - `POST /pulsar {"ms": 2200}` → mismo efecto que mantener el botón ese tiempo.
 - CORS abierto para que el panel pueda llamar si hiciera falta (el PC hace de intermediario igual).
@@ -95,7 +96,7 @@ Lo que el público tiene que poder ver:
 - **Node.js 22 sin dependencias externas** (`http`, `fetch` y `fs` nativos). Escucha en `0.0.0.0:8080`, así lo pueden abrir este PC y cualquier celular conectado al WiFi.
 - Le pide `/estado` a cada nodo cada 300 ms (timeout de 250 ms). Si un nodo no responde 3 veces seguidas, lo marca `inalcanzable`.
 - Solo cuando cambian `log_len` o `sucesos_seq` pide de forma incremental `/log?desde=` (al líder, o al nodo con el `commit_index` más alto) y `/sucesos?desde=` (a cada nodo). Así ningún nodo arma respuestas grandes cada 300 ms y los latidos de Raft no se atrasan.
-- Junta los tres estados y los envía al navegador por **Server-Sent Events** (`GET /api/stream`). También expone `GET /api/estado` (foto actual), `POST /api/nodos/:n/control` y `POST /api/nodos/:n/pulsar`, que reenvía al nodo.
+- Junta los tres estados y los envía al navegador por **Server-Sent Events** (`GET /api/stream`): un evento `estado` cuando algo cambia y un latido `vivo` cada 5 s, para que la vista sepa que los datos siguen al día. También expone `GET /api/estado` (foto actual), `POST /api/nodos/:n/control` y `POST /api/nodos/:n/pulsar`, que reenvía al nodo.
 - Sirve los archivos estáticos: `/` = panel de operación, `/publico` = vista pública.
 - No guarda estado propio aparte del último `/estado` de cada nodo y un historial en memoria de sucesos para la línea de tiempo.
 

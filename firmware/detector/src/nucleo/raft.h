@@ -91,6 +91,7 @@ class Raft {
   void alVoteResp(const Msg& m, uint64_t ahoraMs);
   void alAppend(const Msg& m, uint64_t ahoraMs);
   void alAppendResp(const Msg& m, uint64_t ahoraMs);
+  void resincronizar(int lider);              // seguidor: descarta el log que el clúster olvidó
   void guardarAdelantado(const Msg& m);      // seguidor: lote que llegó antes que su anterior
   void procesarAdelantados(uint64_t ahoraMs);
   void alForward(const Msg& m);
