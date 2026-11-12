@@ -9,6 +9,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <WebServer.h>
+#include <DNSServer.h>
 #include <Preferences.h>
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
@@ -16,8 +17,11 @@
 #include <esp_wifi.h>
 #include <time.h>
 #include <sys/time.h>
+#include <algorithm>
+#include <vector>
 #include "config.h"
 #include "pagina.h"
+#include "portal.h"
 #include "src/nucleo/api.h"
 #include "src/nucleo/huella.h"
 #include "src/nucleo/mensajes.h"
@@ -123,23 +127,151 @@ void pedirHora() { configTime(GMT_OFFSET_S, 0, "pool.ntp.org", "time.google.com"
 
 // ---------------------------------------------------------------- WiFi
 
+// Red y contraseña: las guardadas desde el portal (NVS, namespace "wifi"); si no hay,
+// las de config.h / secretos.h.
+String ssidWifi, passWifi;
+void cargarCredenciales() {
+  Preferences p;
+  p.begin("wifi", true);
+  ssidWifi = p.getString("ssid", "");
+  passWifi = p.getString("pass", "");
+  p.end();
+  if (ssidWifi.isEmpty()) { ssidWifi = WIFI_SSID; passWifi = WIFI_PASS; }
+}
+
+// Escapa texto para ponerlo dentro de HTML.
+String htmlEsc(const String& t) {
+  String r;
+  for (size_t i = 0; i < t.length(); i++) {
+    char c = t[i];
+    if (c == '&') r += "&amp;"; else if (c == '<') r += "&lt;"; else if (c == '>') r += "&gt;";
+    else if (c == '"') r += "&quot;"; else if (c == '\'') r += "&#39;"; else r += c;
+  }
+  return r;
+}
+
+// Portal de configuración: crea la red SISMO-D<N>-config, lista las redes que ve y pide la
+// contraseña. Guarda en NVS y reinicia. No vuelve: termina siempre en ESP.restart().
+void portalWifi() {
+  Serial.println("Abriendo el portal de configuración WiFi");
+  char ap[24];
+  snprintf(ap, sizeof ap, "SISMO-D%d-config", NODO);
+  WiFi.disconnect(true, false);
+  WiFi.mode(WIFI_AP_STA);
+  // Se busca antes de que se conecte nadie: escanear con un cliente enganchado le corta la conexión.
+  int total = WiFi.scanNetworks();
+  struct Red { String ssid; int rssi; bool abierta; };
+  std::vector<Red> redes;
+  for (int i = 0; i < total; i++) {
+    String s = WiFi.SSID(i);
+    if (s.isEmpty()) continue;
+    bool repetida = false;
+    for (Red& r : redes) if (r.ssid == s) { repetida = true; if (WiFi.RSSI(i) > r.rssi) r.rssi = WiFi.RSSI(i); }
+    if (!repetida) redes.push_back({s, WiFi.RSSI(i), WiFi.encryptionType(i) == WIFI_AUTH_OPEN});
+  }
+  std::sort(redes.begin(), redes.end(), [](const Red& a, const Red& b) { return a.rssi > b.rssi; });
+  WiFi.scanDelete();
+
+  WiFi.softAP(ap, PORTAL_CLAVE);
+  IPAddress ip = WiFi.softAPIP();
+  DNSServer dns;
+  dns.start(53, "*", ip);   // cualquier nombre apunta a la placa: el celular abre el portal solo
+  WebServer web(80);
+
+  auto pagina = [&]() {
+    String h = PORTAL_CABECERA;
+    h += "<h1>Detector " + String(NODO) + "</h1><p>Elige la red WiFi a la que se conectará este detector.</p>";
+    h += "<form method=\"POST\" action=\"/guardar\">";
+    if (redes.empty()) h += "<p>No se vio ninguna red. Acerca la placa al celular y recarga la página.</p>";
+    int k = 0;
+    for (const Red& r : redes) {
+      h += "<label class=\"red\"><input type=\"radio\" name=\"red\" value=\"" + htmlEsc(r.ssid) + "\"" + (k++ == 0 ? " checked" : "") + ">";
+      h += "<b>" + htmlEsc(r.ssid) + "</b><small>" + (r.abierta ? "abierta · " : "") + String(r.rssi) + " dBm</small></label>";
+    }
+    h += "<label class=\"red\"><input type=\"radio\" name=\"red\" value=\"__otra__\"><b>Otra red (escribir el nombre)</b></label>";
+    h += "<input type=\"text\" name=\"otra\" placeholder=\"Nombre de la red\" autocapitalize=\"none\" autocomplete=\"off\">";
+    h += "<label class=\"campo\" for=\"clave\">Contraseña</label>";
+    h += "<input type=\"password\" id=\"clave\" name=\"clave\" autocomplete=\"off\" autocapitalize=\"none\">";
+    h += "<label class=\"ver\"><input type=\"checkbox\" onchange=\"document.getElementById('clave').type=this.checked?'text':'password'\"> Mostrar contraseña</label>";
+    h += "<button type=\"submit\">Guardar y conectar</button></form>";
+    h += "<p style=\"margin-top:16px\">Red guardada ahora: <b>" + htmlEsc(ssidWifi) + "</b></p>";
+    h += PORTAL_PIE;
+    return h;
+  };
+  web.on("/", HTTP_GET, [&]() { web.send(200, "text/html; charset=utf-8", pagina()); });
+  web.on("/guardar", HTTP_POST, [&]() {
+    String red = web.arg("red");
+    if (red == "__otra__") red = web.arg("otra");
+    red.trim();
+    String clave = web.arg("clave");
+    if (red.isEmpty() || red.length() > 32 || clave.length() > 63) {
+      String h = PORTAL_CABECERA;
+      h += "<h1>Faltan datos</h1><p>Elige una red (máx. 32 caracteres) y revisa la contraseña (máx. 63).</p><a href=\"/\">Volver</a>";
+      h += PORTAL_PIE;
+      web.send(400, "text/html; charset=utf-8", h);
+      return;
+    }
+    Preferences p;
+    p.begin("wifi", false);
+    p.putString("ssid", red);
+    p.putString("pass", clave);
+    p.end();
+    String h = PORTAL_CABECERA;
+    h += "<h1>Guardado</h1><p>El detector se reinicia y se conecta a <b>" + htmlEsc(red) + "</b>. Puedes cerrar esta página.</p>";
+    h += PORTAL_PIE;
+    web.send(200, "text/html; charset=utf-8", h);
+    delay(1500);
+    ESP.restart();
+  });
+  // Los celulares piden páginas de prueba (generate_204, hotspot-detect...): se les manda al portal.
+  web.onNotFound([&]() {
+    web.sendHeader("Location", String("http://") + ip.toString() + "/", true);
+    web.send(302, "text/plain", "");
+  });
+  web.begin();
+
+  Serial.printf("Portal: conéctate a la red %s (clave %s) y abre http://%s\n", ap, PORTAL_CLAVE, ip.toString().c_str());
+  uint32_t t0 = millis();
+  while (millis() - t0 < PORTAL_MAX_MS) {
+    dns.processNextRequest();
+    web.handleClient();
+    digitalWrite(PIN_LED, (millis() / 150) % 2);   // parpadeo rápido: modo configuración
+    delay(2);
+  }
+  Serial.println("Portal sin usar, reiniciando...");
+  ESP.restart();
+}
+
+// ¿Botón presionado al encender durante PORTAL_BOTON_MS? Entonces se abre el portal.
+bool botonPideConfiguracion() {
+  if (digitalRead(PIN_BOTON) != LOW) return false;
+  uint32_t t0 = millis();
+  while (digitalRead(PIN_BOTON) == LOW) {
+    digitalWrite(PIN_LED, (millis() / 100) % 2);
+    if (millis() - t0 >= PORTAL_BOTON_MS) return true;
+    delay(10);
+  }
+  return false;
+}
+
 void conectarWiFi() {
+  cargarCredenciales();
+  if (botonPideConfiguracion()) portalWifi();
   WiFi.mode(WIFI_STA);
   { char h[16]; snprintf(h, sizeof h, "sismo-nodo-%d", NODO); WiFi.setHostname(h); }   // IP por DHCP
   WiFi.setSleep(false);   // sin ahorro de energía: menos latencia en UDP
   WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFi.begin(ssidWifi.c_str(), passWifi.c_str());
   uint32_t t0 = millis();
   while (WiFi.status() != WL_CONNECTED) {   // solo al arrancar: Raft todavía no corre
     digitalWrite(PIN_LED, !digitalRead(PIN_LED));
     delay(250);
     if (millis() - t0 > WIFI_LIMITE_MS) {
-      Serial.println("No se pudo conectar al WiFi, reiniciando...");
-      delay(500);
-      ESP.restart();
+      Serial.println("No se pudo conectar al WiFi: abriendo el portal de configuración");
+      portalWifi();
     }
   }
-  Serial.printf("nodo-%d conectado a %s, IP %s\n", NODO, WIFI_SSID, WiFi.localIP().toString().c_str());
+  Serial.printf("nodo-%d conectado a %s, IP %s\n", NODO, ssidWifi.c_str(), WiFi.localIP().toString().c_str());
 }
 
 // Ya andando: la reconexión la hace el propio WiFi; si tarda, se vuelve a pedir sin esperar.
@@ -163,7 +295,7 @@ void vigilarWiFi(uint64_t ahora) {
     if (reintentosWifi % 3 == 0) {
       Serial.println("WiFi caído, reconexión completa");
       WiFi.disconnect(false, false);
-      WiFi.begin(WIFI_SSID, WIFI_PASS);
+      WiFi.begin(ssidWifi.c_str(), passWifi.c_str());
     } else {
       Serial.println("WiFi caído, pidiendo reconexión");
       WiFi.reconnect();
