@@ -1,20 +1,16 @@
 // Servidor del PC: estáticos, estado agregado, SSE y control de los nodos.
 import http from 'node:http';
-import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearPoller } from './poller.js';
-import { NODOS, PUERTO, PUERTO_HTTPS } from './config.js';
-import { crearUbicaciones } from './ubicaciones.js';
-import { asegurarCertificado, ipsLan } from './certificado.js';
+import os from 'node:os';
+import { NODOS, PUERTO, UBICACIONES } from './config.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const LIMITE_CUERPO = 4096;
 const VIVO_MS = 5000;  // latido SSE: mantiene viva la conexión y dice "el PC sigue al día"
 const MAX_PENDIENTE = 1024 * 1024;
-const REVISION_HUELLA_MS = 15000;  // revisión periódica: la foto deduplicada puede no emitir 'cambio'
-const REINTENTO_HUELLA_MS = 60000; // como máximo un pedido de huella por minuto y nodo
 
 const TIPOS = {
   '.html': 'text/html; charset=utf-8',
@@ -59,68 +55,15 @@ function leerCuerpo(req, res) {
   });
 }
 
-// Pide al nodo que tome su huella Wi-Fi. Devuelve true solo si el nodo la aceptó (202).
-// Los errores se tragan (se avisa una sola vez): el pedido queda pendiente y se reintenta.
-function pedirHuellaPorDefecto(nodos, timeoutMs) {
-  let avisado = false;
-  return async (n) => {
-    const nodo = nodos.find((x) => x.n === n);
-    if (!nodo) return false;
-    try {
-      const r = await fetch(`${nodo.url}/huella`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-      await r.body?.cancel();
-      if (r.status === 202) return true;
-    } catch { /* inalcanzable o sin respuesta a tiempo */ }
-    if (!avisado) { avisado = true; console.log(`No se pudo pedir la huella al nodo ${n}; se reintenta luego.`); }
-    return false;
-  };
-}
-
-// Manejador HTTP compartido por el servidor HTTP y el HTTPS.
+// Manejador HTTP.
 export function crearManejador({
   poller, nodos, publicDir = path.join(AQUI, 'public'), timeoutNodoMs = 1000,
   maxPendienteSse = MAX_PENDIENTE, vivoMs = VIVO_MS,
-  ubicaciones = crearUbicaciones(null), pedirHuella = pedirHuellaPorDefecto(nodos, timeoutNodoMs), ahora = Date.now,
-  revisionHuellaMs = REVISION_HUELLA_MS,
+  ubicaciones = UBICACIONES,
 }) {
   const raiz = path.resolve(publicDir);
-  const conUbicaciones = (foto) => ({ ...foto, ubicaciones: ubicaciones.todas() });
-
-  // Avisos para los SSE abiertos cuando cambia algo que el poller no ve (las ubicaciones).
-  const avisos = new Set();
-
-  // Pide la huella; si el nodo la acepta (202) deja de estar pendiente.
-  const ultimoPedido = new Map();
-  const pendientes = new Set(); // nodos reubicados cuyo pedido de huella aún no fue aceptado
-  function pedir(n) {
-    ultimoPedido.set(n, ahora());
-    Promise.resolve(pedirHuella(n)).then((ok) => { if (ok === true) pendientes.delete(n); }).catch(() => {});
-  }
-
-  // Reintento de huella, a lo sumo una vez por minuto y nodo, para un nodo ubicado, alcanzable y
-  // no caído que no tiene huella o cuyo pedido tras reubicarlo no fue aceptado (uno movido sigue
-  // con su referencia vieja: con_huella no basta para saberlo).
-  function pedirSiHaceFalta(foto) {
-    const ubic = ubicaciones.todas();
-    const t = ahora();
-    for (const x of foto.nodos) {
-      if (!ubic[x.n] || !x.alcanzable || !x.estado || x.estado.caido) continue;
-      if (x.estado.con_huella !== false && !pendientes.has(x.n)) continue;
-      const antes = ultimoPedido.get(x.n);
-      if (antes !== undefined && t - antes < REINTENTO_HUELLA_MS) continue;
-      pedir(x.n);
-    }
-  }
-  poller.on('cambio', pedirSiHaceFalta);
-  pedirSiHaceFalta(poller.foto());
-  // Un nodo atascado en con_huella:false con la foto estable no genera 'cambio': se revisa con un timer.
-  const revision = setInterval(() => pedirSiHaceFalta(poller.foto()), revisionHuellaMs);
-  revision.unref();
+  // Las posiciones de los detectores son fijas (config.js): se agregan a cada foto.
+  const conUbicaciones = (foto) => ({ ...foto, ubicaciones });
 
   function estatico(res, nombre) {
     let rel;
@@ -153,19 +96,16 @@ export function crearManejador({
       res.write(texto);
     };
     const enviar = (foto) => escribir(`event: estado\ndata: ${JSON.stringify(conUbicaciones(foto))}\n\n`);
-    const reenviar = () => enviar(poller.foto());
     // Las fotos solo salen cuando algo cambia: el latido "vivo" le confirma a la vista que los
     // datos siguen al día aunque no cambien (y evita que proxies corten la conexión ociosa).
     const ping = setInterval(() => escribir(`event: vivo\ndata: ${JSON.stringify({ t: Date.now() })}\n\n`), vivoMs);
     poller.on('cambio', enviar);
-    avisos.add(reenviar);
     let limpio = false;
     const limpiar = () => {
       if (limpio) return;
       limpio = true;
       clearInterval(ping);
       poller.off('cambio', enviar);
-      avisos.delete(reenviar);
     };
     req.on('close', limpiar);
     res.on('close', limpiar);
@@ -203,48 +143,6 @@ export function crearManejador({
     }
   }
 
-  // Guarda la ubicación de un nodo y le pide la huella. Con ajuste:true (posición corregida a mano
-  // en el mapa: la placa no se movió) solo guarda, sin pedir una huella nueva.
-  async function ubicacion(req, res, n) {
-    if (!nodos.some((x) => x.n === n)) return responderJson(res, 404, { error: 'nodo no existe' });
-    if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) {
-      req.resume();
-      return responderJson(res, 415, { error: 'se requiere application/json' });
-    }
-    const cuerpo = await leerCuerpo(req, res);
-    if (cuerpo === null) return;
-    let datos;
-    try { datos = JSON.parse(cuerpo); } catch { return responderJson(res, 400, { error: 'json invalido' }); }
-    if (!datos || typeof datos !== 'object' || Array.isArray(datos)) return responderJson(res, 400, { error: 'se esperaba un objeto' });
-    let guardada;
-    try { guardada = ubicaciones.fijar(n, datos); } catch (e) {
-      if (e.codigo === 400) return responderJson(res, 400, { error: e.message });
-      console.error('No se pudo guardar la ubicación:', e.message);
-      return responderJson(res, 500, { error: 'no se pudo guardar' });
-    }
-    if (datos.ajuste !== true) {
-      pendientes.add(n);
-      pedir(n);
-    }
-    for (const aviso of avisos) aviso(); // la ubicación nueva llega ya a todas las vistas
-    responderJson(res, 200, { ubicacion: guardada });
-  }
-
-  // Quita la ubicación de un nodo: 404 si no estaba ubicado.
-  function quitarUbicacion(res, n) {
-    if (!nodos.some((x) => x.n === n)) return responderJson(res, 404, { error: 'nodo no existe' });
-    let estaba;
-    try { estaba = ubicaciones.quitar(n); } catch (e) {
-      if (e.codigo === 400) return responderJson(res, 404, { error: 'nodo no existe' });
-      console.error('No se pudo quitar la ubicación:', e.message);
-      return responderJson(res, 500, { error: 'no se pudo guardar' });
-    }
-    if (!estaba) return responderJson(res, 404, { error: 'nodo sin ubicar' });
-    pendientes.delete(n);
-    for (const aviso of avisos) aviso(); // el nodo pasa a "sin ubicar" en todas las vistas
-    responderJson(res, 200, { ok: true });
-  }
-
   const manejador = (req, res) => {
     // Se antepone el origen como texto: con base, "//x/y" se leería como host.
     // URL normaliza los ".." en silencio: se rechazan antes sobre la ruta cruda.
@@ -264,68 +162,51 @@ export function crearManejador({
       return estatico(res, pathname.slice(1));
     }
     if (metodo === 'POST') {
-      const m = /^\/api\/nodos\/([^/]+)\/(control|pulsar|ubicacion)$/.exec(pathname);
+      const m = /^\/api\/nodos\/([^/]+)\/(control|pulsar)$/.exec(pathname);
       if (m) {
         const n = /^[1-9]$/.test(m[1]) ? Number(m[1]) : 0;
-        return m[2] === 'ubicacion' ? ubicacion(req, res, n) : proxy(req, res, n, m[2]);
+        return proxy(req, res, n, m[2]);
       }
-    }
-    if (metodo === 'DELETE') {
-      const m = /^\/api\/nodos\/([^/]+)\/ubicacion$/.exec(pathname);
-      if (m) { req.resume(); return quitarUbicacion(res, /^[1-9]$/.test(m[1]) ? Number(m[1]) : 0); }
     }
     responderJson(res, 404, { error: 'no existe' });
   };
-  manejador.detener = () => { clearInterval(revision); poller.off('cambio', pedirSiHaceFalta); };
+  manejador.detener = () => {};
   return manejador;
 }
 
-// Servidor HTTP; con `https: {cert, key}` devuelve un servidor HTTPS con el mismo manejador.
-export function crearServidor({ https: tls, ...opciones }) {
+// Servidor HTTP con el manejador.
+export function crearServidor(opciones) {
   const manejador = crearManejador(opciones);
-  const servidor = tls ? https.createServer({ cert: tls.cert, key: tls.key }, manejador) : http.createServer(manejador);
+  const servidor = http.createServer(manejador);
   servidor.on('close', manejador.detener);
   return servidor;
 }
 
-const REGLA_UFW = 'sudo ufw allow from 192.168.80.0/24 to any port 8091 proto tcp';
+function ipLan() {
+  for (const lista of Object.values(os.networkInterfaces())) {
+    for (const i of lista ?? []) if (i.family === 'IPv4' && !i.internal) return i.address;
+  }
+  return 'localhost';
+}
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const puerto = Number(process.env.PUERTO) || PUERTO;
-  const puertoHttps = Number(process.env.PUERTO_HTTPS) || PUERTO_HTTPS;
-  const dirCerts = process.env.DIR_CERTS || path.join(AQUI, 'certs');
-  const archivoUbi = process.env.ARCHIVO_UBICACIONES || path.join(AQUI, 'datos', 'ubicaciones.json');
   const poller = crearPoller({ nodos: NODOS });
-  const manejador = crearManejador({ poller, nodos: NODOS, ubicaciones: crearUbicaciones(archivoUbi) });
-  const servidores = [http.createServer(manejador)];
-  const ip = ipsLan()[0] ?? 'localhost';
+  const manejador = crearManejador({ poller, nodos: NODOS });
+  const servidor = http.createServer(manejador);
+  const ip = ipLan();
   poller.iniciar();
-  servidores[0].on('error', (e) => {
+  servidor.on('error', (e) => {
     console.error(e.code === 'EADDRINUSE'
       ? `El puerto ${puerto} está ocupado. Cierra el otro programa o usa otro con la variable PUERTO.`
       : `No se pudo abrir HTTP en el puerto ${puerto} (variable PUERTO): ${e.message}`);
     process.exit(1);
   });
-  servidores[0].listen(puerto, '0.0.0.0', () => {
+  servidor.listen(puerto, '0.0.0.0', () => {
     console.log(`Panel: http://${ip}:${puerto}  Vista pública: http://${ip}:${puerto}/publico`);
+    console.log(`Si el firewall bloquea el celular: sudo ufw allow from <tu subred>/24 to any port ${puerto} proto tcp`);
   });
-  try {
-    const tls = await asegurarCertificado(dirCerts);
-    const seguro = https.createServer({ cert: tls.cert, key: tls.key }, manejador);
-    servidores.push(seguro);
-    seguro.on('error', (e) => {
-      console.error(e.code === 'EADDRINUSE'
-        ? `El puerto ${puertoHttps} está ocupado; sigo solo con HTTP.`
-        : `HTTPS no disponible (${e.message}); sigo solo con HTTP.`);
-    });
-    seguro.listen(puertoHttps, '0.0.0.0', () => {
-      console.log(`Para ubicar nodos con el celular (GPS): https://${ip}:${puertoHttps}  (acepta el aviso del certificado)`);
-      console.log(`Si el firewall bloquea el celular: ${REGLA_UFW}`);
-    });
-  } catch (e) {
-    console.log(`No se pudo preparar HTTPS (${e.message}). ¿Está instalado openssl? Se sirve solo HTTP; sin HTTPS el celular no podrá usar el GPS.`);
-  }
-  const salir = () => { poller.detener(); manejador.detener(); for (const s of servidores) { s.close(); s.closeAllConnections(); } process.exit(0); };
+  const salir = () => { poller.detener(); manejador.detener(); servidor.close(); servidor.closeAllConnections(); process.exit(0); };
   process.on('SIGINT', salir);
   process.on('SIGTERM', salir);
 }

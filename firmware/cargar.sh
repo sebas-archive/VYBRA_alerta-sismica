@@ -2,7 +2,8 @@
 # Compila y carga el firmware en un detector.
 # Uso: ./cargar.sh                     por USB, detecta qué detector es por su MAC (placas.conf)
 #      ./cargar.sh <1|2|3> [puerto]     por USB; la primera vez registra la placa como ese detector
-#      ./cargar.sh <1|2|3> --wifi       por red (ArduinoOTA) a 192.168.80.20N
+#      ./cargar.sh <1|2|3> --wifi       por red (ArduinoOTA); la IP se busca como sismo-nodo-N.local
+#                                       o se da con IP=x.x.x.x ./cargar.sh N --wifi
 #      --forzar                         carga aunque la placa esté registrada como otro detector
 set -euo pipefail
 
@@ -35,7 +36,11 @@ if [[ -z "$OTA_CLAVE" ]]; then
 fi
 
 if [[ $WIFI -eq 1 ]]; then
-  PUERTO="192.168.80.20$NODO"
+  PUERTO="${IP:-$(getent hosts "sismo-nodo-$NODO.local" | awk '{print $1; exit}')}"
+  if [[ -z "$PUERTO" ]]; then
+    echo "No encuentro sismo-nodo-$NODO.local. Mira su IP en el monitor serie y usa: IP=x.x.x.x $0 $NODO --wifi" >&2
+    exit 1
+  fi
 else
   if [[ -z "$PUERTO" ]]; then
     mapfile -t PUERTOS < <(ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null || true)
@@ -78,12 +83,12 @@ if [[ $WIFI -eq 1 ]]; then
   echo "== Cargando por WiFi en $PUERTO (sismo-nodo-$NODO)"
   # espota directo a la IP fija: no depende de mDNS. La placa se conecta de vuelta al PC
   # por TCP en el puerto 32323, que el firewall debe permitir desde la red de las placas:
-  #   sudo ufw allow from 192.168.80.0/24 to any port 32323 proto tcp
+  #   sudo ufw allow from <tu subred>/24 to any port 32323 proto tcp
   ESPOTA="$(ls "$HOME"/.arduino15/packages/esp32/hardware/esp32/*/tools/espota.py 2>/dev/null | sort -V | tail -1)"
   [[ -n "$ESPOTA" ]] || { echo "No encuentro espota.py (soporte ESP32 de arduino-cli)." >&2; exit 1; }
   if ! timeout 120 python3 -I "$ESPOTA" -i "$PUERTO" -p 3232 -P 32323 -a "$OTA_CLAVE" -f "$BUILD/detector.ino.bin"; then
     echo "La carga por WiFi falló. Revisa que el puerto 32323 esté abierto en el firewall:" >&2
-    echo "  sudo ufw allow from 192.168.80.0/24 to any port 32323 proto tcp" >&2
+    echo "  sudo ufw allow from <tu subred>/24 to any port 32323 proto tcp" >&2
     exit 1
   fi
   echo "== Listo. nodo-$NODO se reinicia con el firmware nuevo."

@@ -1,4 +1,4 @@
-// Mapa liso en SVG (sin calles ni internet): nodos, persona y zona del sismo.
+// Mapa liso en SVG (sin calles ni internet): nodos y zona del sismo.
 // Compartido por la vista pública y el panel de operación. Solo usa APIs del DOM, nunca innerHTML.
 import { colorNodo, proyectar } from './geo.js';
 
@@ -7,7 +7,7 @@ const ANCHO = 640;
 const ALTO = 400;
 const TOKEN = { rojo: 'var(--err)', azul: 'var(--info)', verde: 'var(--ok)' };
 const SEV = { leve: 'var(--sev-leve)', moderado: 'var(--sev-moderado)', fuerte: 'var(--sev-fuerte)', severo: 'var(--sev-severo)' };
-const MENSAJE_VACIO = 'Todavía no hay nodos ubicados. Ubícalos desde el panel con un celular.';
+const MENSAJE_VACIO = 'No hay detectores para mostrar.';
 
 function el(nombre, attrs = {}, texto) {
   const e = document.createElementNS(NS, nombre);
@@ -35,8 +35,7 @@ const limitar = (v, a, b) => Math.min(b, Math.max(a, v));
 function vistaDe(svg) {
   let v = vistas.get(svg);
   if (!v) {
-    v = { z: 1, ox: 0, oy: 0, zMax: 1, args: null, punteros: new Map(), pellizco: null, pendiente: false,
-      baseEdicion: null, aLatLon: null, arrastre: null };
+    v = { z: 1, ox: 0, oy: 0, zMax: 1, args: null, punteros: new Map(), pellizco: null, pendiente: false };
     vistas.set(svg, v);
     instalarInteraccion(svg, v);
   }
@@ -81,20 +80,9 @@ function instalarInteraccion(svg, v) {
     zoomEn(svg, v, ev.deltaY < 0 ? 1.25 : 0.8, p.x, p.y);
   }, { passive: false });
 
-  // Punteros: un dedo/mouse arrastra; dos dedos pellizcan. En modo edición, tomar un detector
-  // lo arrastra a él (no al mapa) y al soltarlo se avisa su nueva posición con alMover.
+  // Punteros: un dedo/mouse arrastra; dos dedos pellizcan.
   svg.addEventListener('pointerdown', (ev) => {
     if (!v.args) return;
-    const nodo = v.args.editable && !v.arrastre ? ev.target.closest?.('[data-nodo]') : null;
-    if (nodo && v.aLatLon) {
-      const n = Number(nodo.dataset.nodo);
-      const q = aViewBox(svg, ev);
-      const cx = Number(nodo.dataset.x), cy = Number(nodo.dataset.y);
-      v.arrastre = { n, id: ev.pointerId, dx: q.x - cx, dy: q.y - cy, pos: null };
-      svg.setPointerCapture?.(ev.pointerId);
-      ev.preventDefault();
-      return;
-    }
     v.punteros.set(ev.pointerId, aViewBox(svg, ev));
     svg.setPointerCapture?.(ev.pointerId);
     if (v.punteros.size === 2) {
@@ -103,12 +91,6 @@ function instalarInteraccion(svg, v) {
     }
   });
   svg.addEventListener('pointermove', (ev) => {
-    if (v.arrastre && v.arrastre.id === ev.pointerId) {
-      const q = aViewBox(svg, ev);
-      v.arrastre.pos = v.aLatLon(q.x - v.arrastre.dx, q.y - v.arrastre.dy);
-      redibujar(svg, v);
-      return;
-    }
     if (!v.punteros.has(ev.pointerId)) return;
     const antes = v.punteros.get(ev.pointerId);
     const ahora = aViewBox(svg, ev);
@@ -118,20 +100,13 @@ function instalarInteraccion(svg, v) {
       const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
       zoomEn(svg, v, d / v.pellizco.d, (a.x + b.x) / 2, (a.y + b.y) / 2);
       v.pellizco.d = d;
-    } else if (v.punteros.size === 1 && v.z > 1 && !v.arrastre) {
+    } else if (v.punteros.size === 1 && v.z > 1) {
       v.ox += ahora.x - antes.x; v.oy += ahora.y - antes.y;
       acotar(v);
       redibujar(svg, v);
     }
   });
   const soltar = (ev) => {
-    if (v.arrastre && v.arrastre.id === ev.pointerId) {
-      const { n, pos } = v.arrastre;
-      v.arrastre = null;
-      if (pos && ev.type === 'pointerup' && v.args?.editable) v.args.alMover?.(n, pos);
-      else redibujar(svg, v); // cancelado: vuelve a donde estaba
-      return;
-    }
     v.punteros.delete(ev.pointerId);
     if (v.punteros.size < 2) v.pellizco = null;
   };
@@ -162,23 +137,13 @@ function instalarInteraccion(svg, v) {
 }
 
 // svg: elemento <svg> donde dibujar.
-// ubicaciones: {"N": {lat, lon, precision}}; foto: foto del poller; persona: {lat, lon, precision?} | null;
+// ubicaciones: {"N": {lat, lon}} (posiciones fijas); foto: foto del poller;
 // zona: {lat, lon, radioM, nivel?: 'leve'|'moderado'|'fuerte'|'severo'} | null; enfoque: número de nodo a resaltar | null.
-// editable: los detectores se arrastran (sin abanico) y al soltar se llama alMover(n, {lat, lon});
-// pendientes: {"N": {lat, lon}} posiciones sin guardar, que se dibujan en vez de las guardadas.
-// Devuelve la lista de nodos (números) de la foto sin ubicación.
+// Devuelve la lista de nodos (números) de la foto sin posición.
 export function dibujarMapa(svg, args = {}) {
-  const { ubicaciones: guardadas = {}, foto = null, persona = null, zona = null, enfoque = null, editable = false, pendientes = {} } = args;
+  const { ubicaciones = {}, foto = null, zona = null, enfoque = null } = args;
   const v = vistaDe(svg);
   v.args = args;
-  if (!editable) { v.baseEdicion = null; v.arrastre = null; }
-  // Posición a dibujar: la que se está arrastrando, luego la pendiente y si no la guardada.
-  const ubicaciones = {};
-  for (const [k, u] of Object.entries(guardadas)) {
-    const n = Number(k);
-    const otra = editable ? (v.arrastre?.n === n && v.arrastre.pos) || pendientes?.[k] : null;
-    ubicaciones[k] = otra ? { ...u, lat: otra.lat, lon: otra.lon } : u;
-  }
   svg.replaceChildren();
   svg.setAttribute('viewBox', `0 0 ${ANCHO} ${ALTO}`);
   svg.setAttribute('width', '100%');
@@ -207,19 +172,15 @@ export function dibujarMapa(svg, args = {}) {
     return sinUbicar;
   }
 
-  // Puntos a encuadrar: nodos, persona y los bordes de la zona (norte/sur/este/oeste aproximados).
+  // Puntos a encuadrar: nodos y los bordes de la zona (norte/sur/este/oeste aproximados).
   const puntos = ubicados.map((n) => ubicaciones[n]);
-  if (persona && Number.isFinite(persona.lat)) puntos.push(persona);
   if (zona) {
     const dLat = zona.radioM / 111195;
     const dLon = dLat / Math.max(0.01, Math.cos((zona.lat * Math.PI) / 180));
     puntos.push({ lat: zona.lat + dLat, lon: zona.lon + dLon }, { lat: zona.lat - dLat, lon: zona.lon - dLon });
   }
   const margen = 56;
-  // Mientras se edita el encuadre queda fijo: si siguiera a los puntos, el detector arrastrado
-  // se correría bajo el dedo.
-  const base = (editable && v.baseEdicion) || proyectar(puntos, ANCHO, ALTO, margen);
-  if (editable) v.baseEdicion = base;
+  const base = proyectar(puntos, ANCHO, ALTO, margen);
   // Vista con zoom: escala alrededor del centro y desplaza.
   v.zMax = Math.max(1, (base.metrosPorPx * ANCHO) / ANCHO_MIN_M);
   if (v.z > v.zMax) { v.z = v.zMax; acotar(v); }
@@ -229,8 +190,6 @@ export function dibujarMapa(svg, args = {}) {
     metrosPorPx: base.metrosPorPx / v.z,
   };
   const px = (m) => Math.max(0, m / p.metrosPorPx);
-  // Inversa de p: punto del viewBox → {lat, lon} (deshace el desplazamiento y el zoom).
-  v.aLatLon = (x, y) => base.invertir((x - ANCHO / 2 - v.ox) / v.z + ANCHO / 2, (y - ALTO / 2 - v.oy) / v.z + ALTO / 2);
   if (v.barra) {
     v.barra.hidden = false;
     v.btnMas.disabled = v.z >= v.zMax;
@@ -238,8 +197,7 @@ export function dibujarMapa(svg, args = {}) {
     v.btnTodo.disabled = v.z === 1 && v.ox === 0 && v.oy === 0;
   }
   // Con zoom, un dedo mueve el mapa; sin zoom, el dedo desplaza la página.
-  // En modo edición el dedo arrastra detectores: la página no debe desplazarse bajo él.
-  svg.style.touchAction = v.z > 1 || editable ? 'none' : 'pan-y';
+  svg.style.touchAction = v.z > 1 ? 'none' : 'pan-y';
   svg.style.cursor = v.z > 1 ? 'grab' : 'default';
 
   // Zona del sismo, debajo de todo lo demás.
@@ -247,19 +205,6 @@ export function dibujarMapa(svg, args = {}) {
     const c = SEV[zona.nivel] ?? 'var(--sev-fuerte)';
     const g = el('g');
     g.appendChild(el('circle', { cx: f1(p.x(zona)), cy: f1(p.y(zona)), r: f1(Math.max(4, px(zona.radioM))), fill: c, 'fill-opacity': 0.22, stroke: c, 'stroke-width': 2 }));
-    svg.appendChild(g);
-  }
-
-  // Persona.
-  if (persona && Number.isFinite(persona.lat) && Number.isFinite(persona.lon)) {
-    const g = el('g');
-    const cx = f1(p.x(persona)), cy = f1(p.y(persona));
-    // Rango corto: un anillo pequeño fijo en vez del círculo de precisión del GPS (que a 10–20 m
-    // tapaba a los detectores cercanos); la precisión va escrita en la etiqueta.
-    g.appendChild(el('circle', { cx, cy, r: 12, fill: 'var(--focus)', 'fill-opacity': 0.15, stroke: 'var(--focus)', 'stroke-opacity': 0.6 }));
-    g.appendChild(el('circle', { cx, cy, r: 6, fill: 'var(--focus)', stroke: 'var(--surface)', 'stroke-width': 2 }));
-    const prec = persona.precision > 0 ? ` · ±${Math.round(persona.precision)} m` : '';
-    g.appendChild(el('text', { x: cx, y: f1(p.y(persona) - 18), 'text-anchor': 'middle', fill: 'var(--text)', stroke: 'var(--surface-2)', 'stroke-width': 3, 'paint-order': 'stroke', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, `Estás aquí${prec}`));
     svg.appendChild(g);
   }
 
@@ -287,8 +232,7 @@ export function dibujarMapa(svg, args = {}) {
   const posicion = new Map();
   let abanico = false;
   for (const gr of grupos) {
-    if (gr.nodos.length === 1 || editable) {
-      // Al editar no hay abanico: cada detector en su posición real.
+    if (gr.nodos.length === 1) {
       for (const n of gr.nodos) posicion.set(n, { x: p.x(ubicaciones[n]), y: p.y(ubicaciones[n]) });
       continue;
     }
@@ -304,24 +248,19 @@ export function dibujarMapa(svg, args = {}) {
     const u = ubicaciones[n];
     const { color, texto } = colorNodo(foto, n);
     const c = TOKEN[color];
-    const movido = info(n)?.estado?.movido === true;
     const pos = posicion.get(n);
     const cx = f1(pos.x), cy = f1(pos.y);
     const g = el('g', { 'data-nodo': n, 'data-x': cx, 'data-y': cy });
-    if (editable) g.style.cursor = v.arrastre?.n === n ? 'grabbing' : 'move';
-    // Anillo pequeño fijo alrededor del nodo en vez del círculo de precisión del GPS (10–20 m),
-    // que tapaba a los detectores vecinos. La precisión queda en la descripción del mapa.
+    // Anillo pequeño fijo alrededor del nodo.
     g.appendChild(el('circle', { cx, cy, r: 12, fill: c, 'fill-opacity': 0.15, stroke: c, 'stroke-opacity': 0.4, 'stroke-width': 1 }));
     if (enfoque === n) g.appendChild(el('circle', { cx, cy, r: 14, fill: 'none', stroke: 'var(--text)', 'stroke-width': 2 }));
-    const attrs = { cx, cy, r: 9, fill: c, stroke: movido ? 'var(--text)' : 'var(--surface)', 'stroke-width': 2 };
-    if (movido) attrs['stroke-dasharray'] = '4 3';
+    const attrs = { cx, cy, r: 9, fill: c, stroke: 'var(--surface)', 'stroke-width': 2 };
     g.appendChild(el('circle', attrs));
     g.appendChild(el('text', { x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#fff', 'font-size': 10, 'font-weight': 700, 'font-family': 'var(--font)' }, String(n)));
     const ly = lugarEtiqueta(cx, f1(pos.y + 24));
     g.appendChild(el('text', { x: cx, y: ly, 'text-anchor': 'middle', fill: 'var(--text)', stroke: 'var(--surface-2)', 'stroke-width': 3, 'paint-order': 'stroke', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, `Detector ${n} · ${texto}`));
-    if (movido) g.appendChild(el('text', { x: cx, y: lugarEtiqueta(cx, ly + 14), 'text-anchor': 'middle', fill: 'var(--warn)', 'font-size': 11, 'font-family': 'var(--font)' }, 'se movió'));
     svg.appendChild(g);
-    resumen.push(`Detector ${n}: ${texto}${movido ? ' (se movió)' : ''}${u.precision > 0 ? `, ubicado con ±${Math.round(u.precision)} m` : ''}`);
+    resumen.push(`Detector ${n}: ${texto}`);
   }
 
   if (abanico) {
@@ -345,7 +284,7 @@ export function dibujarMapa(svg, args = {}) {
   norte.appendChild(el('text', { x: nx, y: 54, 'text-anchor': 'middle', fill: 'var(--text-2)', 'font-size': 12, 'font-weight': 600, 'font-family': 'var(--font)' }, 'N↑'));
   svg.appendChild(norte);
 
-  const extra = [persona ? 'Estás aquí' : null, zona ? 'zona del sismo marcada' : null].filter(Boolean);
+  const extra = [zona ? 'zona del sismo marcada' : null].filter(Boolean);
   svg.setAttribute('aria-label', `Mapa. ${[...resumen, ...extra].join('; ')}`);
   return sinUbicar;
 }

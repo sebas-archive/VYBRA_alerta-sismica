@@ -80,7 +80,6 @@
   .map-legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); font-size: .85rem; color: var(--text-2); padding: 0 var(--s2) var(--s2); }
   .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
   .lg-zone { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--sev-fuerte); background: color-mix(in srgb, var(--sev-fuerte) 25%, transparent); }
-  .lg-you { width: 12px; height: 12px; border-radius: 50%; background: var(--focus); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--focus); }
   .lg-node { width: 12px; height: 12px; border-radius: 50%; }
   .lg-node.verde { background: var(--ok); } .lg-node.azul { background: var(--info); } .lg-node.rojo { background: var(--err); }
   .checklist { list-style: none; padding: 0; margin: var(--s3) 0 0; display: grid; gap: var(--s2); }
@@ -265,7 +264,6 @@
       <a href="#ajustes" data-nav="ajustes">Ajustes</a>
     </nav>
     <div class="top-actions">
-      <button class="btn btn-icon hide-sm" type="button" id="loc-btn" aria-label="Usar mi ubicación"><svg class="icon"><use href="#i-pin"/></svg></button>
       <a class="btn btn-icon" href="#ajustes" id="bell-btn" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"/></svg></a>
       <button class="btn btn-icon" type="button" id="theme-btn" aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"/></svg></button>
     </div>
@@ -295,10 +293,9 @@
       <div class="card map-card">
         <svg class="map" id="map-now"></svg>
         <p class="sin-ubicar" id="map-now-sin"></p>
-        <div class="map-caption"><span id="map-now-text"></span><button type="button" class="link-btn" id="loc-now" hidden>Usar mi ubicación</button></div>
+        <div class="map-caption"><span id="map-now-text"></span></div>
         <div class="map-legend" aria-hidden="true">
           <span><i class="lg-zone"></i>Zona estimada del sismo</span>
-          <span><i class="lg-you"></i>Tu ubicación</span>
           <span><i class="lg-node verde"></i>Detector al día</span>
           <span><i class="lg-node azul"></i>Sincronizando</span>
           <span><i class="lg-node rojo"></i>Caído</span>
@@ -382,12 +379,6 @@
         </fieldset>
         <div class="cta-row"><button class="btn" type="button" id="test-btn"><svg class="icon"><use href="#i-flask"/></svg>Probar alerta</button></div>
         <p class="field-note">La prueba muestra la alerta marcada como PRUEBA. No avisa a nadie más.</p>
-      </div>
-      <div class="card">
-        <h2>Ubicación</h2>
-        <p class="explain">Sirve para mostrarte en el mapa y decirte a qué distancia ocurrió el sismo. No sale de tu teléfono: no se envía al servidor.</p>
-        <div class="cta-row"><button class="btn" type="button" id="gps-btn"><svg class="icon"><use href="#i-pin"/></svg><span>Usar mi ubicación</span></button></div>
-        <p class="field-note" id="gps-note">Te pediremos permiso.</p>
       </div>
       <div class="card">
         <h2>Pantalla</h2>
@@ -476,20 +467,14 @@
   const sevBadgeK = k => `<span class="sev sev-${k}">${SEV[k].name} · Mercalli ${SEV[k].merc}</span>`;
 
   // ---------- Lugar ----------
-  // Todo sale de la foto: la posición de los detectores (ubicados desde el panel) y, si la persona
-  // lo pide, la ubicación de este teléfono, que nunca se envía al servidor.
+  // La posición de los detectores es fija y llega en la foto.
   const lugar = q => q.zona ? `cerca del detector ${q.cerca}` : 'ubicación desconocida';
   const Lugar = q => { const t = lugar(q); return t[0].toUpperCase() + t.slice(1); };
-  // Distancia de la persona al centro de la zona; null si no hay ubicación de la persona o del sismo.
-  function relToYou(q) {
-    if (!S.persona || !q.zona) return null;
-    const d = distanciaM(S.persona, q.zona);
-    return { d, dentro: d <= q.zona.radioM, text: d <= q.zona.radioM ? 'Estás dentro de la zona estimada' : `A ${fmtDist(d)} de ti` };
-  }
+  const relToYou = () => null;   // ya no se usa la ubicación de la persona
   // Datos del mapa para un sismo (o ninguno): zona con el color de su severidad.
   const zonaMapa = q => q && q.zona ? { ...q.zona, nivel: qKey(q) } : null;
   function pintarMapa(id, q, enfoque = null) {
-    const sin = dibujarMapa($('#' + id), { ubicaciones: S.ubicaciones, foto: S.foto, persona: S.persona, zona: zonaMapa(q), enfoque });
+    const sin = dibujarMapa($('#' + id), { ubicaciones: S.ubicaciones, foto: S.foto, zona: zonaMapa(q), enfoque });
     const nota = $('#' + id + '-sin');
     if (nota) nota.textContent = sin.length ? `Sin ubicar: ${sin.map(n => `nodo ${n}`).join(', ')}` : '';
   }
@@ -499,7 +484,6 @@
     view: 'ahora', period: 30, min: 1, listView: 'lista',
     svc: 'err', conn: 'reconectando', quorum: false, lastCheck: null,
     foto: null, ubicaciones: {}, movidos: new Set(), nNodos: 3,
-    persona: null, gpsWatch: null, gpsAviso: false,
     quakes: [], seen: null, active: null, afterUntil: 0, afterQuake: null,
     settings: { notif: store.get('notif', false), sound: store.get('sound', true), vibe: store.get('vibe', true), min: store.get('min', 3) },
   };
@@ -514,7 +498,6 @@
     const n = [];
     if (S.svc === 'warn') n.push(`<div class="notice warn" role="status"><svg class="icon"><use href="#i-alert"/></svg><div><b>Servicio limitado</b>Parte de la red no responde y las alertas podrían no emitirse. Mantente atento a los medios oficiales.</div></div>`);
     if (S.svc === 'err') n.push(`<div class="notice err" role="alert"><svg class="icon"><use href="#i-wifi-off"/></svg><div><b>Sin conexión con el servicio de alertas</b>Reintentando… La información en pantalla puede estar desactualizada.</div></div>`);
-    if (S.gpsAviso) { const u = urlSegura(); n.push(`<div class="notice warn" role="status"><svg class="icon"><use href="#i-pin"/></svg><div><b>Tu ubicación necesita una conexión segura</b>Para ver tu ubicación abre <a href="${esc(u)}">${esc(u)}</a></div></div>`); }
     $('#notices').innerHTML = n.join('');
     const svc = $('#svc');
     svc.className = 'svc ' + S.svc;
@@ -554,7 +537,6 @@
     const r = recent ? relToYou(q) : null;
     $('#map-now-text').textContent = !recent ? 'Detectores de la red. No hay sismos en los últimos 3 días.'
       : q.zona ? `Zona estimada ${lugar(q)}.${r ? ` ${r.text}.` : ''}` : 'Ubicación del sismo desconocida: ningún detector que lo registró tiene una ubicación válida.';
-    $('#loc-now').hidden = !!S.persona;
   }
   function renderList() {
     const qs = visibleQuakes();
@@ -666,7 +648,6 @@
   function aplicarFoto(foto) {
     S.foto = foto;
     S.ubicaciones = foto.ubicaciones && typeof foto.ubicaciones === 'object' ? foto.ubicaciones : {};
-    S.movidos = new Set((foto.nodos || []).filter(x => x.estado && x.estado.movido).map(x => x.n));
     S.nNodos = (foto.nodos || []).length || 3;
     S.quorum = !!foto.quorum; S.lastCheck = nowS();
     S.quakes = quakesDe(foto);
@@ -703,47 +684,6 @@
   function renderAll() { renderNotices(); renderNow(); if (S.view === 'recientes') renderList(); if (S.active) alertaLugar(S.active); }
 
   // ---------- Ajustes ----------
-  // ---------- Ubicación de la persona ----------
-  // Solo al tocar el botón; se sigue con watchPosition mientras la página está abierta.
-  // Nunca se envía al servidor: se usa aquí para el punto "Estás aquí" y las distancias.
-  // El servidor sirve HTTPS en el puerto siguiente al de HTTP (8090 → 8091).
-  const urlSegura = () => { const p = Number(location.port); return `https://${location.hostname}:${p ? p + 1 : 8091}/publico`; };
-  function gpsNota(texto) { $('#gps-note').textContent = texto; }
-  function gpsBoton() {
-    const on = S.gpsWatch != null;
-    $('#gps-btn span').textContent = on ? 'Dejar de usar mi ubicación' : 'Usar mi ubicación';
-    $('#loc-btn').setAttribute('aria-pressed', on);
-  }
-  function dejarGPS() {
-    if (S.gpsWatch != null) navigator.geolocation.clearWatch(S.gpsWatch);
-    S.gpsWatch = null; S.persona = null;
-    gpsBoton(); gpsNota('No se está usando tu ubicación.'); renderAll();
-  }
-  function useGPS() {
-    if (S.gpsWatch != null) return;
-    if (!window.isSecureContext) {
-      S.gpsAviso = true; renderNotices();
-      gpsNota(`Para ver tu ubicación abre ${urlSegura()}`);
-      toast('Tu ubicación necesita una conexión segura (https).');
-      return;
-    }
-    if (!navigator.geolocation) { toast('Tu navegador no permite compartir la ubicación.'); return; }
-    gpsNota('Buscando tu ubicación…');
-    S.gpsWatch = navigator.geolocation.watchPosition(p => {
-      S.persona = { lat: p.coords.latitude, lon: p.coords.longitude, precision: p.coords.accuracy };
-      gpsNota(`Usando tu ubicación actual (±${Math.round(p.coords.accuracy)} m). Solo se usa en este teléfono.`);
-      renderAll();
-    }, err => {
-      if (err.code === err.PERMISSION_DENIED) {
-        if (S.gpsWatch != null) navigator.geolocation.clearWatch(S.gpsWatch);
-        S.gpsWatch = null; S.persona = null; gpsBoton();
-        gpsNota('No diste permiso de ubicación. Puedes activarlo en los ajustes del navegador.');
-        toast('Sin permiso de ubicación.');
-        renderAll();
-      } else if (!S.persona) gpsNota('Todavía no hay señal de ubicación. Seguimos intentando…');
-    }, { enableHighAccuracy: true, maximumAge: 0 });
-    gpsBoton();
-  }
   function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 5000); }
   function applyTheme(th) {
     if (th === 'light' || th === 'dark') document.documentElement.dataset.theme = th; else delete document.documentElement.dataset.theme;
@@ -774,9 +714,6 @@
     const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
     applyTheme(dark ? 'light' : 'dark');
   });
-  $('#loc-btn').addEventListener('click', useGPS);
-  $('#loc-now').addEventListener('click', useGPS);
-  $('#gps-btn').addEventListener('click', () => S.gpsWatch != null ? dejarGPS() : useGPS());
   // Prueba: zona con todos los detectores ubicados (y no movidos), como si todos reportaran nivel 6.
   $('#test-btn').addEventListener('click', () => {
     const ns = Object.keys(S.ubicaciones).map(Number);
@@ -807,7 +744,6 @@
 
   // ---------- Inicio ----------
   $('#svc-name').textContent = CONFIG.name;
-  if (!window.isSecureContext) gpsNota(`Para ver tu ubicación abre ${urlSegura()}`);
   $('#set-notif').checked = S.settings.notif; $('#set-sound').checked = S.settings.sound; $('#set-vibe').checked = S.settings.vibe;
   $$('input[name="min"]').forEach(i => i.checked = +i.value === S.settings.min);
   if (store.get('text', 'n') === 'l') { document.documentElement.classList.add('text-lg'); $$('#seg-text button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === 'l')); }

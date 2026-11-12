@@ -31,7 +31,7 @@ export function distanciaM(a, b) {
 }
 
 // Plano local equirrectangular centrado en el centro de los puntos. Norte arriba.
-// Devuelve x(p), y(p) en px dentro de ancho x alto, metrosPorPx e invertir(x, y) → {lat, lon} (la inversa exacta);
+// Devuelve x(p), y(p) en px dentro de ancho x alto y metrosPorPx;
 // el encuadre nunca es menor a 100 m de ancho.
 export function proyectar(puntos, ancho, alto, margen = 24) {
   const pts = puntos.filter((p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lon));
@@ -52,10 +52,6 @@ export function proyectar(puntos, ancho, alto, margen = 24) {
   return {
     x: (p) => ancho / 2 + ((p.lon - c.lon) * mLon) / metrosPorPx,
     y: (p) => alto / 2 - ((p.lat - c.lat) * mLat) / metrosPorPx,
-    invertir: (x, y) => ({
-      lat: c.lat + ((alto / 2 - y) * metrosPorPx) / mLat,
-      lon: c.lon + ((x - ancho / 2) * metrosPorPx) / mLon,
-    }),
     metrosPorPx,
   };
 }
@@ -90,27 +86,4 @@ export function nodoMasCercano(punto, ubicaciones, movidos) {
     if (d < dm) { dm = d; mejor = n; }
   }
   return mejor;
-}
-
-// Promedio de varias lecturas del GPS ([{lat, lon, accuracy}]), ponderado por 1/accuracy².
-// Se descartan las de accuracy > maxAcc; si no queda ninguna se usa la mejor y impreciso es true.
-// precision = max(1, sqrt(1/Σw)) en metros, con 1 decimal. Sin lecturas válidas: null.
-export function promediarLecturas(lecturas, maxAcc = 30) {
-  const validas = (lecturas ?? []).filter((l) => l && Number.isFinite(l.lat) && Number.isFinite(l.lon) && Number.isFinite(l.accuracy) && l.accuracy >= 0);
-  if (!validas.length) return null;
-  const f1 = (v) => Math.round(v * 10) / 10;
-  const buenas = validas.filter((l) => l.accuracy <= maxAcc);
-  if (!buenas.length) {
-    const mejor = validas.reduce((a, b) => (b.accuracy < a.accuracy ? b : a));
-    return { lat: mejor.lat, lon: mejor.lon, precision: f1(Math.max(1, mejor.accuracy)), usadas: 1, descartadas: validas.length - 1, impreciso: true };
-  }
-  let suma = 0, lat = 0, lon = 0;
-  for (const l of buenas) {
-    const w = 1 / Math.max(0.1, l.accuracy) ** 2; // accuracy 0 no debe dar peso infinito
-    suma += w; lat += l.lat * w; lon += l.lon * w;
-  }
-  return {
-    lat: lat / suma, lon: lon / suma, precision: f1(Math.max(1, Math.sqrt(1 / suma))),
-    usadas: buenas.length, descartadas: validas.length - buenas.length, impreciso: false,
-  };
 }

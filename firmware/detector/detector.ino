@@ -78,7 +78,9 @@ Preferences prefsUbic;
 nucleo::Raft* raft = nullptr;   // se crea en setup(), cuando ya hay semilla aleatoria
 WiFiUDP udp;
 WebServer servidor(80);
-IPAddress ipNodos[3];
+IPAddress ipNodos[3];            // se aprenden en la red (DHCP): 0.0.0.0 = aún no se sabe
+WiFiUDP udpDescubrir;            // "HOLA N" por broadcast: así cada nodo conoce la IP de los otros
+uint64_t proximoHola = 0;
 
 uint32_t arranque = 0;   // aleatorio por arranque, para que los id no se repitan
 uint32_t contador = 0;
@@ -121,19 +123,10 @@ void pedirHora() { configTime(GMT_OFFSET_S, 0, "pool.ntp.org", "time.google.com"
 
 // ---------------------------------------------------------------- WiFi
 
-// IP fija, gateway y DNS (el gateway también es el DNS: lo necesita NTP).
-void aplicarIpFija() {
-  IPAddress ip, gw, mascara;
-  ip.fromString(IP_NODOS[NODO - 1]);
-  gw.fromString(GATEWAY);
-  mascara.fromString(MASCARA);
-  WiFi.config(ip, gw, mascara, gw);
-}
-
 void conectarWiFi() {
   WiFi.mode(WIFI_STA);
+  { char h[16]; snprintf(h, sizeof h, "sismo-nodo-%d", NODO); WiFi.setHostname(h); }   // IP por DHCP
   WiFi.setSleep(false);   // sin ahorro de energía: menos latencia en UDP
-  aplicarIpFija();
   WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   uint32_t t0 = millis();
@@ -170,7 +163,6 @@ void vigilarWiFi(uint64_t ahora) {
     if (reintentosWifi % 3 == 0) {
       Serial.println("WiFi caído, reconexión completa");
       WiFi.disconnect(false, false);
-      aplicarIpFija();
       WiFi.begin(WIFI_SSID, WIFI_PASS);
     } else {
       Serial.println("WiFi caído, pidiendo reconexión");
@@ -189,7 +181,30 @@ void recibirUdp(uint64_t ahora) {
     int n = udp.read(paquete, sizeof paquete);
     if (n <= 0 || len > (int)sizeof paquete) continue;   // paquete truncado: se descarta
     nucleo::Msg m;
-    if (nucleo::decodificar((const char*)paquete, (size_t)n, m)) raft->recibir(m, ahora);
+    if (nucleo::decodificar((const char*)paquete, (size_t)n, m)) {
+      if (m.de >= 1 && m.de <= 3 && m.de != NODO) ipNodos[m.de - 1] = udp.remoteIP();
+      raft->recibir(m, ahora);
+    }
+  }
+}
+
+// Cada HOLA_CADA_MS se anuncia por broadcast y se escuchan los anuncios de los demás.
+// Si el DHCP le da otra IP a un nodo, los otros lo notan en el siguiente anuncio.
+void descubrirNodos(uint64_t ahora) {
+  if (WiFi.status() != WL_CONNECTED) return;
+  int len;
+  while ((len = udpDescubrir.parsePacket()) > 0) {
+    char buf[16] = {0};
+    int n = udpDescubrir.read(buf, sizeof buf - 1);
+    int de = 0;
+    if (n > 0 && sscanf(buf, "SISMO-HOLA:%d", &de) == 1 && de >= 1 && de <= 3 && de != NODO)
+      ipNodos[de - 1] = udpDescubrir.remoteIP();
+  }
+  if (ahora >= proximoHola) {
+    proximoHola = ahora + HOLA_CADA_MS;
+    udpDescubrir.beginPacket(WiFi.broadcastIP(), PUERTO_DESCUBRIR);
+    udpDescubrir.printf("SISMO-HOLA:%d", NODO);
+    udpDescubrir.endPacket();
   }
 }
 
@@ -198,6 +213,7 @@ void enviarSalidas() {
   if (WiFi.status() != WL_CONNECTED) return;   // Raft tolera la pérdida
   for (const nucleo::Salida& s : salidas) {
     if (s.a < 1 || s.a > 3 || s.a == NODO) continue;
+    if (ipNodos[s.a - 1] == IPAddress((uint32_t)0)) continue;   // aún no se descubrió
     std::string datos = nucleo::codificar(s.msg);
     udp.beginPacket(ipNodos[s.a - 1], PUERTO_RAFT);
     udp.write((const uint8_t*)datos.data(), datos.size());
@@ -531,7 +547,6 @@ void setup() {
   arranque = esp_random();
   Serial.printf("\nDetector nodo-%d (Raft)\n", NODO);
 
-  for (int i = 0; i < 3; i++) ipNodos[i].fromString(IP_NODOS[i]);
   persistencia.abrir();
   cargarHuella();
 
@@ -542,10 +557,14 @@ void setup() {
   nucleo::ConfigRaft cfg;
   cfg.yo = NODO;
   cfg.semilla = esp_random();
+  cfg.latidoMs = RAFT_LATIDO_MS;
+  cfg.eleccionMinMs = RAFT_ELECCION_MIN_MS;
+  cfg.eleccionMaxMs = RAFT_ELECCION_MAX_MS;
   raft = new nucleo::Raft(cfg, persistencia, ahoraEpochMs);
   Serial.printf("término guardado %lu, voto %d\n", (unsigned long)raft->termino(), raft->votadoPor());
 
   udp.begin(PUERTO_RAFT);
+  udpDescubrir.begin(PUERTO_DESCUBRIR);
   iniciarHttp();
 
   char nombre[16];
@@ -558,6 +577,7 @@ void setup() {
 void loop() {
   uint64_t ahora = ahoraMs();
   vigilarWiFi(ahora);
+  descubrirNodos(ahora);
   recibirUdp(ahora);
   raft->tick(ahora);
   leerBoton(ahora);

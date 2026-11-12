@@ -1,9 +1,9 @@
-// Configuración del servidor del PC.
+// Configuración del servidor del PC. Los detectores usan DHCP y se encuentran por mDNS (sismo-nodo-N.local).
 // NODOS="http://127.0.0.1:9001,http://127.0.0.1:9002,..." reemplaza la lista por defecto.
 const POR_DEFECTO = [
-  { n: 1, url: 'http://192.168.80.201' },
-  { n: 2, url: 'http://192.168.80.202' },
-  { n: 3, url: 'http://192.168.80.203' },
+  { n: 1, url: 'http://sismo-nodo-1.local' },
+  { n: 2, url: 'http://sismo-nodo-2.local' },
+  { n: 3, url: 'http://sismo-nodo-3.local' },
 ];
 
 function nodosDesdeEntorno(texto) {
@@ -17,4 +17,10 @@ function nodosDesdeEntorno(texto) {
 
 export const NODOS = nodosDesdeEntorno(process.env.NODOS);
 export const PUERTO = 8090;
-export const PUERTO_HTTPS = 8091;
+
+// Posición fija de cada detector en el mapa (ya no se ubican desde el panel).
+export const UBICACIONES = {
+  1: { lat: 4.648110, lon: -74.056690 },
+  2: { lat: 4.648176, lon: -74.056661 },
+  3: { lat: 4.648177, lon: -74.056703 },
+};
