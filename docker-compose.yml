@@ -1,0 +1,50 @@
+# Sistema completo sin hardware: un contenedor por servidor y uno para el panel.
+# Cada servidor corre en un sistema operativo distinto (Windows Server no: sus contenedores
+# solo funcionan en un host Windows).
+#   docker compose up --build
+#   Panel:   http://localhost:8095/        Vista pública: http://localhost:8095/publico
+# Los ESP32 reales no corren en Docker: cada servidor imita su API HTTP (web/fake/nodo-falso.js).
+# Para usar el panel con los ESP32 reales: NODOS="http://IP1,http://IP2,http://IP3" docker compose up panel
+# (en el contenedor no resuelve sismo-nodo-N.local; usa las IP).
+x-nodo: &nodo
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/estado').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    interval: 5s
+    timeout: 3s
+    retries: 6
+    start_period: 5s
+
+services:
+  nodo1:
+    <<: *nodo
+    build: { context: ./web, dockerfile: docker/Dockerfile.fedora }
+    container_name: sismo-nodo-1
+    environment: { N: "1", PUERTO: "8080" }
+    ports: ["9001:8080"]
+  nodo2:
+    <<: *nodo
+    build: { context: ./web, dockerfile: docker/Dockerfile.suse }
+    container_name: sismo-nodo-2
+    environment: { N: "2", PUERTO: "8080" }
+    ports: ["9002:8080"]
+  nodo3:
+    <<: *nodo
+    build: { context: ./web, dockerfile: docker/Dockerfile.ubuntu }
+    container_name: sismo-nodo-3
+    environment: { N: "3", PUERTO: "8080" }
+    ports: ["9003:8080"]
+
+  panel:
+    build: ./web          # Alpine (node:22-alpine)
+    container_name: sismo-panel
+    restart: unless-stopped
+    command: ["node", "server.js"]
+    environment:
+      PUERTO: "8090"
+      NODOS: ${NODOS:-http://nodo1:8080,http://nodo2:8080,http://nodo3:8080}
+    ports: ["${PUERTO_PANEL:-8095}:8090"]
+    depends_on:
+      nodo1: { condition: service_healthy }
+      nodo2: { condition: service_healthy }
+      nodo3: { condition: service_healthy }

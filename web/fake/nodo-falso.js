@@ -4,7 +4,7 @@ import http from 'node:http';
 const PAGINA_LOG = 50;
 const MAX_SUCESOS = 50;
 
-export function crearNodoFalso({ n, puerto = 0 }) {
+export function crearNodoFalso({ n, puerto = 0, host = '127.0.0.1' }) {
   const inicio = Date.now();
   let contadorPulsos = 0;
   let colgado = false;
@@ -157,7 +157,7 @@ export function crearNodoFalso({ n, puerto = 0 }) {
     return json(res, 404, { error: 'no existe' });
   });
 
-  servidor.listen(puerto, '127.0.0.1');
+  servidor.listen(puerto, host);
 
   return {
     n, servidor, estado, control, log, sucesos, alertas, peticiones,

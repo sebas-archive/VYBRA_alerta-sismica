@@ -1,0 +1,8 @@
+# Servidor 2: openSUSE Leap
+FROM opensuse/leap:latest
+RUN zypper --non-interactive install --no-recommends nodejs22 && zypper clean --all
+WORKDIR /app
+COPY package.json ./
+COPY fake ./fake
+USER nobody
+CMD ["node", "fake/nodo-solo.js"]
