@@ -113,8 +113,6 @@
   #pano-cluster svg { width: 100%; max-height: 270px; display: block; }
   /* Mapa liso de Panorama */
   .mapa-mini { border-radius: var(--radius-sm); overflow: hidden; }
-  .sin-ubicar { font-size: 13px; color: var(--text-2); margin-top: var(--s2); }
-  .sin-ubicar:empty { display: none; }
 
   .ev-list { list-style: none; margin: 0; padding: 0; }
   .ev-row { display: grid; grid-template-columns: 1.1fr 1.7fr .7fr .8fr; gap: var(--s3); align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--border); font-size: 14px; }
@@ -251,30 +249,12 @@
   @media (max-width: 420px) { .sismo-btns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .det-route { font-size: 14px; min-height: 42px; }
   .det-card .kv { border-top: 1px solid var(--border); padding-top: var(--s3); }
-  .ubic { display: grid; gap: var(--s2); border-top: 1px solid var(--border); padding-top: var(--s3); }
-  .ubic-txt { font-size: 14px; }
-  .ubic-txt .movido { color: var(--warn); font-weight: 600; }
-  .ubic-msg { font-size: 13px; color: var(--text-2); min-height: 18px; overflow-wrap: anywhere; }
-  .ubic-msg.err { color: var(--err); }
-  .ubic-msg.ok { color: var(--ok); }
-  .ubic-msg.warn { color: var(--warn); }
-  .ubic .btn[disabled] { cursor: progress; opacity: .7; }
-  .ubic-acciones { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
-  .ubic-acciones[hidden], .ubic-acciones [hidden] { display: none; }
-  .ubic-conf { display: inline-flex; flex-wrap: wrap; gap: var(--s2); align-items: center; font-size: 14px; font-weight: 600; }
   .btn-peligro { color: var(--err); border-color: var(--err); }
   /* Mapa de la pestaña Detectores y modo "Ajustar posiciones" */
   .det-mapa-card { margin-bottom: var(--s4); }
   .det-mapa-card .card-head { flex-wrap: wrap; align-items: center; }
   .det-mapa-svg { border-radius: var(--radius-sm); overflow: hidden; width: min(100%, 860px); margin: 0 auto; }
   .det-mapa-svg.editando { outline: 2px dashed var(--focus); outline-offset: 2px; }
-  .ajuste-barra { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
-  .ajuste-barra [hidden] { display: none; }
-  .ajuste-ayuda { font-size: 14px; font-weight: 600; color: var(--text); flex-basis: 100%; }
-  .ajuste-msg { font-size: 13px; color: var(--text-2); margin-top: var(--s2); overflow-wrap: anywhere; }
-  .ajuste-msg:empty { display: none; }
-  .ajuste-msg.err { color: var(--err); }
-  .ajuste-msg.ok { color: var(--ok); }
 
   /* ---------- Alertas ---------- */
   .alerts-layout { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); gap: var(--s4); align-items: start; }
@@ -603,7 +583,6 @@
     paused: false, pauseAt: 0, win: 60, scale: 'comun', show: { 1: true, 2: true, 3: true },
     hidden: {}, expanded: {}, selAlert: null, reg: 'log', tl: 'all', fdet: 'all',
     detMsg: {}, busy: {},
-    ajuste: null,   // modo "Ajustar posiciones": { pendientes: {N: {lat, lon}}, guardando } | null
   };
   const srv = id => S.servers.find(s => s.id === id);
   const alive = () => S.servers.filter(s => s.reach && !s.caido);
@@ -935,13 +914,7 @@
       </div>
       <p class="det-route" data-f="route"></p>
       <dl class="kv"><dt>Última lectura</dt><dd data-f="sev"></dd><dt>PGA</dt><dd data-f="pga"></dd><dt>Último reporte</dt><dd data-f="time"></dd></dl>
-      <div class="ubic">
-        <div class="ubic-acciones">
-          <button class="btn" type="button" data-terminar="${id}" hidden>Terminar ya</button>
-        </div>
-      </div>
     </article>`).join('');
-    $$('[data-terminar]').forEach(btn => btn.addEventListener('click', () => { const m = midiendo.get(+btn.dataset.terminar); if (m) m.terminarYa(); }));
     $$('[data-sismo]').forEach(btn => btn.addEventListener('click', () => {
       const id = +btn.dataset.sismo, nivel = +btn.dataset.nivel;
       if (S.detMsg[id] && S.detMsg[id].sending) return;
@@ -1011,9 +984,6 @@
       card.querySelector('[data-f="sev"]').innerHTML = e ? `${sevBadge(e.level)}<div class="subtle">nivel ${esc(e.level)} de 10</div>` : '–';
       card.querySelector('[data-f="pga"]').textContent = e ? `${e.pga.toFixed(3)} g` : '–';
       card.querySelector('[data-f="time"]').innerHTML = e ? timeCell(e.t) : '–';
-      const med = midiendo.get(id);
-      const term = card.querySelector('[data-terminar]');
-      term.hidden = !med; term.disabled = !med || !med.lecturas.length;
     });
   }
 
