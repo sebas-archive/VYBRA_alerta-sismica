@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearPoller } from './poller.js';
 import os from 'node:os';
+import dns from 'node:dns/promises';
 import { NODOS, PUERTO, UBICACIONES } from './config.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
@@ -182,6 +183,26 @@ export function crearServidor(opciones) {
   return servidor;
 }
 
+// Los detectores usan DHCP y se encuentran por mDNS (sismo-nodo-N.local), que tarda segundos en
+// resolver: demasiado para el sondeo. Se resuelve aparte, cada pocos segundos, y el poller usa la IP.
+function resolverNodos(poller, nodos, cadaMs = 5000) {
+  const hosts = nodos.map((x) => ({ n: x.n, host: new URL(x.url).hostname, puerto: new URL(x.url).port }))
+    .filter((x) => /\.local$/i.test(x.host));
+  if (!hosts.length) return () => {};
+  const resolver = async () => {
+    await Promise.all(hosts.map(async (h) => {
+      try {
+        const { address } = await dns.lookup(h.host, { family: 4 });
+        poller.fijarUrl(h.n, `http://${address}${h.puerto ? `:${h.puerto}` : ''}`);
+      } catch { /* sin respuesta: se conserva la IP anterior */ }
+    }));
+  };
+  resolver();
+  const t = setInterval(resolver, cadaMs);
+  t.unref();
+  return () => clearInterval(t);
+}
+
 function ipLan() {
   for (const lista of Object.values(os.networkInterfaces())) {
     for (const i of lista ?? []) if (i.family === 'IPv4' && !i.internal) return i.address;
@@ -191,10 +212,13 @@ function ipLan() {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const puerto = Number(process.env.PUERTO) || PUERTO;
-  const poller = crearPoller({ nodos: NODOS });
-  const manejador = crearManejador({ poller, nodos: NODOS });
+  // El WiFi de un hotspot responde en 100-2500 ms: con los 250 ms de fábrica todos salían caídos.
+  const timeoutNodoMs = Number(process.env.TIMEOUT_NODO_MS) || 3000;
+  const poller = crearPoller({ nodos: NODOS, timeoutMs: timeoutNodoMs, intervaloMs: Number(process.env.INTERVALO_MS) || 1000 });
+  const manejador = crearManejador({ poller, nodos: NODOS, timeoutNodoMs });
   const servidor = http.createServer(manejador);
   const ip = ipLan();
+  resolverNodos(poller, NODOS);
   poller.iniciar();
   servidor.on('error', (e) => {
     console.error(e.code === 'EADDRINUSE'

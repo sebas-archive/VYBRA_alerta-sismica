@@ -190,6 +190,11 @@ export function crearPoller({ nodos, intervaloMs = 300, timeoutMs = 250, fallosP
     if (temporizador !== null) clearInterval(temporizador);
     temporizador = null;
   };
+  // Cambia la URL de un nodo (la IP la da el DHCP y puede cambiar).
+  emisor.fijarUrl = function fijarUrl(n, url) {
+    const x = info.find((i) => i.n === n);
+    if (x) x.url = url.replace(/\/+$/, '');
+  };
   emisor.foto = construirFoto;
   return emisor;
 }

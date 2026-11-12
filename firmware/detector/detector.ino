@@ -254,9 +254,28 @@ bool botonPideConfiguracion() {
   return false;
 }
 
+// Doble reinicio: se pulsa EN dos veces seguidas (la segunda dentro de DOBLE_REINICIO_MS del
+// arranque). El arranque deja una marca en NVS; si al arrancar ya está puesta, el anterior fue
+// cortado en seguida por otro reinicio. Se borra al pasar la ventana.
+bool dobleReinicio() {
+  Preferences p;
+  p.begin("wifi", false);
+  if (p.getBool("dr", false)) { p.putBool("dr", false); p.end(); return true; }
+  p.putBool("dr", true);
+  uint32_t t0 = millis();
+  while (millis() - t0 < DOBLE_REINICIO_MS) {
+    digitalWrite(PIN_LED, (millis() / 500) % 2);   // parpadeo lento: ventana abierta
+    delay(20);
+  }
+  p.putBool("dr", false);
+  p.end();
+  digitalWrite(PIN_LED, LOW);
+  return false;
+}
+
 void conectarWiFi() {
   cargarCredenciales();
-  if (botonPideConfiguracion()) portalWifi();
+  if (botonPideConfiguracion() || dobleReinicio()) portalWifi();
   WiFi.mode(WIFI_STA);
   { char h[16]; snprintf(h, sizeof h, "sismo-nodo-%d", NODO); WiFi.setHostname(h); }   // IP por DHCP
   WiFi.setSleep(false);   // sin ahorro de energía: menos latencia en UDP
