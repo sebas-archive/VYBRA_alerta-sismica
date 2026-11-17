@@ -1,0 +1,24 @@
+== INF-02/INF-03 Estado de contenedores y healthchecks
+== fecha: 2026-11-17T16:24:46-05:00
+== docker: Docker version 29.9.3, build 5457199aa5
+== commit: 3e3072957b9d4d2683dc4e348d5211ea9e2f90d9
+
+--- docker compose ps ---
+NAME           IMAGE                                    COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+sismo-nodo-1   detectordesismosenreddistribuida-nodo1   "node fake/nodo-solo…"   nodo1     42 seconds ago   Up 41 seconds (healthy)   0.0.0.0:9001->8080/tcp, [::]:9001->8080/tcp
+sismo-nodo-2   detectordesismosenreddistribuida-nodo2   "node fake/nodo-solo…"   nodo2     42 seconds ago   Up 41 seconds (healthy)   0.0.0.0:9002->8080/tcp, [::]:9002->8080/tcp
+sismo-nodo-3   detectordesismosenreddistribuida-nodo3   "node fake/nodo-solo…"   nodo3     42 seconds ago   Up 41 seconds (healthy)   0.0.0.0:9003->8080/tcp, [::]:9003->8080/tcp
+sismo-panel    detectordesismosenreddistribuida-panel   "docker-entrypoint.s…"   panel     41 seconds ago   Up 35 seconds             0.0.0.0:8095->8090/tcp, [::]:8095->8090/tcp
+
+--- healthchecks ---
+/sismo-nodo-1 healthy
+/sismo-nodo-2 healthy
+/sismo-nodo-3 healthy
+
+--- puertos publicados ---
+sismo-panel	0.0.0.0:8095->8090/tcp, [::]:8095->8090/tcp
+sismo-nodo-2	0.0.0.0:9002->8080/tcp, [::]:9002->8080/tcp
+sismo-nodo-1	0.0.0.0:9001->8080/tcp, [::]:9001->8080/tcp
+sismo-nodo-3	0.0.0.0:9003->8080/tcp, [::]:9003->8080/tcp
+inventario-bt-oracle-1	127.0.0.1:1521->1521/tcp
+inventario-bt-bluetooth-1	

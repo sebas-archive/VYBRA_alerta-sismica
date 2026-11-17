@@ -81,7 +81,7 @@ arduino-cli compile --fqbn "$FQBN" \
 
 if [[ $WIFI -eq 1 ]]; then
   echo "== Cargando por WiFi en $PUERTO (sismo-nodo-$NODO)"
-  # espota directo a la IP fija: no depende de mDNS. La placa se conecta de vuelta al PC
+  # espota directo a la IP resuelta (sismo-nodo-N.local por mDNS, o IP=x.x.x.x). La placa se conecta de vuelta al PC
   # por TCP en el puerto 32323, que el firewall debe permitir desde la red de las placas:
   #   sudo ufw allow from <tu subred>/24 to any port 32323 proto tcp
   ESPOTA="$(ls "$HOME"/.arduino15/packages/esp32/hardware/esp32/*/tools/espota.py 2>/dev/null | sort -V | tail -1)"

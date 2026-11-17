@@ -1,0 +1,22 @@
+== RES-05 Tamaños de firmware (recompilado en Fase 3)
+== fecha: 2026-11-17T16:17:26-05:00
+== arduino-cli: arduino-cli  Version: 1.5.1 Commit: 01f3d4f2ba7c2eaafb5dc710c8a1903af7762fea Date: 
+== core: esp32:esp32 3.3.12    3.3.12 esp32
+== fqbn: esp32:esp32:esp32
+== flags: --build-property compiler.cpp.extra_flags=-DNODO=N
+
+nodo1       8192 boot_app0.bin
+nodo1    1106048 detector.ino.bin
+nodo1      24992 detector.ino.bootloader.bin
+nodo1    4194304 detector.ino.merged.bin
+nodo1       3072 detector.ino.partitions.bin
+nodo2       8192 boot_app0.bin
+nodo2    1106048 detector.ino.bin
+nodo2      24992 detector.ino.bootloader.bin
+nodo2    4194304 detector.ino.merged.bin
+nodo2       3072 detector.ino.partitions.bin
+nodo3       8192 boot_app0.bin
+nodo3    1106032 detector.ino.bin
+nodo3      24992 detector.ino.bootloader.bin
+nodo3    4194304 detector.ino.merged.bin
+nodo3       3072 detector.ino.partitions.bin

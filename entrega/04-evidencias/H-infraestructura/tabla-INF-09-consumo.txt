@@ -1,0 +1,10 @@
+== INF-09 Consumo
+== fecha: 2026-11-17T16:24:46-05:00
+
+NAME                        CPU %     MEM USAGE / LIMIT
+sismo-panel                 0.17%     18.59MiB / 23.25GiB
+sismo-nodo-2                0.05%     14.97MiB / 23.25GiB
+sismo-nodo-1                0.06%     16.09MiB / 23.25GiB
+sismo-nodo-3                0.06%     14.78MiB / 23.25GiB
+inventario-bt-oracle-1      0.26%     58.65MiB / 23.25GiB
+inventario-bt-bluetooth-1   0.06%     73.05MiB / 23.25GiB

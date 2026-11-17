@@ -1,0 +1,10 @@
+  primer timeout de elección (simulado): 5320 ms
+[ok] config_desplegada_temporizador_en_rango
+  líder elegido (simulado): 5820 ms
+[ok] config_desplegada_latidos_mantienen_lider
+  failover (simulado): 5500 ms
+[ok] config_desplegada_failover
+[ok] config_desplegada_sin_quorum
+  commit replicado en los 3 (simulado): 510 ms
+[ok] config_desplegada_commit
+5 ok, 0 fallas

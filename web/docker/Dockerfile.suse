@@ -1,5 +1,5 @@
 # Servidor 2: openSUSE Leap
-FROM opensuse/leap:latest
+FROM opensuse/leap:15.6
 RUN zypper --non-interactive install --no-recommends nodejs22 && zypper clean --all
 WORKDIR /app
 COPY package.json ./

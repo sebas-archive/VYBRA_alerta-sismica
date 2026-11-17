@@ -1,0 +1,8 @@
+== INF-05 Logs completos
+== fecha: 2026-11-17T16:24:46-05:00
+
+sismo-nodo-3  | Servidor 3 (Ubuntu 24.04.5 LTS, Node v18.19.1) escuchando en 0.0.0.0:8080
+sismo-panel   | Panel: http://172.20.0.5:8090  Vista pública: http://172.20.0.5:8090/publico
+sismo-panel   | Si el firewall bloquea el celular: sudo ufw allow from <tu subred>/24 to any port 8090 proto tcp
+sismo-nodo-2  | Servidor 2 (openSUSE Leap 16.0, Node v22.23.4) escuchando en 0.0.0.0:8080
+sismo-nodo-1  | Servidor 1 (Fedora Linux 42 (Container Image), Node v22.22.0) escuchando en 0.0.0.0:8080

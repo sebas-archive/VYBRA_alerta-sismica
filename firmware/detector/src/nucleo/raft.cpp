@@ -356,6 +356,9 @@ Propuesta Raft::proponer(Evento ev, uint64_t ahoraMs) {
   for (const Evento& p : pendientes_)
     if (p.id == ev.id) return Propuesta::Duplicada;
   if (logLleno()) return Propuesta::LogLleno;  // su log es copia del líder: también está lleno
+  // Tope de la cola: sin él, un seguidor sin quórum acumularía eventos sin límite y reenviaría
+  // todos cada reintentoForwardMs.
+  if (pendientes_.size() >= cfg_.topePendientes) return Propuesta::ColaLlena;
   if (pendientes_.empty()) proximoForward_ = ahoraMs + cfg_.reintentoForwardMs;
   pendientes_.push_back(ev);
   if (lider_ != 0 && lider_ != cfg_.yo) {

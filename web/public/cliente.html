@@ -368,7 +368,6 @@
         <h2>Notificaciones</h2>
         <div class="set-row"><div class="txt"><b>Avisarme de sismos</b><span id="notif-note">Recibe la alerta aunque no tengas esta página abierta.</span></div><label class="switch"><input type="checkbox" id="set-notif" aria-label="Avisarme de sismos"><span></span></label></div>
         <div class="set-row"><div class="txt"><b>Sonido</b><span>Una sirena corta cuando haya alerta.</span></div><label class="switch"><input type="checkbox" id="set-sound" checked aria-label="Sonido"><span></span></label></div>
-        <div class="set-row"><div class="txt"><b>Vibración</b><span>Solo en teléfonos que lo permitan.</span></div><label class="switch"><input type="checkbox" id="set-vibe" checked aria-label="Vibración"><span></span></label></div>
         <fieldset style="border:0;padding:0;margin:var(--s3) 0 0">
           <legend style="font-weight:600">Avisarme a partir de</legend>
           <div class="radio-list" id="min-list">
@@ -485,7 +484,7 @@
     svc: 'err', conn: 'reconectando', quorum: false, lastCheck: null,
     foto: null, ubicaciones: {}, movidos: new Set(), nNodos: 3,
     quakes: [], seen: null, active: null, afterUntil: 0, afterQuake: null,
-    settings: { notif: store.get('notif', false), sound: store.get('sound', true), vibe: store.get('vibe', true), min: store.get('min', 3) },
+    settings: { notif: store.get('notif', false), sound: store.get('sound', true), min: store.get('min', 3) },
   };
 
   // ---------- Render ----------
@@ -591,7 +590,6 @@
     $('#alert-title').focus();
     $('#sr-live').textContent = `Alerta de sismo ${SEV[k].name}. ${instruction(k).join('. ')}.`;
     if (S.settings.sound) siren();
-    if (S.settings.vibe && navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]);
     if (S.settings.notif && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
       try { new Notification(`${test ? 'PRUEBA: ' : q.simulated ? 'SIMULACRO: ' : ''}Sismo ${SEV[k].name.toLowerCase()}`, { body: instruction(k).join(' · '), tag: q.id }); } catch (e) {}
     }
@@ -724,7 +722,6 @@
   });
   $('#f-min').addEventListener('change', e => { S.min = +e.target.value; renderList(); });
   $('#set-sound').addEventListener('change', e => { S.settings.sound = e.target.checked; store.set('sound', e.target.checked); });
-  $('#set-vibe').addEventListener('change', e => { S.settings.vibe = e.target.checked; store.set('vibe', e.target.checked); });
   $('#set-notif').addEventListener('change', async e => {
     S.settings.notif = e.target.checked; store.set('notif', e.target.checked);
     if (e.target.checked && 'Notification' in window && Notification.permission === 'default') {
@@ -744,7 +741,7 @@
 
   // ---------- Inicio ----------
   $('#svc-name').textContent = CONFIG.name;
-  $('#set-notif').checked = S.settings.notif; $('#set-sound').checked = S.settings.sound; $('#set-vibe').checked = S.settings.vibe;
+  $('#set-notif').checked = S.settings.notif; $('#set-sound').checked = S.settings.sound;
   $$('input[name="min"]').forEach(i => i.checked = +i.value === S.settings.min);
   if (store.get('text', 'n') === 'l') { document.documentElement.classList.add('text-lg'); $$('#seg-text button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === 'l')); }
   applyTheme(store.get('theme', 'system'));

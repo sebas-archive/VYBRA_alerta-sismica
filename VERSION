@@ -1,0 +1,29 @@
+# Versión del proyecto
+
+- **Versión de código:** `1.0.0-rc1` (candidata; ver nota)
+- **Tag de Git:** `v1.0.0-rc1`
+- **Commit:** se completa al crear el tag (ver `git describe --tags`)
+- **Fecha de estabilización:** 2026-11-17
+- **Rama:** `main` (fast-forward desde `ubicacion`)
+
+## Nota sobre `v1.0.0`
+
+La versión `v1.0.0` definitiva se etiquetará **después** de la campaña física con las tres ESP32,
+porque la validación de hardware es un criterio de aceptación de la Fase 3
+(`F3-11` a `F3-17`). `v1.0.0-rc1` es la candidata que ya superó todas las validaciones de software:
+
+| Validación | Resultado |
+|---|---|
+| Pruebas C++ | 78/78, 0 fallas |
+| Arnés de configuración desplegada (A′) | 5/5, 0 fallas |
+| Pruebas JavaScript | 41/41 |
+| Compilación de firmware | 3/3 nodos |
+| Docker Compose | 4 servicios, 3 nodos `healthy` |
+
+## Reproducir esta versión
+
+```bash
+git checkout v1.0.0-rc1
+```
+
+Instrucciones completas en `README.md` y `entrega/06-manual/conexion-esp32.md`.

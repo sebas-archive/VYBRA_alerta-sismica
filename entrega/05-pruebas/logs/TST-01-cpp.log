@@ -1,0 +1,110 @@
+== fecha: 2026-11-17T16:07:39-05:00
+== host: Linux 7.3.3-1-cachyos x86_64
+== commit: 3e3072957b9d4d2683dc4e348d5211ea9e2f90d9
+== git status:
+ M docker-compose.yml
+ M firmware/detector/config.h
+ M firmware/detector/detector.ino
+ M firmware/detector/secretos.ejemplo.h
+ M firmware/detector/src/nucleo/raft.cpp
+ M firmware/detector/src/nucleo/raft.h
+ M mockup/cliente.html
+ M web/Dockerfile
+ M web/docker/Dockerfile.fedora
+ M web/docker/Dockerfile.suse
+ M web/public/cliente.html
+?? entrega/
+?? preview/
+== g++: g++ (GCC) 16.2.1 20260810
+== make: GNU Make 4.4.1
+== ArduinoJson: version=7.4.3
+
+== bin/test_api
+[ok] estado_menos_de_1kb
+[ok] log_paginado_de_a_50
+[ok] log_marca_en_alerta
+[ok] sucesos_desde
+[ok] alertas_forma
+[ok] situacion_lider_estable_funciona_en_los_3
+[ok] situacion_sin_lider_sincroniza
+[ok] situacion_seguidor_reiniciado_sincroniza_hasta_alcanzar
+[ok] situacion_lider_solo_con_propuesta_sin_confirmar
+9 ok, 0 fallas
+== bin/test_huella
+[ok] mejores_ordena_y_recorta
+[ok] parecido_igual_es_1
+[ok] parecido_tolera_12db
+[ok] parecido_mitad
+[ok] parecido_referencia_vacia_es_1
+[ok] sin_referencia_no_movido
+[ok] movido_tras_2_seguidos
+[ok] uno_malo_y_uno_bueno_no_movido
+[ok] fijar_referencia_limpia
+[ok] ap_nuevos_mas_fuertes_no_mueven
+[ok] restaurar_movido
+[ok] union_evita_falso_positivo
+[ok] movido_real_con_union
+[ok] union_se_queda_con_rssi_mas_fuerte
+[ok] fijar_referencia_limpia_historial
+[ok] union_evita_falso_positivo_3_y_3
+[ok] movido_en_marcha_en_3_evaluaciones
+17 ok, 0 fallas
+== bin/test_mensajes
+[ok] append_ida_y_vuelta
+[ok] append_con_8_entradas_cabe_en_1400_bytes
+[ok] inicio_termino_ida_y_vuelta
+[ok] votereq_ida_y_vuelta
+[ok] voteresp_ida_y_vuelta
+[ok] appendresp_ida_y_vuelta
+[ok] forward_ida_y_vuelta
+[ok] forwardack_ida_y_vuelta
+[ok] basura_no_decodifica
+9 ok, 0 fallas
+== bin/test_raft
+[ok] elige_un_unico_lider
+[ok] lider_agrega_inicio_termino
+[ok] latidos_mantienen_el_lider
+[ok] cae_el_lider_y_se_reelige
+[ok] sin_quorum_no_hay_lider
+[ok] recuperado_vuelve_como_seguidor
+[ok] persiste_termino_y_voto
+[ok] un_voto_por_termino
+[ok] rechaza_voto_si_log_desactualizado
+[ok] caido_ignora_mensajes_y_no_envia
+[ok] sucesos_registra_eleccion
+[ok] sucesos_tope_50
+[ok] registrar_suceso_externo
+[ok] con_perdida_20_por_ciento_igual_elige
+[ok] particion_minoritaria_no_elige
+[ok] filtro_descarta_mensajes
+[ok] evento_en_lider_se_confirma_en_todos
+[ok] evento_en_seguidor_llega_por_forward
+[ok] lider_rechaza_id_duplicado
+[ok] forward_duplicado_tras_cambio_de_lider_no_duplica
+[ok] sin_quorum_queda_pendiente_y_luego_confirma
+[ok] nodo_reiniciado_se_pone_al_dia_en_menos_de_1s
+[ok] alertas_iguales_en_los_3
+[ok] log_lleno_rechaza
+[ok] caido_ignora_propuesta
+[ok] particion_minoritaria_no_confirma
+[ok] append_respeta_8_entradas
+[ok] reinicio_de_lider_y_seguidor_resincroniza_al_sobreviviente
+[ok] sin_reinicios_no_hay_resincronizacion
+[ok] lider_que_baja_reinicia_temporizador
+[ok] commit_lider_es_el_del_ultimo_append
+[ok] commit_lider_en_cluster_estable
+32 ok, 0 fallas
+== bin/test_sismo
+[ok] nivel_por_tiempo
+[ok] nivel_alerta
+[ok] dos_detectores_dentro_de_10s_alertan
+[ok] mismo_detector_no_alerta
+[ok] fuera_de_ventana_no_alerta
+[ok] elige_el_mas_cercano
+[ok] tercero_fuera_de_ventana_del_primero_no_entra
+[ok] evento_sin_hora_no_cuenta
+[ok] usa_t_lider_si_no_hay_t
+[ok] inicio_termino_se_ignora
+[ok] tope_de_100_eventos
+11 ok, 0 fallas
+EXIT=0

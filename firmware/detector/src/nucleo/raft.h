@@ -1,6 +1,6 @@
 // Nodo Raft sin hardware: elección de líder, persistencia de término/voto, caída simulada,
 // replicación del log, confirmación por mayoría y reenvío (forward) de eventos al líder.
-// Lo maneja el loop de detector.ino: UDP → recibir(), tick(millis()), sacarSalidas() → UDP.
+// Lo maneja el loop de detector.ino: UDP → recibir(), tick(ahoraMs de esp_timer en ms), sacarSalidas() → UDP.
 #pragma once
 #include <cstddef>
 #include <cstdint>
@@ -35,6 +35,9 @@ struct ConfigRaft {
   size_t topeLog = 1000;
   size_t maxPorAppend = 8;
   uint32_t reintentoForwardMs = 500;
+  // Tope de la cola de eventos reenviados al líder (seguidor sin confirmación). Acota el uso de
+  // memoria y el tráfico de forward durante un no-quórum prolongado.
+  size_t topePendientes = 100;
 };
 
 // Resultado de proponer un evento:
@@ -42,8 +45,9 @@ struct ConfigRaft {
 //  Pendiente = quedó en la cola de reenvío al líder (o sin líder conocido).
 //  Caido     = el nodo está caído; no se guarda nada.
 //  LogLleno  = el log llegó al tope; se rechaza sin sobrescribir.
+//  ColaLlena = la cola de reenvío al líder llegó a su tope (topePendientes).
 //  Duplicada = ese id ya está en el log (o ya en la cola de reenvío).
-enum class Propuesta { Aceptada, Pendiente, Caido, LogLleno, Duplicada };
+enum class Propuesta { Aceptada, Pendiente, Caido, LogLleno, ColaLlena, Duplicada };
 
 class Raft {
  public:

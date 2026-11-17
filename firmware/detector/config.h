@@ -25,7 +25,7 @@ static const uint16_t PUERTO_RAFT = 4210;
 
 // Portal de configuración WiFi: la placa crea la red SISMO-D<N>-config (clave PORTAL_CLAVE, mínimo 8)
 // si no logra conectarse al arrancar, si se pulsa EN dos veces seguidas, o si se mantiene el botón al encender.
-#define PORTAL_CLAVE "[REDACTADO]"
+// PORTAL_CLAVE se define en secretos.h (no versionado); ver secretos.ejemplo.h.
 static const uint32_t DOBLE_REINICIO_MS = 3000;   // pulsar EN dos veces en menos de 3 s abre el portal
 static const uint32_t PORTAL_BOTON_MS = 3000;     // botón presionado al encender: abre el portal
 static const uint32_t PORTAL_MAX_MS = 300000;     // sin configurarla en 5 min, reinicia y reintenta

@@ -1,0 +1,57 @@
+== fecha: 2026-11-17T16:07:57-05:00
+== node: v26.13.0
+== host: Linux 7.3.3-1-cachyos x86_64
+== commit: 3e3072957b9d4d2683dc4e348d5211ea9e2f90d9
+== comando: node --test --test-concurrency=1 test/geo.test.js test/poller.test.js test/server.test.js
+
+✔ color: inalcanzable o caido es rojo (5.075994ms)
+✔ color: candidato o atrasado es azul (0.219263ms)
+✔ color: al día es verde (0.123447ms)
+✔ color: si reconoce otro líder que el de la foto es azul (0.126548ms)
+✔ distancia: 1 grado de latitud ≈ 111 km (±1%) (0.178552ms)
+✔ zona: centroide ponderado por nivel (0.257022ms)
+✔ zona: excluye movidos y sin ubicar; con uno es ese nodo y 30 m; con ninguno null (0.142368ms)
+✔ zona: radio mínimo 30 m (0.104927ms)
+✔ geo: un solo punto da encuadre mínimo (0.256423ms)
+✔ geo: norte arriba, este a la derecha, todos dentro del margen (0.258549ms)
+✔ nodoMasCercano: ignora movidos; null sin candidatos (0.169211ms)
+✔ poller: arma foto con lider y quorum (28.136668ms)
+✔ poller: nodo colgado no frena a los demás (610.41775ms)
+✔ poller: pide /log solo cuando cambia log_len (309.787739ms)
+✔ poller: log incremental (43.830296ms)
+✔ poller: cambio de fuente recarga el log (42.022369ms)
+✔ poller: sucesos de todos los nodos ordenados (42.488314ms)
+✔ poller: caido=true cuenta como no disponible para quorum (96.093866ms)
+✔ poller: sin lider la fuente es el de mayor commit_index (11.23321ms)
+✔ poller: solo emite cambio si la foto cambió (459.988915ms)
+✔ poller: nodo caído no hace que cambio se emita sin parar (490.170149ms)
+✔ poller: nunca dos pedidos simultáneos al mismo nodo (sync de log lenta) (317.66315ms)
+✔ nodo falso: /estado trae situacion como el firmware (18 claves) (5.354277ms)
+✔ sse: cliente nuevo recibe snapshot (32.994943ms)
+✔ sse: cambio se propaga (45.359885ms)
+✔ sse: latido vivo periódico aunque no haya cambios (86.866917ms)
+✔ sse: sin fugas de listeners al desconectar (20.484386ms)
+✔ api/estado: foto con las posiciones fijas de los detectores (4.769861ms)
+✔ control: reenvía al nodo correcto (7.981383ms)
+✔ pulsar: reenvía status y cuerpo del nodo (409 caído, 400 cuerpo malo) (10.977992ms)
+✔ control: cuerpo mayor a 4 KB da 413 (3.949122ms)
+✔ control: nodo inalcanzable da 502 (5.789607ms)
+✔ control: nodo colgado da 502 por tiempo (305.553715ms)
+✔ control: n fuera de 1-3 da 404 (11.295857ms)
+✔ estaticos: rutas y tipos (8.935849ms)
+✔ estaticos: no permite .. (31.051664ms)
+✔ control: sin application/json da 415 y no llega al nodo (12.917117ms)
+✔ control: JSON inválido da 400 y no llega al nodo (6.728529ms)
+✔ sse: cliente detenido con cola enorme es desconectado (143.581809ms)
+✔ estaticos: sin operador.html responde 404 sin caerse (5.825388ms)
+✔ nodo falso: "mover" marca movido con suceso; /huella lo limpia al fijar la referencia (60.317122ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 41
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3454.085111
+TIEMPO_MS=3488
+EXIT=0

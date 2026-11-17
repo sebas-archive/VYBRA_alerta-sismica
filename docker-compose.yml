@@ -9,7 +9,9 @@
 x-nodo: &nodo
   restart: unless-stopped
   healthcheck:
-    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/estado').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    # El puerto se lee de PUERTO para que el healthcheck siga siendo válido si se cambia el puerto
+    # del nodo (antes estaba fijado a 8080).
+    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+(process.env.PUERTO||8080)+'/estado').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     interval: 5s
     timeout: 3s
     retries: 6

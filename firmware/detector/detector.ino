@@ -1,11 +1,16 @@
-// Detector sísmico con Raft para ESP32 DevKit V1 (30 pines).
+// Nodo detector con Raft para ESP32 DevKit V1 (30 pines).
 // Hardware: pulsador entre D4 y GND (diagonal en la protoboard). LED azul integrado en GPIO 2.
-// Más tiempo presionado = sismo más fuerte: nivel 1 + uno cada 450 ms, máximo 10.
+// El pulsador SIMULA un evento sísmico: no mide aceleración. Más tiempo presionado = evento
+// más fuerte: nivel 1 + uno cada 450 ms, máximo 10 (escala de simulación, no instrumentación).
 //
 // Este archivo es solo pegamento con el hardware: WiFi, UDP, HTTP, NVS, botón, LED, NTP, OTA y
 // el escaneo de la huella WiFi (para saber si movieron la placa).
 // Toda la lógica (elección, replicación, alertas y JSON) está en src/nucleo/ y se prueba en el PC.
-// El loop nunca se bloquea: Raft necesita latir cada 300 ms.
+// El loop procura no bloquearse, porque Raft late cada 500 ms (RAFT_LATIDO_MS en config.h). No
+// obstante, algunas llamadas sí pueden retenerlo varios segundos: servidor.handleClient() atiende
+// un cliente HTTP por vez, ArduinoOTA.handle() escribe flash, Preferences bloquea al guardar y el
+// escaneo WiFi activo ocupa la radio ~0,85 s. Con la elección en 5-9 s hay margen para esas
+// pausas, pero un cliente HTTP lento o una OTA pueden provocar una elección espuria.
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <WebServer.h>
@@ -35,6 +40,9 @@
 #endif
 #ifndef OTA_CLAVE
 #error "Falta OTA_CLAVE en secretos.h (copia la línea de secretos.ejemplo.h)"
+#endif
+#ifndef PORTAL_CLAVE
+#error "Falta PORTAL_CLAVE en secretos.h (copia la línea de secretos.ejemplo.h)"
 #endif
 
 using nucleo::Propuesta;
@@ -230,7 +238,8 @@ void portalWifi() {
   });
   web.begin();
 
-  Serial.printf("Portal: conéctate a la red %s (clave %s) y abre http://%s\n", ap, PORTAL_CLAVE, ip.toString().c_str());
+  // La clave del AP vive en secretos.h (fuera de git) y NO se imprime por el puerto serie.
+  Serial.printf("Portal: conéctate a la red %s y abre http://%s\n", ap, ip.toString().c_str());
   uint32_t t0 = millis();
   while (millis() - t0 < PORTAL_MAX_MS) {
     dns.processNextRequest();
@@ -490,6 +499,7 @@ const char* nombrePropuesta(Propuesta p) {
     case Propuesta::Pendiente: return "pendiente";
     case Propuesta::Caido: return "caido";
     case Propuesta::LogLleno: return "log_lleno";
+    case Propuesta::ColaLlena: return "cola_llena";
     default: return "duplicada";
   }
 }
@@ -616,6 +626,7 @@ void enPulsar() {
   Propuesta p = proponerPulso((uint32_t)ms, id, nivel);
   if (p == Propuesta::Caido) return responderError(409, "caido");
   if (p == Propuesta::LogLleno) return responderError(507, "log lleno");
+  if (p == Propuesta::ColaLlena) return responderError(507, "cola de reenvio llena");
   JsonDocument r;
   r["ok"] = true;
   r["id"] = id;

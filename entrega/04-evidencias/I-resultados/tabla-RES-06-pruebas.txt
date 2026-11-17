@@ -1,0 +1,8 @@
+== RES-06 Resumen de pruebas automatizadas
+== fecha: 2026-11-17T16:17:27-05:00
+== commit: 3e3072957b9d4d2683dc4e348d5211ea9e2f90d9
+
+C++ : 78 casos, 78 ok, 0 fallas, exit 0 (5 binarios; ver log-TST-01-cpp.txt)
+A'  : 5 casos, 5 ok, 0 fallas, exit 0 (config desplegada 500/5000-9000; ver log-TST-11)
+JS  : 41 tests, 41 pass, 0 fail, exit 0, 3454 ms (ver log-TST-03-js.txt)
+Firmware: 3/3 nodos compilados, exit 0 (ver log-NOD-11-build.txt)

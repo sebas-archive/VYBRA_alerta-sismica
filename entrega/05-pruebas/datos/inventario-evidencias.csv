@@ -1,0 +1,134 @@
+id,categoria,carpeta_destino,archivo_previsto,contenido,estado,nota
+COD-01,COD,04-evidencias/A-codigo,`firmware/detector/src/nucleo/raft.cpp`,52-70,PENDIENTE (extraer),"bloque de codigo en el informe, no captura"
+COD-02,COD,04-evidencias/A-codigo,`firmware/detector/src/nucleo/raft.cpp`,139-158,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-03,COD,04-evidencias/A-codigo,`raft.cpp`,72-103,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-04,COD,04-evidencias/A-codigo,`raft.cpp`,36-50,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-05,COD,04-evidencias/A-codigo,`raft.cpp`,313-346,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-06,COD,04-evidencias/A-codigo,`raft.cpp`,391-411,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-07,COD,04-evidencias/A-codigo,`raft.cpp`,114-137,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-08,COD,04-evidencias/A-codigo,`raft.cpp`,462-484,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-09,COD,04-evidencias/A-codigo,`firmware/detector/src/nucleo/mensajes.cpp`,9-125,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-10,COD,04-evidencias/A-codigo,`mensajes.cpp`,4-5,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-11,COD,04-evidencias/A-codigo,`firmware/detector/src/nucleo/sismo.cpp`,30-80,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-12,COD,04-evidencias/A-codigo,`sismo.h`,28-31,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-13,COD,04-evidencias/A-codigo,`firmware/detector/src/nucleo/api.cpp`,27-55,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-14,COD,04-evidencias/A-codigo,`api.cpp`,57-89,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-15,COD,04-evidencias/A-codigo,`api.cpp`,107-121,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-16,COD,04-evidencias/A-codigo,`firmware/detector/detector.ino`,693-747,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-17,COD,04-evidencias/A-codigo,`detector.ino`,498-534,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-18,COD,04-evidencias/A-codigo,`detector.ino`,62-77,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-19,COD,04-evidencias/A-codigo,`detector.ino`,155-180 y 201-243,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-20,COD,04-evidencias/A-codigo,`detector.ino`,326-374,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-21,COD,04-evidencias/A-codigo,`firmware/detector/src/nucleo/huella.cpp`,8-61,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-22,COD,04-evidencias/A-codigo,`web/server.js`,88-116,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-23,COD,04-evidencias/A-codigo,`server.js`,117-152,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-24,COD,04-evidencias/A-codigo,`server.js`,69-86,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-25,COD,04-evidencias/A-codigo,`web/poller.js`,83-106,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-26,COD,04-evidencias/A-codigo,`poller.js`,25-58,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-27,COD,04-evidencias/A-codigo,`web/public/geo.js`,36-77,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-28,COD,04-evidencias/A-codigo,`web/public/datos.js`,22-65,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-29,COD,04-evidencias/A-codigo,`web/public/mapa.js`,29-137,PENDIENTE,"bloque de codigo en el informe, no captura"
+COD-30,COD,04-evidencias/A-codigo,`web/server.js`,210-235,PENDIENTE,"bloque de codigo en el informe, no captura"
+OP-01,OP,04-evidencias/B-interfaz,`cap-OP-01-panorama-ok.png`,"Panorama completo con chips `Líder S1 · Término 1 · 3/3 activos`, 5 KPI, 3 mini-trazas con ventana, mini-clúster, ""Últimos eventos"", ""Última alerta"", ""Mapa de nodos"" con los 3 detectores",PENDIENTE,
+OP-02,OP,04-evidencias/B-interfaz,`cap-OP-02-panorama-alerta.png`,"Igual + banner de alerta con hora y ""2 detectores coincidieron…"", KPI ""Última alerta"" y **círculo de zona** sobre el mapa",PENDIENTE,
+OP-03,OP,04-evidencias/B-interfaz,`cap-OP-03-sismografos.png`,"Pestaña Sismógrafos: 3 canales, eje común, franja de ventana sombreada, marcadores con etiqueta, leyenda completa, rótulo ""Hora local, formato 24 h"" **debajo** del eje",PENDIENTE,
+OP-04,OP,04-evidencias/B-interfaz,`cap-OP-04-sismografos-pausa.png`,"Botón en ""Reanudar"" + `details` abierto con ""Ver los eventos de la ventana como tabla""",PENDIENTE,
+OP-05,OP,04-evidencias/B-interfaz,`cap-OP-05-raft-lider.png`,"Pestaña Clúster Raft estable: S1 con corona, aristas normales, 3 tarjetas con término/log/confirmadas/pendientes/RSSI, ""Línea de tiempo del consenso"" con el suceso `gano`",PENDIENTE,
+OP-06,OP,04-evidencias/B-interfaz,`cap-OP-06-raft-caida.png`,"Tras [ST-2] caer el líder: nodo con **trama rayada**, etiqueta `Caído (simulado)`, chip ""Eligiendo líder…"" y banner informativo del mismo texto, botón ""Recuperar"", `raft-pip` ámbar en la pestaña. (Con 2/3 activos el quórum **sigue siendo verdadero**: no aparece ""Sin quórum"")",PENDIENTE,
+OP-07,OP,04-evidencias/B-interfaz,`cap-OP-07-raft-nuevo-lider.png`,"Término **2**, nuevo líder con corona, tarjeta del viejo líder con ""Atrasado respecto al líder"", timeline filtrada en ""Elecciones"" (`postulo → voto → gano`)",PENDIENTE (hardware),
+OP-08,OP,04-evidencias/B-interfaz,`cap-OP-08-detectores-mapa.png`,"Pestaña Detectores: mapa con 3 etiquetas `Detector N · estado` (a 30-51 px, apiladas), escala, `N↑`, botones `+ − Ver todo`, y 3 tarjetas con los 4 botones de intensidad",PENDIENTE,
+OP-09,OP,04-evidencias/B-interfaz,`cap-OP-09-detectores-reporte.png`,"**Sin hardware (sí se puede):** tras [ST-3], el pie de la tarjeta muestra ""Servidor 1 aceptó el evento (nivel 6)."" y un toast ""Detector 1: evento aceptado, nivel 6"". **Con hardware (mejor):** además la pill ""Reportó hace N s"" y la ruta ""Aceptado por Servidor 1 (líder), entrada N del log""",PENDIENTE,
+OP-10,OP,04-evidencias/B-interfaz,`cap-OP-10-detectores-sin-quorum.png`,"Dos servidores caídos: botones de intensidad deshabilitados y nota ""No disponible: Caído (simulado)""",PENDIENTE,
+OP-11,OP,04-evidencias/B-interfaz,`cap-OP-11-alertas-detalle.png`,"Lista + detalle: 5 cifras, ""Ventana de coincidencia de 10 s, de HH:MM:SS a HH:MM:SS"" y **dos recortes de sismograma**",PENDIENTE,
+OP-12,OP,04-evidencias/B-interfaz,`cap-OP-12-registros-log.png`,"Log de consenso agrupado por término, ""Confirmada por mayoría"", meta ""n/n copias idénticas · Leído de Servidor 1""",PENDIENTE,
+OP-13,OP,04-evidencias/B-interfaz,`cap-OP-13-registros-eventos-csv.png`,"Vista ""Eventos"" con selector Detector y botón ""Exportar CSV"" visible",PENDIENTE,
+OP-14,OP,04-evidencias/B-interfaz,`cap-OP-14-mapa-zoom.png`,"Mapa acercado (clic `+` 2 veces): detectores separados, escala en metros, ""Ver todo"" habilitado",PENDIENTE,
+OP-15,OP,04-evidencias/B-interfaz,`cap-OP-15-tema-oscuro.png`,"Panorama en tema oscuro, mismo estado que OP-01",PENDIENTE,
+OP-16,OP,04-evidencias/B-interfaz,`cap-OP-16-sin-conexion.png`,"Banner rojo ""Sin conexión con el servidor del PC"" + chip ""Reconectando…""",PENDIENTE,
+OP-17,OP,04-evidencias/B-interfaz,`cap-OP-17-ayuda-atajos.png`,"Diálogo ""Ayuda y atajos"" con `1`–`6`, flechas y la nota de la vista pública",PENDIENTE,
+OP-18,OP,04-evidencias/B-interfaz,`cap-OP-18-movil-panorama.png`,"390×844: top bar compacta (solo quórum + alerta), KPIs a 2 columnas, banner compacto de una línea, tabs con degradado a la derecha",PENDIENTE,
+OP-19,OP,04-evidencias/B-interfaz,`cap-OP-19-movil-raft.png`,"390×844: servidores en columna, tarjetas al 100 %, diagrama del clúster legible",PENDIENTE,
+CLI-01,CLI,04-evidencias/B-interfaz,`cap-CLI-01-ahora-calma.png`,"Sección Ahora: hero ""Sin sismos en este momento / Actualizado hace N s"", chip ""Servicio activo"", ""Último sismo"", mapa con detectores y leyenda (zona esperada vacía o de la alerta vigente)",PENDIENTE,
+CLI-02,CLI,04-evidencias/B-interfaz,`cap-CLI-02-alerta-fullscreen.png`,"Diálogo a pantalla completa: franja **""SIMULACRO · NO ES UN SISMO REAL""**, ""Sismo fuerte"", ""Agáchate / Cúbrete / Sujétate"", hora, ""Zona estimada: cerca del detector N"", mapa, botones ""Estoy a salvo"" / ""Ver qué hacer""",PENDIENTE (hardware),
+CLI-03,CLI,04-evidencias/B-interfaz,`cap-CLI-03-alerta-prueba.png`,"Alerta lanzada con ""Probar alerta"": franja **""PRUEBA · NO ES UN SISMO REAL""**",PENDIENTE,
+CLI-04,CLI,04-evidencias/B-interfaz,`cap-CLI-04-post-sismo.png`,"Hero ""Hubo un sismo hace N s"" + tarjeta ""Después del sismo"" con el checklist de 4 puntos",PENDIENTE (hardware),
+CLI-05,CLI,04-evidencias/B-interfaz,`cap-CLI-05-recientes-lista.png`,"Sección Sismos recientes: filtros 30 días, lista con hora/día, lugar, insignia Mercalli y etiqueta **SIMULACRO**",PENDIENTE,
+CLI-06,CLI,04-evidencias/B-interfaz,`cap-CLI-06-recientes-mapa.png`,"Vista ""Mapa"" del periodo con la zona del sismo más reciente y el texto de pie",PENDIENTE,
+CLI-07,CLI,04-evidencias/B-interfaz,`cap-CLI-07-detalle-tecnico.png`,"Diálogo de detalle con `Datos técnicos` **abierto**: Mercalli, intensidad promedio, PGA, centro estimado",PENDIENTE,
+CLI-08,CLI,04-evidencias/B-interfaz,`cap-CLI-08-que-hacer.png`,"Tres tarjetas Antes / Durante (""Agáchate · Cúbrete · Sujétate"" destacado) / Después + nota ""funciona sin conexión""",PENDIENTE,
+CLI-09,CLI,04-evidencias/B-interfaz,`cap-CLI-09-ajustes.png`,"Ajustes: Notificaciones (avisos, sonido, umbral), ""Probar alerta"", Pantalla (tema, tamaño)",PENDIENTE,
+CLI-10,CLI,04-evidencias/B-interfaz,`cap-CLI-10-movil-ahora.png`,"390×844: navegación inferior de 4 ítems visible, chip de servicio reducido a punto, hero y mapa a una columna",PENDIENTE,
+CLI-11,CLI,04-evidencias/B-interfaz,`cap-CLI-11-movil-alerta.png`,"Alerta fullscreen en móvil: franja, acciones, mapa a una columna, botones a ancho completo",PENDIENTE,
+CLI-12,CLI,04-evidencias/B-interfaz,`cap-CLI-12-tema-oscuro.png`,Ahora en tema oscuro (fondo `#12161a`),PENDIENTE,
+BE-01,BE,04-evidencias/C-backend,`cap-BE-01-cluster-falso.png`,"Terminal A con `npm run fake`, la línea `Cluster falso en http://127.0.0.1:9001 http://127.0.0.1:9002 http://127.0.0.1:9003` y el prompt de vuelta",PENDIENTE,
+BE-02,BE,04-evidencias/C-backend,`cap-BE-02-servidor-panel.png`,Terminal B con `Panel: http://<ip>:8090  Vista pública: http://<ip>:8090/publico` y la línea de firewall,PENDIENTE,
+BE-03,BE,04-evidencias/C-backend,`cap-BE-03-api-estado.png`,"Navegador en `http://localhost:8090/api/estado` con el JSON: `quorum:true`, `lider:1`, `fuente:1`, `nodos:[…]` con `estado.rol/termino/log_len/commit_index`, `ubicaciones` con 3 coordenadas",PENDIENTE,
+BE-04,BE,04-evidencias/C-backend,`cap-BE-04-sse-stream.png`,"Navegador en `/api/stream` mostrando `event: estado` con la foto y `event: vivo` con `{""t"":…}` (dejar 15 s para ver llegar latidos)",PENDIENTE,
+BE-05,BE,04-evidencias/C-backend,`cap-BE-05-panel-mas-terminal.png`,"Panel y terminal lado a lado (mitad y mitad): el panel marcando ""Conectado"" y el log del servidor",PENDIENTE,
+BE-06,BE,04-evidencias/C-backend,`cap-BE-06-control-caer.png`,"Terminal con la petición `[ST-2]` y su respuesta `{""ok"":true,""caido"":true}`",PENDIENTE,
+BE-07,BE,04-evidencias/C-backend,`cap-BE-07-pulsar.png`,"Terminal con `[ST-3]` y respuesta `{""ok"":true,""id"":""…"",""nivel"":6,""resultado"":""aceptada""}` (en un seguidor, `""pendiente""`)",PENDIENTE,
+BE-08,BE,04-evidencias/C-backend,`cap-BE-08-errores-api.png`,"Tres respuestas de error: 415 sin `Content-Type` JSON, 413 con cuerpo >4 KB, 404 con `n` fuera de 1-3",PENDIENTE,
+BE-09,BE,04-evidencias/C-backend,`cap-BE-09-foto-json-panel.png`,Panel abierto con DevTools → Red → `stream` → vista previa del evento `estado`: demuestra que **todo** lo que muestra la UI viene de esa foto,PENDIENTE,
+BE-10,BE,04-evidencias/C-backend,`log-BE-10-servidor.txt`,"Salida completa de Terminal B desde el arranque hasta abrir y cerrar el panel, sin errores",PENDIENTE,
+NOD-01,NOD,04-evidencias/D-nodos,`cap-NOD-01-pagina-estado.png`,"Página embebida `http://192.168.80.201/`: título ""Detector 1"", pastilla ""Funcionando"" en verde, filas Rol/Término/Log/Líder/Encendido/Señal WiFi/Hora/Ubicación",PENDIENTE (hardware),
+NOD-02,NOD,04-evidencias/D-nodos,`cap-NOD-02-monitor-serie.png`,"Monitor serie 115200 con el arranque: `Detector nodo-1 (Raft)`, `término guardado N, voto M`, `nodo-1 conectado a <SSID>, IP 192.168.80.201`",PENDIENTE (hardware),
+NOD-03,NOD,04-evidencias/D-nodos,`cap-NOD-03-pulso-serie.png`,La misma consola al pulsar el botón: `pulso 2475 ms -> nodo-1-<8hex>-<contador> nivel 6: aceptada` (en seguidor: `pendiente`),PENDIENTE (hardware),
+NOD-04,NOD,04-evidencias/D-nodos,`cap-NOD-04-curl-estado.png`,"`curl -s http://192.168.80.201/estado` con `""rol"":""lider""`, `""log_len""`, `""commit_index""`, `""con_hora"":true`, `""situacion"":""funcionando""`",PENDIENTE (hardware),
+NOD-05,NOD,04-evidencias/D-nodos,`cap-NOD-05-red-3-nodos.png`,"Los tres `/estado` en una sola captura: exactamente **un** `""rol"":""lider""` y el mismo `lider_conocido` en los 3",PENDIENTE (hardware),
+NOD-06,NOD,04-evidencias/D-nodos,`cap-NOD-06-ota.png`,"`firmware/cargar.sh 2 --wifi` con `== Compilando detector 2 (nodo-2)`, avance de OTA y `== Listo: detector 2 (SIS-D2) cargado`",PENDIENTE (hardware),
+NOD-07,NOD,04-evidencias/D-nodos,`cap-NOD-07-huella.png`,"`curl -i -X POST http://192.168.80.201/huella` → `202` y, tras unos segundos, en el panel ""Ubicación: referencia WiFi lista""; luego **mover físicamente la placa** y suceso ""detectó que lo movieron"" en la timeline. **Ojo:** `accion:""mover""` existe **solo** en `web/fake/nodo-falso.js`; el firmware real (`api.cpp:587-606`) acepta únicamente `caer`/`recuperar`",PENDIENTE (hardware),
+NOD-08,NOD,04-evidencias/D-nodos,`cap-NOD-08-portal.png`,"Portal cautivo en el celular: ""Detector N — Elige la red WiFi…"", lista de redes escaneadas, campo ""otra"" y contraseña",PENDIENTE (hardware),
+NOD-09,NOD,04-evidencias/D-nodos,`cap-NOD-09-quien.png`,"`firmware/quien.sh` → ""Detector 2 (SIS-D2) conectado en /dev/ttyUSB0 · MAC 68:09:47:86:c1:38""",PENDIENTE (hardware),
+NOD-10,NOD,04-evidencias/D-nodos,`cap-NOD-10-compilacion.png`,Salida de `firmware/cargar.sh` con la compilación de Arduino/ESP32 y el resumen de tamaño de flash/RAM,OBTENIDA,
+NOD-11,NOD,04-evidencias/D-nodos,`log-NOD-11-build.txt`,Texto completo de la compilación (para no depender de la captura),PENDIENTE,
+TST-01,TST,04-evidencias/E-pruebas,`log-TST-01-cpp.txt` + `cap-TST-01-cpp.png`,"`make test` completo con los 5 binarios, sus líneas `[ok] …` y el resumen de cada uno (`32 ok, 0 fallas`, `17 ok, 0 fallas`, `11 ok, 0 fallas`, `9 ok, 0 fallas`, `9 ok, 0 fallas`) y exit code 0",OBTENIDA,
+TST-02,TST,04-evidencias/E-pruebas,`cap-TST-02-raft.png`,"Solo `./bin/test_raft` con los 32 `[ok]` visibles, incluidos `elige_un_unico_lider`, `sin_quorum_no_hay_lider`, `persiste_termino_y_voto`, `cae_el_lider_y_se_reelige`",PENDIENTE,
+TST-03,TST,04-evidencias/E-pruebas,`log-TST-03-js.txt` + `cap-TST-03-js.png`,"`npm test` desde `web/`: bloque TAP con `# tests 41`, `# pass 41`, `# fail 0`, `# duration_ms …` y exit code 0",OBTENIDA,
+TST-04,TST,04-evidencias/E-pruebas,`cap-TST-04-js-server.png`,"Solo los tests de SSE en ejecución (`sse: cliente nuevo recibe snapshot`, `sse: cambio se propaga`, `sse: latido vivo periódico aunque no haya cambios`, `sse: sin fugas de listeners al desconectar`)",PENDIENTE,
+TST-05,TST,04-evidencias/E-pruebas,`cap-TST-05-js-poller.png`,"Tests de quórum y sondeo (`poller: arma foto con lider y quorum`, `poller: caido=true cuenta como no disponible para quorum`, `poller: solo emite cambio si la foto cambió`)",PENDIENTE,
+TST-06,TST,04-evidencias/E-pruebas,`cap-TST-06-arbol-tests.png`,"Salida de `ls -l firmware/test/*.cpp firmware/test/bin/` y `wc -l`: 5 fuentes, 5 binarios, conteo de `PRUEBA(` = 78",OBTENIDA,
+TST-07,TST,04-evidencias/E-pruebas,`cap-TST-07-versiones.png`,"`g++ --version` (primera línea), `node --version`, `arduino-cli version`, `docker --version`, `uname -r` — **versiones exactas** del entorno de pruebas",OBTENIDA,
+TST-08,TST,04-evidencias/E-pruebas,`cap-TST-08-git.png`,`git log -1 --format='%h %ad %s' --date=iso` + `git status --porcelain` del día de la corrida (trazabilidad commit ↔ resultados),OBTENIDA,
+TST-09,TST,04-evidencias/E-pruebas,`log-TST-09-semillas.txt`,"(Opcional, refuerzo) `make test` repetido con `--semilla` si se añade soporte, o 3 corridas consecutivas con 0 fallas",PENDIENTE (opcional),
+TST-10,TST,04-evidencias/E-pruebas,`cap-TST-10-cobertura.png`,"**No existe**: no hay `coverage`, ni `ASan/UBSan`, ni CI. Documentar la carencia con captura de `grep -r ""coverage",EXISTE-PARCIAL (carencia documentable),
+FIS-01,FIS,04-evidencias/F-fisicas,`cap-FIS-01-montaje-plano.png`,"`montaje/montaje_detectores.html` abierto en Firefox: selector ""Detector 1"", plano de la protoboard MB102 con ESP32 y pulsador, leyenda de colores",PENDIENTE (se captura de un archivo **ya existente**),
+FIS-02,FIS,04-evidencias/F-fisicas,`cap-FIS-02-montaje-pulsador.png`,"Sección ""Orientación del pulsador"": las 4 patas, cuáles van puenteadas y cuáles a D4/GND",PENDIENTE,
+FIS-03,FIS,04-evidencias/F-fisicas,`cap-FIS-03-montaje-pasos.png`,"""Lo que compraste"" con el checklist y ""Pasos de montaje"" 1..N",PENDIENTE,
+FIS-04,FIS,04-evidencias/F-fisicas,`cap-FIS-04-prototipo.jpg`,"**Foto real** del detector montado: ESP32, protoboard, pulsador, etiqueta `SIS-Dn` visible, cable USB/alimentación",PENDIENTE (no existe ninguna foto en el repo),
+FIS-05,FIS,04-evidencias/F-fisicas,`cap-FIS-05-tres-detectores.jpg`,"Los 3 prototipos encendidos, con LED azul fijo (hay líder) y sus etiquetas",PENDIENTE,
+FIS-06,FIS,04-evidencias/F-fisicas,`cap-FIS-06-led-estados.jpg`,"Detalle del LED en 3 estados: parpadeo rápido (configuración), fijo (líder) y apagado/parpadeo (sin líder)",PENDIENTE,
+FIS-07,FIS,04-evidencias/F-fisicas,`cap-FIS-07-pulsacion-fisica.png`,"Panel + dedo pulsando el botón: el evento aparece en Registros con ""Confirmada por mayoría"" y nodo correcto",PENDIENTE (hardware),
+FIS-08,FIS,04-evidencias/F-fisicas,`cap-FIS-08-alerta-2-botones.png`,Dos pulsaciones con <10 s: banner de alerta en el panel **y** pantalla completa en `/publico` con franja SIMULACRO,PENDIENTE (hardware),
+FIS-09,FIS,04-evidencias/F-fisicas,`cap-FIS-09-sin-alerta.png`,"Dos pulsaciones con >10 s: en Registros dos eventos, **sin** alerta ni banner",PENDIENTE (hardware),
+FIS-10,FIS,04-evidencias/F-fisicas,`cap-FIS-10-desenchufar-lider.png`,"Panel con el líder anterior ""Inalcanzable"" y un nuevo líder: término incrementado",PENDIENTE (hardware),
+FIS-11,FIS,04-evidencias/F-fisicas,`cap-FIS-11-recuperar-lider.png`,"El nodo reenchufado como **seguidor**, ""3 / 3 copias idénticas"" en Registros",PENDIENTE (hardware),
+FIS-12,FIS,04-evidencias/F-fisicas,`cap-FIS-12-sin-quorum.png`,"""Simular caída"" en 2 nodos: banner ""Sin quórum, 1/3"" y el evento del nodo vivo ""pendiente""",PENDIENTE (posible también con nodos falsos),
+FIS-13,FIS,04-evidencias/F-fisicas,`cap-FIS-13-recuperar-pendiente.png`,"""Recuperar"" uno: el evento pendiente pasa a ""Confirmada por mayoría""",PENDIENTE,
+FIS-14,FIS,04-evidencias/F-fisicas,`cap-FIS-14-nodos-siguen-sin-pc.png`,Cerrar el servidor del PC (Ctrl+C): los nodos siguen; al reabrirlo el panel muestra el estado actual sin reiniciar placas,PENDIENTE,
+FIS-15,FIS,04-evidencias/F-fisicas,`cap-FIS-15-reinicio-router.png`,"Tras reiniciar el router, los nodos conservan `.201`–`.203`",PENDIENTE (hardware),
+ARQ-01,ARQ,04-evidencias/G-arquitectura,`cap-ARQ-01-arquitectura.png`,Vista de despliegue: 3 ESP32 (UDP 9000-ish) ↔ PC Node (HTTP 8090) ↔ 2 navegadores (operador y público); etiquetar protocolos y puertos reales,PENDIENTE,
+ARQ-02,ARQ,04-evidencias/G-arquitectura,`cap-ARQ-02-eleccion.png`,Secuencia de elección: timeout → `VoteReq` → `VoteResp` concedido → `ganar` → `InicioTermino` (nombres exactos de `mensajes.cpp`),PENDIENTE,
+ARQ-03,ARQ,04-evidencias/G-arquitectura,`cap-ARQ-03-replicacion.png`,"Secuencia de replicación: `Append(prev_idx, prev_term, commit, e[])` → `AppendResp(ok, match_idx)` → `avanzarCommit` → `aplicarConfirmadas`",PENDIENTE,
+ARQ-04,ARQ,04-evidencias/G-arquitectura,`cap-ARQ-04-alerta.png`,Flujo de una alerta: pulsador → evento → propuesta (líder/forward) → commit → `Sismo::aplicar` → regla 2/10 s → `Alerta` → `/alertas` → panel y `/publico`,PENDIENTE,
+ARQ-05,ARQ,04-evidencias/G-arquitectura,`cap-ARQ-05-estados-raft.png`,Máquina de estados Seguidor/Candidato/Líder/Caído con transiciones y quién las dispara,PENDIENTE,
+ARQ-06,ARQ,04-evidencias/G-arquitectura,`cap-ARQ-06-modelo-foto.png`,"Modelo de la foto `/api/estado`: `{t, quorum, lider, fuente, nodos[], log[], alertas[], sucesos[], ubicaciones}` con los tipos y quién consume cada campo",PENDIENTE,
+ARQ-07,ARQ,04-evidencias/G-arquitectura,`cap-ARQ-07-protocolo-udp.png`,"Tabla del códec: tipo de mensaje → claves JSON (`k,d,T,li,lt,g,pi,pt,c,e,o,m,v,i`)",OBTENIDA (tabla en docs),
+INF-01,INF,04-evidencias/H-infraestructura,`cap-INF-01-compose.png`,"`docker compose up --build` construyendo las 4 imágenes (Alpine, Fedora, openSUSE Leap, Ubuntu) sin errores",PENDIENTE,
+INF-02,INF,04-evidencias/H-infraestructura,`cap-INF-02-docker-ps.png`,"`docker ps` con 4 contenedores `Up (healthy)`: `sismo-nodo-1`, `-2`, `-3`, `sismo-panel` y el mapeo `0.0.0.0:8095->8090/tcp`",PENDIENTE,
+INF-03,INF,04-evidencias/H-infraestructura,`cap-INF-03-healthchecks.png`,`docker inspect --format '{{.Name}} {{.State.Health.Status}}' sismo-nodo-1 sismo-nodo-2 sismo-nodo-3 sismo-panel` → `healthy` ×4,PENDIENTE,
+INF-04,INF,04-evidencias/H-infraestructura,`cap-INF-04-tres-so.png`,"Los logs de los 3 nodos mostrando el SO real de cada contenedor: `Servidor 1 (Fedora Linux … Node v22…)`, `(openSUSE Leap …)`, `(Ubuntu 24.04… Node v…)` — **prueba directa de los 3 sistemas operativos**",PENDIENTE,
+INF-05,INF,04-evidencias/H-infraestructura,`log-INF-05-logs.txt`,Texto completo de `docker compose logs` (nodos + panel),PENDIENTE,
+INF-06,INF,04-evidencias/H-infraestructura,`cap-INF-06-panel-8095.png`,"Panel servido desde el contenedor: barra de direcciones `http://localhost:8095/`, 3/3 activos y datos de los nodos contenedor",PENDIENTE,
+INF-07,INF,04-evidencias/H-infraestructura,`cap-INF-07-compose-file.png`,"`docker-compose.yml` con `x-nodo` (healthcheck), los 3 servicios con sus `Dockerfile.*` y el panel con `NODOS`",PENDIENTE,
+INF-08,INF,04-evidencias/H-infraestructura,`cap-INF-08-panel-con-esp32.png`,"Panel en Docker apuntando a los ESP32 reales: `NODOS=""http://192.168.80.201,http://192.168.80.202,http://192.168.80.203"" docker compose up panel` (documentado en `docker-compose.yml:4-7`)",PENDIENTE (hardware),
+INF-09,INF,04-evidencias/H-infraestructura,`cap-INF-09-docker-stats.png`,`docker stats --no-stream`: RAM/CPU de 4 contenedores (dato de consumo real para el informe),PENDIENTE,
+RES-01,RES,04-evidencias/I-resultados,`datos-RES-01-latencia-nodos.txt`,"100 muestras de `time_total` de `/estado` del ESP32 con el panel abierto; mediana y p95 bajo 0,25 s",PENDIENTE (hardware),
+RES-02,RES,04-evidencias/I-resultados,`datos-RES-02-latencia-api.txt`,100 muestras de `time_total` de `http://localhost:8090/api/estado` (respuesta del panel; debe ser ~ms),PENDIENTE,
+RES-03,RES,04-evidencias/I-resultados,`datos-RES-03-reeleccion.txt`,"10 tiempos de reelección medidos al desenchufar el líder (s), con fecha y término antes/después",PENDIENTE (hardware),
+RES-04,RES,04-evidencias/I-resultados,`log-RES-04-sse.txt`,`timeout 30 curl -N http://localhost:8090/api/stream` con marcas de tiempo por evento: permite contar `estado` y `vivo` (1 cada 5 s en reposo),PENDIENTE,
+RES-05,RES,04-evidencias/I-resultados,`tabla-RES-05-firmware.txt`,"Tamaños de artefactos: `detector.ino.bin` ≈ 1 105 968 B, `merged.bin` = 4 194 304 B, `bootloader` 24 992 B, `partitions` 3 072 B (de `firmware/build/nodo-1/`)",OBTENIDA,
+RES-06,RES,04-evidencias/I-resultados,`tabla-RES-06-pruebas.txt`,"Resumen 78/78 C++ y 41/41 JS con fecha, commit y versión de compilador/Node",OBTENIDA,
+RES-07,RES,04-evidencias/I-resultados,`datos-RES-07-alertas.txt`,Ventana de coincidencia: nº de eventos y alertas esperadas vs obtenidas en N pulsaciones (p.ej. 20 pulsos → casos 1 y 3 de la matriz),PENDIENTE (hardware),
+RES-08,RES,04-evidencias/I-resultados,`cap-RES-08-grafica-latencia.png`,"Gráfica de cajas/barras de RES-01 y RES-02 (eje Y ms, eje X nodo/API, mediana marcada)",PENDIENTE,
+RES-09,RES,04-evidencias/I-resultados,`cap-RES-09-grafica-reeleccion.png`,"Barras de RES-03 con la media y el máximo, y una línea de referencia en 5 s (""nuevo líder en <5 s"")",PENDIENTE,
+RES-10,RES,04-evidencias/I-resultados,`cap-RES-10-grafica-consumo.png`,Consumo de RAM/CPU de panel y 3 nodos (de INF-09),PENDIENTE,

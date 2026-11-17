@@ -9,3 +9,9 @@ node_modules/
 # Certificado y datos locales del servidor
 web/certs/
 web/datos/
+
+# Material de diseño histórico: no forma parte de la versión estable (enlaces rotos, nombre antiguo)
+preview/
+
+# Artefactos locales de validación de la Fase 3 (fuera del repo por tamaño/reproducibilidad)
+entrega/05-pruebas/logs/*.tmp

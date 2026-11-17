@@ -1,0 +1,19 @@
+== fecha: 2026-11-17T16:08:16-05:00
+== arduino-cli: arduino-cli  Version: 1.5.1 Commit: 01f3d4f2ba7c2eaafb5dc710c8a1903af7762fea Date: 
+== core: esp32:esp32 3.3.12    3.3.12 esp32
+== commit: 3e3072957b9d4d2683dc4e348d5211ea9e2f90d9
+== fqbn: esp32:esp32:esp32
+== flags: compiler.cpp.extra_flags=-DNODO=N
+
+== Compilando detector 1 (nodo-1)
+Sketch uses 1105901 bytes (84%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 54264 bytes (16%) of dynamic memory, leaving 273416 bytes for local variables. Maximum is 327680 bytes.
+EXIT_NODO1=0
+== Compilando detector 2 (nodo-2)
+Sketch uses 1105905 bytes (84%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 54264 bytes (16%) of dynamic memory, leaving 273416 bytes for local variables. Maximum is 327680 bytes.
+EXIT_NODO2=0
+== Compilando detector 3 (nodo-3)
+Sketch uses 1105889 bytes (84%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 54264 bytes (16%) of dynamic memory, leaving 273416 bytes for local variables. Maximum is 327680 bytes.
+EXIT_NODO3=0
