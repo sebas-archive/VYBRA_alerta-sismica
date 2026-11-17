@@ -16,7 +16,7 @@ Fecha: 2026-11-17. **Estado: propuesta. No se ha ejecutado ninguna reescritura, 
 | Config global | `Sebastián Revelo` / `sebastianmeneses2456@gmail.com` |
 | Trailers de IA | **45 commits** con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; 8 commits limpios |
 | Secretos en el árbol actual | ninguno rastreado (`secretos.h` ignorado; nunca commiteado) |
-| Secretos en el historial | clave del portal antigua (`[REDACTADO]`) en **2 commits**; valor de `WIFI_PASS` en **1 commit** (inicial `7cd7f53`) |
+| Secretos en el historial | clave del portal antigua (`[REDACTADO]`) en **1 commit** (`16fc9b0`) y en la documentación de esta fase. `WIFI_PASS` **no** está en el historial: solo la plantilla `PON_AQUI_LA_CLAVE` |
 | Árbol de trabajo | `config.h` modificado (SSID `[SSID]`) + ~100 archivos de evidencia/scripts sin seguimiento |
 | `.gitignore` | cubre `secretos.h`, `build/`, `bin/`, `node_modules/`, `.superpowers/`, `certs/`, `datos/`, `preview/`; **faltan** `*.raw`, `*.pid`, `.env` |
 | Licencia | **no existe** `LICENSE` |
@@ -60,7 +60,7 @@ Fecha: 2026-11-17. **Estado: propuesta. No se ha ejecutado ninguna reescritura, 
 
 1. Reescribir **solo mensajes** de los 45 commits para eliminar el trailer de IA
    (conserva autor, fecha, orden y contenido).
-2. Purgar del historial los dos secretos: `[REDACTADO]` y el valor de `WIFI_PASS` del commit
+2. Purgar del historial el secreto real: la clave antigua del portal (`[REDACTADO]`, commit `16fc9b0`). `WIFI_PASS` no aparece con valor real en ningún commit (solo la plantilla). Detalle en
    `7cd7f53`, sustituyéndolos por `<REDACTADO>` (afecta a los blobs de esos commits; el árbol
    actual no cambia porque ya no contiene esos valores).
 3. Re-apuntar el tag `v1.0.0-rc1` al commit reescrito equivalente, con el mismo mensaje.
