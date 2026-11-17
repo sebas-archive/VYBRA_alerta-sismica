@@ -15,3 +15,15 @@ preview/
 
 # Artefactos locales de validación de la Fase 3 (fuera del repo por tamaño/reproducibilidad)
 entrega/05-pruebas/logs/*.tmp
+
+# Volcados crudos del bus USB (pueden contener tráfico de otros dispositivos)
+*.raw
+
+# Artefactos de ejecución de la campaña (PID, variables de entorno locales)
+*.pid
+entrega/05-pruebas/datos/ips.env
+.env
+.env.*
+
+# Metadatos locales de herramientas (no forman parte del proyecto)
+.claude/
