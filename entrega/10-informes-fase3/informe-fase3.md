@@ -251,8 +251,8 @@ No se revelan credenciales en este informe ni en las capturas.
 | Dato | Valor |
 |---|---|
 | Rama de trabajo | `ubicacion` → **`main`** por fast-forward |
-| Commit de estabilización | ver `git log -1` (mensaje: `estabiliza v1.0.0-rc1: ...`) |
-| Tag | `v1.0.0-rc1` |
+| Commit de estabilización | `1977662bd869facb23640e4fe48cd7b60caed189` |
+| Tag | `v1.0.0-rc1` (`git rev-list -n1 v1.0.0-rc1` da su commit exacto) |
 | Estado final | árbol limpio salvo `preview/` (ignorado) y `secretos.h` (ignorado) |
 | Push | **No se hizo** (sin remoto configurado) |
 | Historial reescrito | **No** |

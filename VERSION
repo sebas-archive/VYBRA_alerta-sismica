@@ -2,7 +2,7 @@
 
 - **Versión de código:** `1.0.0-rc1` (candidata; ver nota)
 - **Tag de Git:** `v1.0.0-rc1`
-- **Commit:** se completa al crear el tag (ver `git describe --tags`)
+- **Commit:** el del tag `v1.0.0-rc1` (`git rev-list -n1 v1.0.0-rc1`)
 - **Fecha de estabilización:** 2026-11-17
 - **Rama:** `main` (fast-forward desde `ubicacion`)
 
