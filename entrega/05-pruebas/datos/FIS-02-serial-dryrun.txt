@@ -1,0 +1,3 @@
+captura pasiva usbmon · duración 8s · sin abrir el tty
+dispositivos con datos entrantes: 0
+

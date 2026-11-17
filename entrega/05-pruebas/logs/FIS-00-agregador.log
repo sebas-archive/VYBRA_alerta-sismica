@@ -1,0 +1,2 @@
+Panel: http://[IP-PC]:8090  Vista pública: http://[IP-PC]:8090/publico
+Si el firewall bloquea el celular: sudo ufw allow from <tu subred>/24 to any port 8090 proto tcp

@@ -1,0 +1,90 @@
+
+== P0 inicio 2026-11-17T17:25:02,725408320-05:00  commit=3a274da  version=v1.0.0-rc1 ==
+   OK: puerto 8090 libre
+
+== Resolución de IPs (mDNS) ==
+Nodo 1 -> [IP-N1]
+Nodo 2 -> [IP-N2]
+Nodo 3 -> [IP-N3]
+IPs cacheadas en entrega/05-pruebas/datos/ips.env
+   OK: IPs resueltas
+
+== Validación de identidad y HTTP de los tres nodos ==
+== Validación de identidad y conectividad de los tres nodos
+  Nodo 1 ([IP-N1]): OK  rol=seguidor termino=739 log_len=1 commit=1 con_hora=true
+  Nodo 2 ([IP-N2]): OK  rol=lider termino=739 log_len=1 commit=1 con_hora=true
+  Nodo 3 ([IP-N3]): OK  rol=seguidor termino=739 log_len=1 commit=1 con_hora=true
+== Los tres nodos responden y reportan su identidad correcta
+   OK: los tres nodos validados
+
+== Snapshot previo FIS-00-pre ==
+== snapshot FIS-00-pre: 12/12 consultas OK (log: entrega/05-pruebas/logs/FIS-00-pre-snapshot.log)
+   OK: snapshot previo completo
+
+== Coherencia de línea base (log_len y commit_index) ==
+   log_len: nodos= 1 1 1
+   commit_index: nodos= 1 1 1
+   termino: nodos= 739 739 739
+   OK: los tres coinciden en término, log_len y commit_index
+
+== Arranque del agregador (solo GET durante la validación) ==
+   OK: agregador arrancado, PID=531438, log=/home/t1an/detector de sismos en red distribuida/entrega/05-pruebas/logs/FIS-00-agregador.log
+   OK: /api/estado respondió 200
+   OK: JSON de /api/estado válido
+
+== Contenido de /api/estado ==
+   OK: quorum == true
+   OK: lider == 2
+   OK: exactamente 3 nodos
+   OK: ids de nodo 1,2,3
+   OK: los 3 alcanzables
+   OK: estado.nodo == n en cada uno
+   OK: fuente no nula
+   OK: log_len coherente
+   OK: commit_index coherente
+   OK: con_hora en los tres
+   líder=2  fuente=2  quorum=true
+   nodo 1 alcanzable=true rol=seguidor termino=739 log=1 commit=1
+   nodo 2 alcanzable=true rol=lider termino=739 log=1 commit=1
+   nodo 3 alcanzable=true rol=seguidor termino=739 log=1 commit=1
+
+== Snapshot posterior FIS-00-post ==
+== snapshot FIS-00-post: 12/12 consultas OK (log: entrega/05-pruebas/logs/FIS-00-post-snapshot.log)
+   OK: snapshot posterior completo
+
+== Capturas del panel y de la vista pública ==
+FALLO: captura no generada (entrega/04-evidencias/F-fisicas/cap-FIS-00-panel.png)
+   FALLO: captura del panel
+FALLO: captura no generada (entrega/04-evidencias/F-fisicas/cap-FIS-00-publico.png)
+   FALLO: captura de /publico
+
+== RESUMEN P0 ==
+   P0 CON FALLOS: 2 comprobación(es) fallida(s). NO se continúa a T1.
+
+== CORRECCIÓN DE P0 (solo herramienta, no sistema) ==
+   Incidencia: fis-shot.sh pasaba a Firefox headless una ruta de salida RELATIVA;
+   Firefox no genera archivo con ruta relativa y el script no lo detectó como captura válida.
+   Corrección aplicada: fis-shot.sh convierte la salida a ruta ABSOLUTA antes de invocar Firefox.
+   No se tocaron nodos, firmware, configuración, NVS ni se reinició nada.
+
+== REINTENTO DE CAPTURAS 2026-11-17T17:26:23,159326345-05:00 ==
+imagen: formato=PNG dimensiones=1400x900 colores=2740 stddev=8228 archivo=/home/t1an/detector de sismos en red distribuida/entrega/04-evidencias/F-fisicas/cap-FIS-00-panel.png
+dimensiones 1400x900 (mínimo exigido 1400x900)
+HTML: HTTP=200 bytes=93813
+OK: captura válida y con contenido -> /home/t1an/detector de sismos en red distribuida/entrega/04-evidencias/F-fisicas/cap-FIS-00-panel.png
+imagen: formato=PNG dimensiones=1400x900 colores=2149 stddev=3745 archivo=/home/t1an/detector de sismos en red distribuida/entrega/04-evidencias/F-fisicas/cap-FIS-00-publico.png
+dimensiones 1400x900 (mínimo exigido 1400x900)
+HTML: HTTP=200 bytes=52546
+OK: captura válida y con contenido -> /home/t1an/detector de sismos en red distribuida/entrega/04-evidencias/F-fisicas/cap-FIS-00-publico.png
+
+== VERIFICACIÓN VISUAL (contenido realmente renderizado) ==
+   cap-FIS-00-panel.png: 'Líder S2 · Término 739 · 3/3 activos · Conectado';
+     panel 'Con quórum', 'Servidor 2' líder, S1 y S3 seguidores 'Al día', 'Sin eventos todavía'.
+   cap-FIS-00-publico.png: 'Alerta Sísmica', 'Servicio activo', 'Sin sismos en este momento',
+     mapa con Detectores 1/2/3 'Al día'.
+
+== RESUMEN FINAL P0 ==
+   P0 COMPLETADO: 12/12 snapshots previos y posteriores, 10/10 validaciones de /api/estado,
+   3/3 nodos validados, 2/2 capturas válidas y verificadas visualmente.
+   Agregador activo (PID 531438).
+   No se ejecutó T1 ni ninguna otra prueba.

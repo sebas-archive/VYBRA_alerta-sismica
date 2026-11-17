@@ -1,0 +1,12 @@
+OK     2026-11-17T17:31:58,177848916-05:00  HTTP=200  dur=0.022222s  http://[IP-N1]/estado -> entrega/05-pruebas/datos/FIS-01-post-nodo1-estado.json
+OK     2026-11-17T17:31:58,241746179-05:00  HTTP=200  dur=0.016508s  http://[IP-N1]/log?desde=1 -> entrega/05-pruebas/datos/FIS-01-post-nodo1-log.json
+OK     2026-11-17T17:31:58,296907852-05:00  HTTP=200  dur=0.060491s  http://[IP-N1]/sucesos?desde=0 -> entrega/05-pruebas/datos/FIS-01-post-nodo1-sucesos.json
+OK     2026-11-17T17:31:58,398068247-05:00  HTTP=200  dur=0.015186s  http://[IP-N1]/alertas -> entrega/05-pruebas/datos/FIS-01-post-nodo1-alertas.json
+OK     2026-11-17T17:31:58,454019926-05:00  HTTP=200  dur=0.015870s  http://[IP-N2]/estado -> entrega/05-pruebas/datos/FIS-01-post-nodo2-estado.json
+OK     2026-11-17T17:31:58,508357505-05:00  HTTP=200  dur=0.015499s  http://[IP-N2]/log?desde=1 -> entrega/05-pruebas/datos/FIS-01-post-nodo2-log.json
+OK     2026-11-17T17:31:58,568700754-05:00  HTTP=200  dur=0.021414s  http://[IP-N2]/sucesos?desde=0 -> entrega/05-pruebas/datos/FIS-01-post-nodo2-sucesos.json
+OK     2026-11-17T17:31:58,632168953-05:00  HTTP=200  dur=0.021714s  http://[IP-N2]/alertas -> entrega/05-pruebas/datos/FIS-01-post-nodo2-alertas.json
+OK     2026-11-17T17:31:58,693764755-05:00  HTTP=200  dur=0.023190s  http://[IP-N3]/estado -> entrega/05-pruebas/datos/FIS-01-post-nodo3-estado.json
+OK     2026-11-17T17:31:58,773405511-05:00  HTTP=200  dur=0.024503s  http://[IP-N3]/log?desde=1 -> entrega/05-pruebas/datos/FIS-01-post-nodo3-log.json
+OK     2026-11-17T17:31:58,839434408-05:00  HTTP=200  dur=0.017163s  http://[IP-N3]/sucesos?desde=0 -> entrega/05-pruebas/datos/FIS-01-post-nodo3-sucesos.json
+OK     2026-11-17T17:31:58,895005579-05:00  HTTP=200  dur=0.017670s  http://[IP-N3]/alertas -> entrega/05-pruebas/datos/FIS-01-post-nodo3-alertas.json

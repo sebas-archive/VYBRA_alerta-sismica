@@ -1,0 +1,64 @@
+
+== T1 verificación  2026-11-17T17:31:58,170047696-05:00 ==
+
+== Snapshot posterior FIS-01-post ==
+== snapshot FIS-01-post: 12/12 consultas OK (log: entrega/05-pruebas/logs/FIS-01-post-snapshot.log)
+   OK: snapshot posterior completo
+   baseline: log_len=1 commit_index=1  -> se espera la entrada índice 2
+
+== Entrada nueva en /log de cada nodo (índice 2) ==
+   nodo 1: 2	739	evento	nodo-2-f7eee098-1	2	1	0.043	301	false
+   nodo 2: 2	739	evento	nodo-2-f7eee098-1	2	1	0.043	301	false
+   nodo 3: 2	739	evento	nodo-2-f7eee098-1	2	1	0.043	301	false
+
+== Mismo identificador en los tres nodos ==
+   OK: los tres comparten el id: nodo-2-f7eee098-1
+   OK: el id corresponde al Nodo 2 (emisor esperado)
+
+== Nivel y PGA según la implementación (nivel=min(10,1+ms/450), pga=0.028·nivel+0.015) ==
+   nodo 1: duracion=301ms nivel=1 (esp 1) pga=0.043 (esp 0.043) OK
+   nodo 2: duracion=301ms nivel=1 (esp 1) pga=0.043 (esp 0.043) OK
+   nodo 3: duracion=301ms nivel=1 (esp 1) pga=0.043 (esp 0.043) OK
+
+== Emisor, receptor y marcas de tiempo del evento (nodo 2) ==
+   OK: nodo 1: ev.nodo=2 (emisor correcto)
+   OK: nodo 1: ev.recibido_por=2
+   OK: nodo 1: ev.t=1794954674354 (hora del detector, NTP)
+   OK: nodo 1: ev.t_lider=1794954674354 (hora del líder al aceptar)
+   OK: nodo 1: T=739 (término del líder)
+   OK: nodo 2: ev.nodo=2 (emisor correcto)
+   OK: nodo 2: ev.recibido_por=2
+   OK: nodo 2: ev.t=1794954674354 (hora del detector, NTP)
+   OK: nodo 2: ev.t_lider=1794954674354 (hora del líder al aceptar)
+   OK: nodo 2: T=739 (término del líder)
+   OK: nodo 3: ev.nodo=2 (emisor correcto)
+   OK: nodo 3: ev.recibido_por=2
+   OK: nodo 3: ev.t=1794954674354 (hora del detector, NTP)
+   OK: nodo 3: ev.t_lider=1794954674354 (hora del líder al aceptar)
+   OK: nodo 3: T=739 (término del líder)
+
+== Incremento de log_len y commit_index ==
+   FALLO: nodo 1: log_len=3 commit_index=3 (esperado 2/2)
+   OK: nodo 1: pendientes=0
+   FALLO: nodo 2: log_len=3 commit_index=3 (esperado 2/2)
+   OK: nodo 2: pendientes=0
+   FALLO: nodo 3: log_len=3 commit_index=3 (esperado 2/2)
+   OK: nodo 3: pendientes=0
+
+== Sin alerta generada ==
+   OK: nodo 1: 0 alertas y en_alerta=false
+   OK: nodo 2: 0 alertas y en_alerta=false
+   OK: nodo 3: 0 alertas y en_alerta=false
+
+== Estado del agregador ==
+   OK: /api/estado HTTP 200
+   OK: JSON válido
+   OK: quorum=true
+   OK: lider=2
+   nodo 1 log=3 commit=3
+   nodo 2 log=3 commit=3
+   nodo 3 log=3 commit=3
+   OK: commit_index coherente en el agregador
+
+== RESUMEN T1 ==
+   T1 CON FALLOS: 3 comprobación(es). DETENERSE.
