@@ -27,17 +27,17 @@ en ejecución** o **cotejar la MAC** con el registro de flasheo.
 
 | MAC | Nodo |
 |---|---|
-| `58:2a:bd:d3:d3:10` | 1 |
-| `68:09:47:86:c1:38` | 2 |
-| `68:09:47:47:36:90` | 3 |
+| `[MAC-N1]` | 1 |
+| `[MAC-N2]` | 2 |
+| `[MAC-N3]` | 3 |
 
 ## 3. Resultado (dos métodos independientes, coincidentes)
 
 | Puerto | MAC de fábrica | `placas.conf` | Banner de arranque | **Nodo** |
 |---|---|---|---|---|
-| `/dev/ttyUSB0` | `68:09:47:86:c1:38` | 2 | `Detector nodo-2 (Raft)` | **2** |
-| `/dev/ttyUSB1` | `58:2a:bd:d3:d3:10` | 1 | `Detector nodo-1 (Raft)` | **1** |
-| `/dev/ttyUSB2` | `68:09:47:47:36:90` | 3 | `Detector nodo-3 (Raft)` | **3** |
+| `/dev/ttyUSB0` | `[MAC-N2]` | 2 | `Detector nodo-2 (Raft)` | **2** |
+| `/dev/ttyUSB1` | `[MAC-N1]` | 1 | `Detector nodo-1 (Raft)` | **1** |
+| `/dev/ttyUSB2` | `[MAC-N3]` | 3 | `Detector nodo-3 (Raft)` | **3** |
 
 **Confirmado: `ttyUSB0` no es el nodo 1.** El orden de enumeración USB no coincide con la numeración
 lógica.

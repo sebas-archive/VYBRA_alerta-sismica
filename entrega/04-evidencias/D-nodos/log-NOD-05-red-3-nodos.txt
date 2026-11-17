@@ -1,0 +1,40 @@
+== NOD-05 Informe de conectividad del clúster de 3 nodos
+== fecha: 2026-11-17T17:14:07.547100-05:00
+== restricciones: solo lectura (ping, HTTP GET, ARP y escucha pasiva de UDP 4211). Sin reinicios ni eventos.
+
+-- Direccionamiento ------------------------------------------------
+   PC:     [IP-PC]/24 (wlan0)
+   Nodo 1: [IP-N1]  MAC [MAC-N1]  (mDNS sismo-nodo-1.local)
+   Nodo 2: [IP-N2]  MAC [MAC-N2]  (mDNS sismo-nodo-2.local)
+   Nodo 3: [IP-N3]  MAC [MAC-N3]  (mDNS sismo-nodo-3.local)
+   MAC verificada por tabla ARP del PC (ip neigh), no por especificación.
+
+-- ICMP -------------------------------------------------------------
+   ping -c 3 a los tres: 3/3 paquetes, 0% pérdida en todos.
+
+-- HTTP /estado (5 muestras, segundos) ------------------------------
+   Nodo 1: 0.044 0.383 0.386 0.387 0.029   (picos por atender un cliente a la vez)
+   Nodo 2: 0.018 0.012 0.017 0.017 0.013
+   Nodo 3: 1.038(primera, en frío) 0.021 0.016 0.026 0.011
+   Observación: el WebServer del ESP32 atiende un cliente por vez; la primera petición tras
+   un periodo inactivo puede tardar ~1 s. Valores posteriores en decenas de ms.
+
+-- Descubrimiento UDP 4211 (escucha pasiva 12 s, sin inyectar) ------
+   [IP-N1] -> SISMO-HOLA:1   (5 anuncios)
+   [IP-N2] -> SISMO-HOLA:2   (4 anuncios)
+   [IP-N3] -> SISMO-HOLA:3   (4 anuncios)
+   Total 13 anuncios en 12 s (~1 cada 2 s por nodo, HOLA_CADA_MS=2000).
+   Detalle en: log-NOD-17-descubrimiento-udp.txt
+
+-- Portales cautivos ------------------------------------------------
+   Escaneo final: NINGÚN AP 'SISMO-D*-config' visible -> los tres portales cerrados.
+
+-- Estabilidad (10 muestras / ~4 min) -------------------------------
+   Término constante 739 en los tres; Nodo 2 líder, Nodos 1 y 3 seguidores;
+   log_len=1, commit_index=1, pendientes=0 en todas las muestras.
+   Datos: datos-NOD-18-estabilidad.csv
+
+-- Limitación -------------------------------------------------------
+   tcpdump no está instalado; el tráfico Raft unicast 4210 no se capturó a nivel de paquete.
+   Su funcionamiento se evidencia de forma indirecta: los tres comparten término y log y
+   convergen en un único líder, lo que exige votos y Append efectivos.

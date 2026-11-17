@@ -1,0 +1,60 @@
+== NOD-16 Registro de la verificación integral del clúster de 3 nodos
+== fecha: 2026-11-17T17:14:17.383178-05:00
+== versión: v1.0.0-rc1 (commit 3a274da)
+== modo: SOLO DIAGNÓSTICO Y RECOPILACIÓN. Sin flasheo, sin borrado de NVS, sin reinicios,
+==        sin eventos sísmicos, sin failover, sin cambios de configuración ni de código.
+
+== 1. Comprobaciones individuales ==================================
+   [1.1] Identidad: nodo=1/2/3 conforme en los tres (/estado.nodo). OK
+   [1.2] Red: los tres en [SSID] (IP por DHCP en 192.168.x.0/24). OK
+   [1.3] IP: N1=[IP-N1]  N2=[IP-N2]  N3=[IP-N3]. OK
+   [1.4] HTTP /estado: 200 y JSON de 18 claves en los tres. OK
+   [1.5] NTP: con_hora=true en los tres. OK
+   [1.6] Firmware: v1.0.0-rc1 (3a274da). Evidencia: log de compilación/flasheo por nodo
+         (log-NOD-10-flasheo-nodo{1,2,3}.txt) con hash verificado por esptool; y en los
+         Nodos 2 y 3 el portal aceptó la clave del AP rotada, que solo existe en este build.
+   [1.7] Portal cautivo: escaneo final sin ningún AP 'SISMO-D*-config'. OK
+   [1.8] Persistencia NVS:
+         - raft: término 739 en los tres (valor alto conservado; Nodo 2 lo traía de NVS y lo
+           propagó; Nodos 1 y 3 lo adoptaron). El namespace 'raft' está operativo.
+         - ubic: Nodo 2 y Nodo 3 con_huella=true y movido=true -> namespaces intactos.
+           Nodo 1 con_huella=false porque su NVS se borró en la fase anterior (documentado).
+
+== 2. Clúster Raft =================================================
+   [2.1] Comunicación entre los tres: los tres comparten término y log;
+         descubrimiento UDP 4211 verificado (13 anuncios/12 s, SISMO-HOLA:1/2/3). OK
+   [2.2] Líder único: solo el Nodo 2 reporta rol=lider. OK
+   [2.3] Reconocimiento: Nodos 1 y 3 reportan lider_conocido=2. OK
+   [2.4] Término coherente: 739 en los tres. OK
+   [2.5] Logs sincronizados: índice 1 = inicio_termino T=739 idéntico en los tres. OK
+   [2.6] commit_index coherente: 1 en los tres; log_len 1. OK
+   [2.7] Sin pendientes ni log lleno: pendientes=0, log_lleno=false. OK
+   [2.8] Quórum 3/3: los tres nodos alcanzables por HTTP y con el mismo estado. OK
+
+== 3. Red ==========================================================
+   [3.1] ICMP: 3/3 paquetes, 0% pérdida en los tres. OK
+   [3.2] HTTP: latencia en decenas de ms (picos ~0,4 s y una primera petición de ~1 s por
+         la atención de un cliente por vez en el WebServer del ESP32).
+   [3.3] ARP: las MAC de la tabla coinciden con placas.conf (identidad IP<->placa). OK
+   [3.4] Descubrimiento UDP 4211: escucha pasiva correcta (log-NOD-17). OK
+   [3.5] Limitación: tcpdump no instalado -> no hay captura a nivel de paquete del unicast 4210.
+
+== 4. Estabilidad ==================================================
+   10 muestras durante ~4 minutos: término 739 constante, líder fijo en Nodo 2,
+   log_len=1, commit_index=1, pendientes=0 en todas. Sin elecciones espurias.
+   Datos: datos-NOD-18-estabilidad.csv
+
+== 5. Problemas encontrados ========================================
+   P-1 (resuelto) Nodo 2: fallo transitorio de USB en el primer flasheo; un reintento controlado OK.
+   P-2 (esperado, documentado) Nodos 2 y 3 tenían credenciales antiguas en NVS: se resolvió
+       por el portal cautivo, sin borrar NVS, conservando 'raft' y 'ubic'.
+   P-3 (esperado, documentado) Nodo 1 perdió 'ubic' al borrarse su NVS en la fase previa.
+   P-4 (menor) Latencia HTTP ocasional ~0,4-1 s por el servidor síncrono del nodo.
+   P-5 (limitación de entorno) tcpdump no disponible para capturar tráfico Raft.
+   Ningún problema bloqueante.
+
+== 6. Veredicto ====================================================
+   CLÚSTER OPERATIVO: 3/3 nodos en red, quórum de mayoría completo, un único líder
+   (Nodo 2), término y log coherentes en los tres, sin entradas pendientes.
+   LISTO para la campaña de pruebas con eventos simulados (pulsador) y replicación.
+   Las pruebas de failover NO se han iniciado: requieren autorización expresa.

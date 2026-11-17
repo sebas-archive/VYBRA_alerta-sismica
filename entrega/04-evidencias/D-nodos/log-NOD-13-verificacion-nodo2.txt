@@ -1,0 +1,51 @@
+== NOD-13 Verificación del Nodo 2 tras configurar WiFi por portal (sin borrar NVS)
+== fecha: 2026-11-17T16:56:30.032707-05:00
+== commit: 3a274da (v1.0.0-rc1) | firmware flasheado: build/nodo-2/detector.ino.bin (hash verificado por esptool)
+== restricciones: sin erase_region, sin reflasheo, sin cambiar Raft, sin reiniciar el nodo
+
+-- 1) Portal cautivo ------------------------------------------------
+   SISMO-D2-config: AUSENTE en el escaneo (cerrado)
+   SISMO-D3-config: presente (Nodo 3, aún sin flashear)
+-- 2) Red ------------------------------------------------------------
+   mDNS: sismo-nodo-2.local -> [IP-N2]
+   PC:   [IP-PC]/24  (misma subred)
+   Nodo 1: [IP-N1]   (misma subred)
+-- 3) /estado Nodo 2 -------------------------------------------------
+   {"nodo": 2, "rol": "lider", "caido": false, "termino": 739, "votado_por": 2, "lider_conocido": 2, "log_len": 1, "commit_index": 1, "pendientes": 0, "log_lleno": false, "sucesos_seq": 2, "con_hora": true, "ip": "[IP-N2]", "rssi": -56, "uptime_ms": 90657, "movido": true, "con_huella": true, "situacion": "funcionando"}
+-- 4) NTP ------------------------------------------------------------
+   con_hora = True (NTP sincronizado). Desfase exacto no medido: exigiría generar un evento.
+-- 5) Identidad y firmware -------------------------------------------
+   nodo = 2 (esperado 2)
+   v1.0.0-rc1: log de compilación/flasheo en log-NOD-10-flasheo-nodo2.txt;
+   prueba de ejecución: el AP SISMO-D2-config aceptó la clave NUEVA de secretos.h (16 car.)
+      que solo existe en este firmware; el firmware antiguo usaba la clave anterior.
+-- 6) Estado Raft ----------------------------------------------------
+   rol=lider termino=739 votado_por=2 lider_conocido=2
+   log_len=1 commit_index=1 pendientes=0 log_lleno=False
+   /log: 1 entrada(s) -> i=1 clase=inicio_termino T=739
+   /sucesos: 2 eventos -> postulo (T739), gano (T739)
+-- 7) Persistencia de raft y ubic ------------------------------------
+   raft: termino=739 (valor ALTO, imposible en un arranque a 0) y votado_por=2
+     -> la NVS 'raft' NO se borró: el término persistido se conservó y se propagó al Nodo 1.
+   ubic: con_huella=True movido=True
+     -> la NVS 'ubic' NO se borró: conserva la huella WiFi y la marca de movimiento.
+   Contraste: Nodo 1 (NVS borrada en la fase anterior) muestra con_huella=false y movido=false.
+-- 8) Comparación Nodo 1 vs Nodo 2 -----------------------------------
+   campo           Nodo 1                Nodo 2
+   ip              [IP-N1]        [IP-N2]
+   rol             seguidor              lider
+   termino         739                   739
+   votado_por      2                     2
+   lider_conocido  2                     2
+   log_len         1                     1
+   commit_index    1                     1
+   con_hora        True                  True
+   uptime_ms       711373                90657
+   con_huella      False                 True
+   movido          False                 True
+   sucesos_seq     89                    2
+   situacion       funcionando           funcionando
+
+== Interpretación: 2 de 3 nodos en red -> quórum de mayoría (2/3). Nodo 2 es líder, Nodo 1 seguidor,
+== ambos en término 739 con el mismo log (1 entrada inicio_termino). El clúster NO se declara completo:
+== falta el Nodo 3. No se provocaron elecciones ni failover.

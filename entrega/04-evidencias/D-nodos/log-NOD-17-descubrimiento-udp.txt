@@ -1,0 +1,21 @@
+== NOD-17 Descubrimiento UDP 4211 (escucha pasiva, sin inyectar tráfico)
+== fecha: 2026-11-17T17:08:42.194510-05:00
+== escuchando 12 s en 0.0.0.0:4211 ...
+  17:08:42  [IP-N1]   SISMO-HOLA:1
+  17:08:42  [IP-N2]   SISMO-HOLA:2
+  17:08:42  [IP-N3]   SISMO-HOLA:3
+  17:08:44  [IP-N1]   SISMO-HOLA:1
+  17:08:44  [IP-N2]   SISMO-HOLA:2
+  17:08:45  [IP-N3]   SISMO-HOLA:3
+  17:08:50  [IP-N1]   SISMO-HOLA:1
+  17:08:50  [IP-N2]   SISMO-HOLA:2
+  17:08:51  [IP-N3]   SISMO-HOLA:3
+  17:08:52  [IP-N1]   SISMO-HOLA:1
+  17:08:52  [IP-N2]   SISMO-HOLA:2
+  17:08:53  [IP-N3]   SISMO-HOLA:3
+  17:08:54  [IP-N1]   SISMO-HOLA:1
+== resumen por nodo:
+   SISMO-HOLA:1: 5 anuncios en 12 s
+   SISMO-HOLA:2: 4 anuncios en 12 s
+   SISMO-HOLA:3: 4 anuncios en 12 s
+== total anuncios: 13 (esperado ~2/s por nodo = ~18)

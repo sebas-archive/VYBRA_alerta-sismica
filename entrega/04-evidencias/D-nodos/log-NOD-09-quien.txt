@@ -4,6 +4,6 @@
 == comando: esptool --port <P> --baud 115200 read-mac  (no escribe flash)
 
 PUERTO         MAC_NORMALIZADA      NODO     BANNER
-/dev/ttyUSB0   68:09:47:86:c1:38    2        Detector nodo-2
-/dev/ttyUSB1   58:2a:bd:d3:d3:10    1        Detector nodo-1
-/dev/ttyUSB2   68:09:47:47:36:90    3        Detector nodo-3
+/dev/ttyUSB0   [MAC-N2]    2        Detector nodo-2
+/dev/ttyUSB1   [MAC-N1]    1        Detector nodo-1
+/dev/ttyUSB2   [MAC-N3]    3        Detector nodo-3

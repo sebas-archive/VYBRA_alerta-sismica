@@ -1,0 +1,39 @@
+== NOD-15 Informe comparativo de los tres nodos
+== fecha: 2026-11-17T17:14:07.547100-05:00
+
+   campo           Nodo 1                  Nodo 2                  Nodo 3
+   IP              [IP-N1]          [IP-N2]          [IP-N3]
+   rol             seguidor                lider                   seguidor
+   término         739                     739                     739
+   votado_por      2                       2                       0
+   líder conocido  2                       2                       2
+   log_len         1                       1                       1
+   commit_index    1                       1                       1
+   pendientes      0                       0                       0
+   log_lleno       False                   False                   False
+   sucesos_seq     89                      2                       0
+   con_hora        True                    True                    True
+   RSSI            -59                     -57                     -53
+   uptime_ms       1416016                 819767                  131072
+   con_huella      False                   True                    True
+   movido          False                   True                    True
+   situación       funcionando             funcionando             funcionando
+   caído           False                   False                   False
+
+-- Log Raft (los tres) ----------------------------------------------
+   índice 1: clase=inicio_termino, término=739  (idéntico en los tres)
+   log_len=1, commit_index=1 -> logs sincronizados y comprometidos
+
+-- Sucesos por nodo -------------------------------------------------
+   Nodo 1: 50 eventos (seq=89) — historial de postulaciones previas
+   Nodo 2: 2 eventos (seq=2) — postulo, gano
+   Nodo 3: 0 eventos (seq=0) — se unió como seguidor sin postularse
+
+-- Diferencias relevantes -------------------------------------------
+   1. Nodo 2 es el único líder; Nodos 1 y 3 son seguidores.
+   2. con_huella/movido = false en Nodo 1 y true en Nodos 2 y 3:
+      el Nodo 1 perdió el namespace 'ubic' cuando se borró su NVS en la fase anterior;
+      los Nodos 2 y 3 lo conservaron (configuración por portal). Diferencia esperada y documentada.
+   3. sucesos_seq difiere (Nodo 1 = alto por haber estado solo postulándose antes de formar clúster).
+   4. uptime difiere (cada uno se flasheó en momentos distintos).
+   5. votado_por=0 en Nodo 3: adoptó el término 739 por Append sin haber votado en ese término.
