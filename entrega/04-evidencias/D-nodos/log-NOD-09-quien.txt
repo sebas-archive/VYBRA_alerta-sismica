@@ -1,0 +1,9 @@
+== NOD-09 Identificación de las tres ESP32 por MAC (sin flashear)
+== fecha: 2026-11-17T16:33:08-05:00
+== commit: ac1f6f3569066640c6aa6260236d284724fa1432
+== comando: esptool --port <P> --baud 115200 read-mac  (no escribe flash)
+
+PUERTO         MAC_NORMALIZADA      NODO     BANNER
+/dev/ttyUSB0   68:09:47:86:c1:38    2        Detector nodo-2
+/dev/ttyUSB1   58:2a:bd:d3:d3:10    1        Detector nodo-1
+/dev/ttyUSB2   68:09:47:47:36:90    3        Detector nodo-3
