@@ -3,7 +3,7 @@
 #pragma once
 #include <stdint.h>
 
-#define WIFI_SSID "Tomas"
+#define WIFI_SSID "Apt_105"
 #include "secretos.h"   // WIFI_PASS y OTA_CLAVE; no va en git
 
 // Las IP las da el DHCP del router. Los nodos se encuentran por broadcast UDP.
