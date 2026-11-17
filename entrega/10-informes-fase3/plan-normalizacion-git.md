@@ -108,3 +108,23 @@ evidencias intactas · Docker/backend/scripts sin cambios funcionales.
 | D5 | **¿Combinar commits?** | Recomendado: mantener los 53 · alternativa: squashing por hitos |
 | D6 | **GitHub** | Crear repo privado `alerta-sismica-raft-esp32` en `sebas-archive` y publicar tras la reescritura · o solo dejarlo preparado |
 | D7 | **Privacidad** | ¿Aceptas que queden en el repo (privado) el SSID `[SSID]`, las IPs 192.168.x.x y las MAC de las placas? Si no, se sustituyen por marcadores |
+
+---
+
+## 5. Resultado de la ejecución (2026-11-17)
+
+| Comprobación | Resultado |
+|---|---|
+| Historial | **53 commits históricos conservados** + **6 commits nuevos** (total 59 al momento de la reescritura) |
+| Autoría | **59/59** commits con `t1an <seferevelo123@umariana.edu.co>`; sin coautores |
+| Atribuciones de IA | **45 trailers eliminados**; **0** coincidencias en todo el historial |
+| Secreto del portal | **0** apariciones en cualquier objeto (322 blobs escaneados); único commit afectado: el que introdujo la clave. `WIFI_PASS` nunca tuvo valor real en el historial (solo la plantilla `PON_AQUI_LA_CLAVE`) |
+| Metadatos `.claude` | Retirados del índice y de **todo** el historial |
+| Tag `v1.0.0-rc1` | Anotado, mensaje conservado, apunta a `43aa2d5` (equivalente del antiguo `3a274da`) |
+| Árbol final | Idéntico al previo a la reescritura (`5b58c74`) |
+| Pruebas | 78/78 C++ y 41/41 JavaScript tras la reescritura |
+| Respaldo previo | `sismo-git-pre-reescritura-20261117-175405.bundle` (59 commits, verificado) |
+
+**Aviso:** los hashes de commit citados en informes y documentos (por ejemplo `3e30729`, `7cd7f53`,
+`16fc9b0`) corresponden al **historial anterior a la normalización**. El historial previo completo se
+conserva en el bundle de respaldo; tras la reescritura esos hashes ya no existen en este repositorio.
