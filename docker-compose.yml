@@ -186,7 +186,21 @@ services:
       servidor2: { condition: service_healthy }
       servidor3: { condition: service_healthy }
 
+  # HTTPS delante del panel: https://IP:8443/cliente/ y https://IP:8443/admin/ (ver docker/Caddyfile)
+  https:
+    image: caddy:2-alpine
+    container_name: sismo-https
+    restart: unless-stopped
+    environment:
+      HOST_PUBLICO: ${HOST_PUBLICO:-192.168.80.227}
+    ports: ["${PUERTO_HTTPS:-8443}:8443"]
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - sismo-caddy:/data
+    depends_on: [panel]
+
 volumes:
+  sismo-caddy:
   sismo-db1:
   sismo-db2:
   sismo-db3:
