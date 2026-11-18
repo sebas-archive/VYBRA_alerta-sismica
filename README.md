@@ -58,8 +58,10 @@ flowchart LR
     OP -->|"POST /api/nodos/:n/pulsar"| PC
 ```
 
-- **No hay base de datos:** el log de Raft vive en RAM de cada nodo; solo `currentTerm` y `votedFor`
-  se persisten en NVS. El agregador mantiene una foto agregada en memoria.
+- **No hay base de datos en el clúster:** el log de Raft vive en RAM de cada nodo; solo `currentTerm` y
+  `votedFor` se persisten en NVS. El agregador mantiene una foto agregada en memoria. El histórico lo
+  guardan los servidores de datos (uno por ESP32) en su PostgreSQL; véase
+  [`docs/servidores-de-datos.md`](docs/servidores-de-datos.md).
 - **No hay microservicios ni nube:** firmware embebido + un agregador monolítico + navegador.
 
 ---
@@ -163,18 +165,25 @@ Mensajes Raft (6 tipos): `VoteReq`, `VoteResp`, `Append`, `AppendResp`, `Forward
 
 ## 6. Backend y agregador
 
-`web/` es un proceso **Node.js sin dependencias** (solo módulos nativos):
+`web/` es un proceso **Node.js (ESM)**. El panel no tiene dependencias (solo módulos nativos); el servidor
+de datos usa `pg` para PostgreSQL:
 
 | Archivo | Responsabilidad |
 |---|---|
-| `server.js` | HTTP: estáticos, `/api/estado`, SSE `/api/stream`, proxy de control |
+| `server.js` | HTTP del panel: estáticos, `/api/estado`, SSE `/api/stream`, proxy de control e infraestructura |
 | `poller.js` | Sondeo 1 Hz de los nodos, foto agregada, líder y quórum |
-| `config.js` | `NODOS`, `PUERTO` (8090), posiciones fijas de los detectores |
-| `public/` | Panel de operación (6 pestañas) y vista pública |
+| `config.js` | `NODOS`, `PUERTO` (8090), `SERVIDORES`, `CONTROLADOR` (opcional), posiciones fijas de los detectores |
+| `servidor/` | Servidor de datos de cada ESP32: histórico en PostgreSQL, retención y API `/api/historial` |
+| `controlador/` | Controlador de infraestructura: único con el socket de Docker; apaga/enciende `nodoN` y `servidorN` |
+| `nodo-sim/` | ESP32 simulado con el **núcleo Raft real** del firmware compilado para Linux |
+| `public/` | Panel de operación (ADMIN) y vista pública (CLIENTE) |
 | `fake/` | Nodos simulados para demos sin hardware (**no implementan Raft**) |
+| `docker/` | Dockerfiles de nodos simulados, servidores de datos y controlador |
+| `scripts/` | `test-db.sh`, `test-infra.sh` y verificador de ESP32 reales |
 
-Endpoints propios: `GET /api/estado`, `GET /api/stream`, `POST /api/nodos/:n/control`,
-`POST /api/nodos/:n/pulsar` (exige `Content-Type: application/json`).
+Endpoints propios: `GET /api/estado`, `GET /api/stream`, `GET /api/infra`, `POST /api/nodos/:n/control`,
+`POST /api/nodos/:n/pulsar` y `POST /api/infra/servidores/:n/:accion` (los `POST` exigen
+`Content-Type: application/json`).
 
 ---
 
@@ -182,7 +191,7 @@ Endpoints propios: `GET /api/estado`, `GET /api/stream`, `POST /api/nodos/:n/con
 
 | Vista | Ruta | Contenido |
 |---|---|---|
-| Panel de operación | `http://<PC>:8090/` | Panorama, sismógrafos, clúster Raft, detectores, alertas, registros (con exportación CSV) |
+| Panel de operación | `http://<PC>:8090/` | Panorama, sismógrafos, clúster Raft, detectores, alertas, histórico, servidores (**apagar/encender**), registros (con exportación CSV) y configuración (incl. **Detener sonido**) |
 | Vista pública | `http://<PC>:8090/publico` | Estado del servicio, último sismo, historial, guía de actuación, ajustes |
 
 Las vistas usan **SSE** para el estado en tiempo real y un **mapa SVG propio** (sin Leaflet ni teselas
@@ -201,7 +210,7 @@ externas). La única dependencia externa de la interfaz es la tipografía Inter 
 | Agregador | Node.js ≥ 22, ESM, **sin dependencias**, SSE |
 | Interfaz | HTML/CSS/JS nativo, SVG propio |
 | Pruebas | C++ (harness propio + red Raft simulada), Node `node:test` |
-| Contenedores | Docker Compose (Fedora, openSUSE Leap, Ubuntu, Alpine) |
+| Contenedores | Docker Compose (Debian para nodos simulados, Fedora/openSUSE/Ubuntu para servidores, PostgreSQL y Alpine para el panel) |
 
 ---
 
@@ -211,7 +220,7 @@ externas). La única dependencia externa de la interfaz es la tipografía Inter 
 - **Red:** WiFi **2,4 GHz** con **DHCP**, broadcast permitido y **sin aislamiento de clientes**.
   Internet recomendable para NTP (sin hora no se forman alertas).
 - **PC:** Linux; `g++` ≥ C++17, `make`, Node ≥ 22, `arduino-cli` con el core `esp32:esp32` 3.3.12 y
-  ArduinoJson 7.x. Docker (opcional) para la demo sin hardware.
+  ArduinoJson 7.x. Docker (opcional) para la demo sin hardware, `npm run test:db` y `npm run test:infra`.
 
 ---
 
@@ -270,7 +279,7 @@ npm start
 NODOS="http://IP1,http://IP2,http://IP3" npm start
 ```
 
-Demo sin hardware (nodos simulados; **no** ejecutan Raft):
+Demo sin hardware con nodos falsos (no ejecutan Raft; para la demo con Raft real, ver contenedores):
 
 ```bash
 cd web
@@ -278,12 +287,36 @@ npm run fake     # 3 nodos falsos en 9001–9003
 NODOS="http://127.0.0.1:9001,http://127.0.0.1:9002,http://127.0.0.1:9003" npm start
 ```
 
-Despliegue con contenedores (3 sistemas operativos + panel):
+Despliegue con contenedores (Raft real, servidores de datos y panel):
 
 ```bash
 docker compose up --build        # panel en http://localhost:8095/
 docker compose down
 ```
+
+El compose levanta **11 servicios**: los 3 ESP32 simulados `nodo1..3` (Debian, con el **núcleo Raft real**
+del firmware compilado para Linux), sus 3 PostgreSQL `db1..3`, los 3 servidores de datos `servidor1..3`
+(Fedora, openSUSE Leap y Ubuntu 24.04), el panel y el `controlador` de infraestructura. La primera
+construcción compila el nodo C++ y descarga ArduinoJson 7.4.3 (requiere red).
+
+### Apagar y encender servidores desde ADMIN
+
+Cada tarjeta de **Servidores** en ADMIN tiene **Apagar servidor** y **Encender servidor**. Es un apagado
+real de contenedores, con confirmación previa y las consecuencias calculadas del clúster (si era líder,
+si se pierde el quórum):
+
+- **Apagar** detiene el ESP32 simulado `nodoN` y su servidor de datos `servidorN`; la base `dbN`, su
+  volumen y los otros servidores siguen encendidos. **Encender** los arranca (la base no se toca).
+- El **controlador** (`web/controlador/`) es el único servicio con acceso al socket de Docker y solo
+  entiende `GET /estado`, `GET /salud` y `POST /servidores/{1|2|3}/{apagar|encender}`: nunca acepta
+  nombres, ids ni comandos, solo hace `stop`/`start` de `nodoN`/`servidorN` de su propio proyecto y jamás
+  de `dbN`. No publica puertos y exige un token (`CONTROL_TOKEN`; en producción, `CONTROL_TOKEN_FILE` con
+  un secreto). El panel exige `application/json`, `{"confirmar":true}` y `Origin` propio (anti-CSRF); no
+  tiene login, así que en una red no confiable debe ir detrás de un proxy con autenticación.
+- Con **ESP32 físicos** no hay contenedor `nodoN`: «apagar» solo detiene el servidor de datos y hace la
+  **desconexión lógica** de la placa (`POST /control {"accion":"caer"}`); la placa sigue con corriente.
+- En **Configuración → Probar sonido**, el botón pasa a **Detener sonido** mientras suena el ensayo.
+- Detalle completo y seguridad en [`docs/servidores-de-datos.md`](docs/servidores-de-datos.md).
 
 ---
 
@@ -297,9 +330,20 @@ cd /tmp/val-test && make JSON_DIR="$HOME/Arduino/libraries/ArduinoJson/src" test
 # Arnés de configuración desplegada (500 ms / 5000–9000 ms)
 # ver entrega/05-pruebas/scripts/ y entrega/10-informes-fase3/
 
-# JavaScript (sin dependencias, solo loopback): 41 pruebas
-cd web && node --test --test-concurrency=1 test/*.test.js
+# JavaScript: 75 pruebas (60 pasan; 15 se omiten sin Docker/PostgreSQL)
+cd web && npm install    # dependencia pg del servidor de datos
+cd web && npm test
+
+# Con dependencias externas (Docker): PostgreSQL real y apagado/encendido real
+cd web && npm run test:db       # 3 PostgreSQL efímeros (REQUIRE_DB=1)
+cd web && npm run test:infra    # stack aislado "vybraint" (REQUIRE_INFRA=1)
 ```
+
+`npm test` incluye el controlador contra un Docker simulado por socket Unix y el Raft real con tres procesos
+nativos (`web/test/raft-nativo.test.js`); las pruebas de PostgreSQL y las de Docker se omiten si no hay
+servicios. `npm run test:infra` levanta un proyecto de compose **aislado** (`vybraint`, con sus propios
+nombres, puertos y volúmenes; no toca el stack normal) y comprueba, apagando y encendiendo cada servidor,
+contenedores, volúmenes, cambio de líder, quórum y recuperación.
 
 Herramientas de campaña física en `entrega/05-pruebas/scripts/` (snapshots validados, sondeo con
 tiempos por consulta, capturas verificadas y captura pasiva del serial por `usbmon` sin abrir el tty).
@@ -318,11 +362,17 @@ tiempos por consulta, capturas verificadas y captura pasiva del serial por `usbm
 │   └── placas.conf           Registro MAC → número de detector
 ├── web/                      Backend (Node.js) + interfaces web
 │   ├── server.js, poller.js, config.js
-│   ├── public/               Panel de operación y vista pública
-│   ├── fake/                 Nodos simulados para demo
+│   ├── servidor/             Servidor de datos de cada ESP32 (histórico en PostgreSQL)
+│   ├── controlador/          Controlador de infraestructura (socket de Docker)
+│   ├── nodo-sim/             ESP32 simulado con el núcleo Raft real (C++ para Linux)
+│   ├── docker/               Dockerfiles de nodos simulados, servidores y controlador
+│   ├── public/               Panel de operación (ADMIN) y vista pública (CLIENTE)
+│   ├── fake/                 Nodos simulados para demo (sin Raft)
+│   ├── scripts/              test-db.sh, test-infra.sh, verificador de ESP32
 │   └── test/                 Suite Node
 ├── docs/
 │   ├── prueba-hardware.md    Campaña física con las tres placas
+│   ├── servidores-de-datos.md Servidores de datos, PostgreSQL y apagar/encender
 │   └── superpowers/          Diseño y planes históricos (no vigentes)
 ├── entrega/                  Entregables académicos y evidencias
 │   ├── 04-evidencias/        Capturas, logs y tablas por categoría (saneadas)
@@ -330,7 +380,7 @@ tiempos por consulta, capturas verificadas y captura pasiva del serial por `usbm
 │   └── 10-informes-fase3/    Informes técnicos y diagnósticos
 ├── mockup/, preview/, new interfaz/, interfaz_*.png
 │                             Material de diseño histórico (no es la aplicación)
-├── docker-compose.yml        Demo con tres sistemas operativos
+├── docker-compose.yml        Demo completa: 11 servicios con Raft real, PostgreSQL y controlador
 ├── LICENSE                   MIT
 ├── THIRD-PARTY.md            Licencias de dependencias
 └── README.md
@@ -344,8 +394,8 @@ tiempos por consulta, capturas verificadas y captura pasiva del serial por `usbm
 |---|---|
 | Clúster de tres nodos | **Operativo**: 3/3 en red, un único líder, término y log coherentes, quórum completo |
 | Firmware `v1.0.0-rc1` | Flasheado en las tres placas; identidades 1, 2 y 3 verificadas |
-| Pruebas automáticas | 78/78 C++ · 5/5 arnés de configuración desplegada · 41/41 JavaScript |
-| Docker | 4 servicios, 3 nodos *healthy* sobre Fedora 42, openSUSE Leap y Ubuntu 24.04 |
+| Pruebas automáticas | 78/78 C++ · 5/5 arnés de configuración desplegada · 75 JavaScript (60 pasan, 15 se omiten sin Docker/PostgreSQL) |
+| Docker | 11 servicios: 3 nodos simulados con **Raft real** (Debian), 3 PostgreSQL, 3 servidores de datos (Fedora 42, openSUSE Leap, Ubuntu 24.04), panel y controlador; integración real con `npm run test:infra` en proyecto aislado |
 | P0 (preparación de campaña) | **Completado** con evidencias |
 | **T1 (evento con pulsador)** | **No aprobada.** Se ejecutó una pulsación: el sistema replicó y confirmó correctamente, pero el pulsador registró **dos eventos cortos** (301 ms y 174 ms, separados 3,2 s) en lugar de uno de ~900 ms. Se documentó la incidencia y se realizó el diagnóstico; la repetición queda pendiente de revisión del contactor. |
 | T2 en adelante | Pendientes de autorización |
@@ -375,8 +425,8 @@ tiempos por consulta, capturas verificadas y captura pasiva del serial por `usbm
    después.
 8. El “quórum” del agregador es una **inferencia** (≥ 2 nodos disponibles que reconocen al mismo
    líder), no validación de consenso.
-9. La **demo Docker no ejecuta Raft**: demuestra portabilidad del contrato y del empaquetado sobre
-   tres sistemas operativos.
+9. La **demo Docker sí ejecuta el Raft real**: el nodo simulado compila el mismo núcleo del firmware para
+   Linux; el único simulador sin Raft que queda es `npm run fake`.
 
 ---
 

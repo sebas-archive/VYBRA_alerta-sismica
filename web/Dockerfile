@@ -1,4 +1,4 @@
-# Imagen única: sirve para el panel (server.js) y para los nodos simulados (fake/nodo-solo.js).
+# Imagen del panel: sirve server.js y los estáticos de public/. Los ESP32 simulados usan docker/Dockerfile.nodo-sim.
 # El panel no tiene dependencias: no hace falta npm install. (El servidor de datos usa pg: ver docker/Dockerfile.*)
 FROM node:22.22-alpine
 WORKDIR /app

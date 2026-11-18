@@ -8,8 +8,9 @@
 # ESP32 REALES (sin tocar código): copia ejemplo.env a .env y pon las direcciones de tus ESP32:
 #   NODO1_URL=http://192.168.1.50  NODO2_URL=http://192.168.1.51  NODO3_URL=http://192.168.1.52
 # (o http://sismo-nodo-N.local si tu red resuelve mDNS; dentro de un contenedor suele hacer falta la IP).
-# El panel toma las mismas NODOn_URL (NODOS solo hace falta para sobrescribirlas). Arranca sin los simulados:
-#   docker compose up -d --build --no-deps panel servidor1 servidor2 servidor3 db1 db2 db3
+# El panel toma las mismas NODOn_URL (NODOS solo hace falta para sobrescribirlas). Arranca sin los simulados
+# (incluye `controlador` para apagar/encender desde ADMIN; sin él la función queda desactivada):
+#   docker compose up -d --build --no-deps panel servidor1 servidor2 servidor3 db1 db2 db3 controlador
 # Comprueba antes que responden con el contrato esperado:   node web/scripts/verificar-esp32.js
 # PRODUCCIÓN: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build   (ver docs/servidores-de-datos.md)
 # Contraseña de las bases en DESARROLLO: DB_PASSWORD (por defecto "vybra"; nunca en producción). Las bases no publican puerto.
