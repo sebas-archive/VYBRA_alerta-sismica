@@ -6,7 +6,8 @@
     "test": "node --test \"test/*.test.js\"",
     "start": "node server.js",
     "fake": "node fake/cluster-falso.js",
-    "test:db": "bash scripts/test-db.sh"
+    "test:db": "bash scripts/test-db.sh",
+    "test:infra": "bash scripts/test-infra.sh"
   },
   "dependencies": {
     "pg": "8.23.1"
