@@ -186,10 +186,13 @@ services:
       servidor2: { condition: service_healthy }
       servidor3: { condition: service_healthy }
 
-  # HTTPS delante del panel: https://IP:8443/cliente/ y https://IP:8443/admin/ (ver docker/Caddyfile)
+  # HTTPS delante del panel: https://IP:8443/cliente/ y https://IP:8443/admin/ (ver docker/Caddyfile).
+  # Va en el perfil "https" para no alterar el stack por defecto (11 servicios) ni chocar con el stack de
+  # pruebas aislado; se arranca con: docker compose --profile https up -d
   https:
+    profiles: ["https"]
     image: caddy:2-alpine
-    container_name: sismo-https
+    container_name: ${PREFIJO:-sismo}-https
     restart: unless-stopped
     environment:
       HOST_PUBLICO: ${HOST_PUBLICO:-192.168.80.227}
