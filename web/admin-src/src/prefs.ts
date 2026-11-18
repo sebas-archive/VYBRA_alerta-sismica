@@ -84,3 +84,18 @@ export const richterOf = (level: number) => Math.round((1.5 + 0.55 * level) * 10
 
 /** Archivo de audio de cada tono (los sirve web/server.js). */
 export const toneSrc = (t: Tone) => (t === "emergencia" ? "/shared/audio/alarma-emergencia.mp3" : "./audio/alerta-simulacro.mp3");
+
+/** Segundo desde el que arranca cada tono (el de emergencia empieza en el 3). */
+export const toneStart = (t: Tone) => (t === "emergencia" ? 3 : 0);
+/** Posiciona el audio en `start`; si aún no hay metadatos, espera a tenerlos. */
+export function seekTo(el: HTMLAudioElement, start: number) {
+  const go = () => {
+    try {
+      el.currentTime = start;
+    } catch {
+      /* sin metadatos todavía */
+    }
+  };
+  if (el.readyState >= 1) go();
+  else el.addEventListener("loadedmetadata", go, { once: true });
+}

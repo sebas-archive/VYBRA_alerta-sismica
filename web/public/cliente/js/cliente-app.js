@@ -1531,7 +1531,10 @@
     const audio = audioEl();
     if (!audio) return;
     try {
-      audio.currentTime = 0;
+      // El tono de emergencia arranca en el segundo 3. Si el audio aún no tiene metadatos, se espera a que los tenga.
+      const inicio = settings.soundTone === 'emergencia' ? 3 : 0;
+      const ir = () => { try { audio.currentTime = inicio; } catch (e) {} };
+      if (audio.readyState >= 1) ir(); else audio.addEventListener('loadedmetadata', ir, { once: true });
       const p = audio.play();
       if (p) p.catch(() => {});
     } catch (e) {}

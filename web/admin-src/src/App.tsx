@@ -17,7 +17,7 @@ import {
   viewNow,
   WINDOW_S,
 } from "./seismo";
-import { DEFAULTS, P, loadPrefs, motionReduced, pgaStr, pgaText, savePrefs, toneSrc, type Prefs } from "./prefs";
+import { DEFAULTS, P, loadPrefs, motionReduced, pgaStr, pgaText, savePrefs, seekTo, toneSrc, toneStart, type Prefs } from "./prefs";
 import { startI18n } from "./i18n";
 import { notify, dismissIsland, loadIsland, islandTheme, islandReduce } from "./island";
 import { useLive, startLive, control, pulsar, msParaNivel, type Srv, type Suceso, type LogEntry } from "./live";
@@ -1992,6 +1992,7 @@ function Settings({
   const testSound = () => {
     const a = new Audio(toneSrc(prefs.tone));
     a.volume = prefs.volume;
+    seekTo(a, toneStart(prefs.tone));
     a.play().catch(() => {});
     window.setTimeout(() => a.pause(), 3000);
   };
@@ -2475,7 +2476,7 @@ export default function App() {
     }
     el.volume = prefs.volume;
     if (alarm && !muted && prefs.sound) {
-      el.currentTime = 0;
+      seekTo(el, toneStart(prefs.tone));
       el.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
     } else {
       setBlocked(false);
