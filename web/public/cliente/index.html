@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f6f3">
+  <title>VYBRA</title>
+  <link rel="stylesheet" href="./fonts/fuentes.css">
+  <link rel="stylesheet" href="./vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="./css/cliente-app.css?v=48">
+  <link rel="stylesheet" href="./css/cliente-desktop.css?v=19">
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem('sismica_theme') || 'system';
+        var dark = theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.dataset.theme = 'dark';
+        var font = localStorage.getItem('sismica_font');
+        if (font) document.documentElement.dataset.fontSize = font;
+        if (localStorage.getItem('sismica_motion') === 'true') document.documentElement.dataset.reduceMotion = 'true';
+        if (localStorage.getItem('sismica_nav') === 'closed') document.documentElement.dataset.nav = 'closed';
+        var lang = localStorage.getItem('sismica_lang');
+        if (lang === 'en' || lang === 'es') document.documentElement.lang = lang;
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div class="app">
+    <a class="skip" href="#main" data-i18n="skip">Saltar al contenido</a>
+    <div class="stage">
+
+    <header class="topbar" id="topbar">
+      <button type="button" class="icon-btn" id="btnBack" data-action="back" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+        <span class="sr-only" data-i18n="back">Volver</span>
+      </button>
+      <p class="wordmark" id="wordmark"><span class="wordmark-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg></span><span data-i18n="brandName">VYBRA</span></p>
+      <div class="deskbar" id="deskbar">
+        <p class="deskbar-kicker" id="deskKicker" data-i18n="brandName">VYBRA</p>
+      </div>
+      <h1 class="top-title" id="topTitle" hidden></h1>
+      <p class="desk-live" id="deskLive"></p>
+      <div class="top-actions" id="topActions">
+        <button type="button" class="icon-btn" data-action="open-settings" data-i18n-aria="openSettings" aria-label="Ajustes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.05"/><path d="M9.19 5.21 10.15 2.02h3.7l.96 3.19 2.94-1.57 2.61 2.61-1.57 2.94 3.19.96v3.7l-3.19.96 1.57 2.94-2.61 2.61-2.94-1.57-.96 3.19h-3.7l-.96-3.19-2.94 1.57-2.61-2.61 1.57-2.94L2.02 13.85v-3.7l3.19-.96-1.57-2.94 2.61-2.61 2.94 1.57z"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="btnTheme" data-action="cycle-theme" aria-label="Cambiar tema">
+          <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.45"/><path d="M12 5.6V1.85M16.53 7.47l2.65-2.65M18.4 12h3.75M16.53 16.53l2.65 2.65M12 18.4v3.75M7.47 16.53l-2.65 2.65M5.6 12H1.85M7.47 7.47 4.82 4.82"/></svg>
+          <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path transform="translate(12 12) scale(1.12) translate(-12 -12)" d="M20.8 16.2A9.8 9.8 0 1 1 12 2.3 8 8 0 0 0 20.8 16.2z"/></svg>
+          <span class="theme-label"></span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="view on" id="view-ahora" aria-label="Inicio">
+        <header class="fig-pagehead">
+          <div>
+            <p data-i18n="deskHomeEyebrow">Centro de monitoreo</p>
+            <h2 data-i18n="deskHomeTitle">Estado de la red</h2>
+            <span data-i18n="deskHomeLead">Lectura de los tres sismógrafos locales.</span>
+          </div>
+          <div class="fig-actions">
+            <button type="button" class="fig-btn" data-action="open-sensors" data-i18n="deskTelemetry">Ver telemetría</button>
+            <button type="button" class="fig-btn primary" data-action="open-map" data-i18n="deskOpenMap">Abrir mapa</button>
+          </div>
+        </header>
+        <div class="home-hero">
+        <article class="status-card calm" id="statusCard">
+          <svg class="radar" viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="18"/><circle cx="60" cy="60" r="34"/><circle cx="60" cy="60" r="50"/>
+            <circle cx="60" cy="60" r="3.5" fill="currentColor" stroke="none"/>
+          </svg>
+          <p class="status-pill" id="statusKicker"></p>
+          <h1 id="statusTitle"></h1>
+          <p class="status-sub" id="statusSub"></p>
+          <p class="live-line"><i id="statusDot"></i><span id="statusLive"></span></p>
+          <button type="button" class="text-btn" id="btnSeeAlert" data-action="open-alarm" hidden></button>
+          <div class="telemetry" id="telemetry"></div>
+        </article>
+        </div>
+
+        <div class="home-side">
+        <div class="section-head">
+          <h2 data-i18n="sectionLatest">Último registro</h2>
+        </div>
+        <div id="latestEvent"></div>
+
+        <div class="desk-slot protect-slot">
+        <div class="section-head">
+          <h2 data-i18n="sectionProtection">Protección</h2>
+          <button type="button" class="linkish" data-action="open-protect" data-i18n="viewAll">Ver todo</button>
+        </div>
+        <button type="button" class="protect-card" id="homeProtect" data-action="open-protect"></button>
+        </div>
+        </div>
+
+        <div class="home-rest">
+        <div class="desk-slot sensors-slot">
+        <div class="section-head">
+          <h2 data-i18n="sectionSensors">Sismógrafos</h2>
+          <button type="button" class="linkish" data-action="open-sensors" data-i18n="viewAll">Ver todo</button>
+        </div>
+        <div class="group" id="homeSensors"></div>
+        </div>
+
+        <div class="home-util">
+        <button type="button" class="link-row" data-action="open-prevention">
+          <span data-i18n="preventionLink">Qué hacer si tiembla</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <p class="fine" id="nearbyLine" hidden></p>
+        <p class="disclaimer" data-i18n="homeDisclaimer">Los registros de esta aplicación son simulacros de la red local. No hay epicentro ni consulta a catálogos externos.</p>
+        <button type="button" class="linkish quiet" data-action="test-alert" data-i18n="tryAlert">Probar la pantalla de alerta</button>
+        </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-mapa">
+        <div id="liveMap" class="live-map" role="application" aria-label="Mapa de los sismógrafos"></div>
+        <div class="map-fallback" id="mapFallback" hidden></div>
+        <div class="map-theme" id="mapThemeSlot"></div>
+        <div class="map-ui">
+          <div class="map-ui-row">
+            <p class="pill" id="mapLivePill"><i class="dot"></i><span id="mapLiveText"></span></p>
+            <button type="button" class="pill" id="btnMapList" data-action="sheet-list"></button>
+          </div>
+          <div class="chip-row" id="mapFilters">
+            <button type="button" class="chip on" data-action="mag-filter" data-filter="all" data-i18n="filterAll">Todas</button>
+            <button type="button" class="chip" data-action="mag-filter" data-filter="fuerte" data-i18n="filterStrong">Fuertes</button>
+            <button type="button" class="chip" data-action="mag-filter" data-filter="moderado" data-i18n="filterMid">Medias</button>
+            <button type="button" class="chip" data-action="mag-filter" data-filter="leve" data-i18n="filterLight">Leves</button>
+          </div>
+        </div>
+        <div class="map-tools">
+          <button type="button" data-action="zoom-in" data-i18n-aria="zoomIn" aria-label="Acercar">+</button>
+          <button type="button" data-action="zoom-out" data-i18n-aria="zoomOut" aria-label="Alejar">−</button>
+          <button type="button" data-action="locate" data-i18n-aria="locateMe" aria-label="Mi ubicación">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+          </button>
+        </div>
+        <div class="map-key">
+          <span><i></i><span data-i18n="deskMapOn">Sismógrafo disponible</span></span>
+          <span><i class="selected"></i><span data-i18n="deskMapSel">Seleccionado</span></span>
+          <small data-i18n="mapInstruments">En el mapa ves los sismógrafos, no el origen del sismo.</small>
+        </div>
+        <div class="sheet" id="mapSheet"></div>
+      </section>
+
+      <section class="view" id="view-detalle">
+        <div class="desk-pagehead">
+          <button type="button" class="desk-back icon-btn" data-action="back" data-i18n-aria="back" aria-label="Volver">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+          </button>
+          <h1 class="desk-title" data-i18n="viewDetails">Ver detalles</h1>
+        </div>
+        <div id="detailTop"></div>
+        <div id="detailMap" class="inset-map"></div>
+        <div id="detailBottom"></div>
+      </section>
+
+      <section class="view" id="view-avisos">
+        <header class="fig-pagehead">
+          <div>
+            <p data-i18n="deskAlertsEyebrow">Gestión de actividad</p>
+            <h2 data-i18n="feedTitle">Avisos</h2>
+            <span data-i18n="deskAlertsLead">Eventos, cambios de servicio y pruebas de esta aplicación.</span>
+          </div>
+        </header>
+        <div class="page-head">
+          <h1 data-i18n="feedTitle">Avisos</h1>
+          <div class="page-tools">
+          <button type="button" class="icon-btn" data-action="open-settings" data-i18n-aria="openSettings" aria-label="Ajustes">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+          </button>
+          </div>
+        </div>
+        <div class="chip-row">
+          <button type="button" class="chip on" data-action="feed-filter" data-filter="all" data-i18n="filterAll">Todas</button>
+          <button type="button" class="chip" data-action="feed-filter" data-filter="sismos" data-i18n="filterQuakes">Sismos</button>
+          <button type="button" class="chip" data-action="feed-filter" data-filter="service" data-i18n="filterService">Servicio</button>
+          <button type="button" class="chip" data-action="feed-filter" data-filter="test" data-i18n="filterTests">Pruebas</button>
+        </div>
+        <div class="feed-summary" id="feedSummary"></div>
+        <div class="feed-tools">
+          <span id="unreadLabel"></span>
+          <button type="button" class="linkish" data-action="mark-read" data-i18n="markAllRead">Marcar leídos</button>
+        </div>
+        <div id="feed"></div>
+      </section>
+
+      <section class="view" id="view-proteccion">
+        <header class="fig-pagehead">
+          <div>
+            <p data-i18n="deskProtectEyebrow">Seguridad del navegador</p>
+            <h2 data-i18n="navProtection">Protección</h2>
+            <span data-i18n="deskProtectLead">Controla cómo esta página puede informarte de una alerta confirmada.</span>
+          </div>
+        </header>
+        <div class="page-head">
+          <h1 data-i18n="protectTitle">Centro de protección</h1>
+          <div class="page-tools">
+          <button type="button" class="icon-btn" data-action="open-settings" data-i18n-aria="openSettings" aria-label="Ajustes">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+          </button>
+          </div>
+        </div>
+        <div class="readiness" id="readinessCard">
+          <div class="readiness-top">
+            <div>
+              <p class="k" data-i18n="protectReadiness">Preparación para recibir avisos</p>
+              <p class="desk-score" id="readinessScore"></p>
+              <p class="status-badge" id="readinessBadge"></p>
+              <p class="fine" id="readinessMeta"></p>
+            </div>
+            <div id="readinessRing"></div>
+          </div>
+          <div class="segments" id="readinessSegs"></div>
+        </div>
+        <div id="protectList"></div>
+      </section>
+
+      <section class="view" id="view-sismografos">
+        <header class="fig-pagehead">
+          <div>
+            <p data-i18n="deskSensorsEyebrow">Instrumentación local</p>
+            <h2 data-i18n="sensorsHeading">Sismógrafos</h2>
+            <span data-i18n="deskSensorsLead">Disponibilidad y actividad de los tres aparatos.</span>
+          </div>
+        </header>
+        <div class="desk-pagehead">
+          <button type="button" class="desk-back icon-btn" data-action="back" data-i18n-aria="back" aria-label="Volver">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+          </button>
+          <h1 class="desk-title" data-i18n="sensorsHeading">Sismógrafos</h1>
+        </div>
+        <p class="lead" data-i18n="sensorsIntro">Tres aparatos vigilan el movimiento del suelo. Un golpe cerca de uno solo no dispara la alerta. Hace falta que otro registre lo mismo.</p>
+        <div class="sensor-strip" id="sensorStrip"></div>
+        <div id="sensorList"></div>
+        <p class="fine trace-note" data-i18n="traceNote"></p>
+        <aside class="note">
+          <h2 data-i18n="coincidenceTitle">Por qué hacen falta dos</h2>
+          <p data-i18n="coincidenceBody">Si un solo sismógrafo se mueve, lo más habitual es que el golpe esté al lado del aparato y no en el suelo de toda la zona. Cuando dos registran el mismo movimiento, la aplicación lo trata como alerta.</p>
+          <p id="separationNote"></p>
+        </aside>
+      </section>
+
+      <section class="view" id="view-prevencion">
+        <header class="fig-pagehead">
+          <div>
+            <p data-i18n="deskPrevEyebrow">Centro de preparación</p>
+            <h2 data-i18n="prevHeading">Prevención</h2>
+            <span data-i18n="prevLead">Qué conviene tener listo, y qué hacer cuando el suelo se mueve.</span>
+          </div>
+        </header>
+        <div class="page-head">
+          <button type="button" class="desk-back icon-btn" data-action="back" data-i18n-aria="back" aria-label="Volver">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+          </button>
+          <div>
+            <h1 data-i18n="prevHeading">Prevención</h1>
+            <p class="lead" data-i18n="prevLead">Qué conviene tener listo, y qué hacer cuando el suelo se mueve.</p>
+          </div>
+        </div>
+        <div class="chip-row" role="tablist">
+          <button type="button" class="chip" role="tab" data-action="protocol" data-protocol="antes" aria-selected="false"><span data-i18n="tabBefore">Antes</span><small data-i18n="deskBeforeSub">Prepárate</small></button>
+          <button type="button" class="chip on" role="tab" data-action="protocol" data-protocol="durante" aria-selected="true"><span data-i18n="tabDuring">Durante</span><small data-i18n="deskDuringSub">Protégete</small></button>
+          <button type="button" class="chip" role="tab" data-action="protocol" data-protocol="despues" aria-selected="false"><span data-i18n="tabAfter">Después</span><small data-i18n="deskAfterSub">Revisa y actúa</small></button>
+        </div>
+
+        <div data-pane="durante" role="tabpanel">
+          <ol class="steps">
+            <li>
+              <span>1</span>
+              <div>
+                <h2 data-i18n="duringRule1Title">Agáchate</h2>
+                <p data-i18n="duringRule1Desc"></p>
+              </div>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"/><path d="m8 10 4 4 4-4"/><path d="M6 20h12"/></svg>
+            </li>
+            <li>
+              <span>2</span>
+              <div>
+                <h2 data-i18n="duringRule2Title">Cúbrete</h2>
+                <p data-i18n="duringRule2Desc"></p>
+              </div>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10 12 4l8 6"/><path d="M6 10v8h12v-8"/></svg>
+            </li>
+            <li>
+              <span>3</span>
+              <div>
+                <h2 data-i18n="duringRule3Title">Sujétate</h2>
+                <p data-i18n="duringRule3Desc"></p>
+              </div>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11V7a2 2 0 1 1 4 0v5"/><path d="M12 11V5a2 2 0 1 1 4 0v7"/><path d="M16 12V8a2 2 0 1 1 4 0v6a6 6 0 0 1-6 6h-2a6 6 0 0 1-5-2l-3-3"/></svg>
+            </li>
+          </ol>
+          <div class="fold">
+            <details>
+              <summary data-i18n="contextHomeTitle">En casa</summary>
+              <p data-i18n="contextHomeDesc"></p>
+            </details>
+            <details>
+              <summary data-i18n="contextBuildingTitle">En un edificio</summary>
+              <p data-i18n="contextBuildingDesc"></p>
+            </details>
+            <details>
+              <summary data-i18n="contextStreetTitle">En la calle</summary>
+              <p data-i18n="contextStreetDesc"></p>
+            </details>
+            <details>
+              <summary data-i18n="contextCarTitle">En un vehículo</summary>
+              <p data-i18n="contextCarDesc"></p>
+            </details>
+          </div>
+        </div>
+
+        <div data-pane="antes" role="tabpanel" hidden>
+          <div class="prep-grid">
+            <article class="prep">
+              <button type="button" class="prep-hit" data-action="prep-toggle" aria-expanded="false" aria-controls="prep-more-1">
+                <span class="prep-fig prep-fig-zones" aria-hidden="true">
+                  <img class="prep-photo prep-photo-light" src="./img/zonas-seguras-claro.png" alt="">
+                  <img class="prep-photo prep-photo-dark" src="./img/zonas-seguras-oscuro.png" alt="">
+                </span>
+                <span class="prep-copy">
+                  <span class="prep-n">01</span>
+                  <span class="prep-title" id="prep-title-1" data-i18n="prepZonesTitle">Identifica las zonas seguras</span>
+                  <span class="prep-text" data-i18n="prepZonesText">Reconoce los lugares donde puedes protegerte, lejos de ventanas y objetos que puedan caer.</span>
+                  <span class="prep-cue"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5"/></svg><span class="when-closed" data-i18n="prepMore">Consejos</span><span class="when-open" data-i18n="prepLess">Ocultar</span></span>
+                </span>
+              </button>
+              <div class="prep-more" id="prep-more-1" role="region" aria-labelledby="prep-title-1" hidden>
+                <p data-i18n="beforeZonesDesc">En cada cuarto, elige una mesa firme o un muro interior, lejos del vidrio.</p>
+                <p data-i18n="contextHomeDesc">Aléjate de ventanas, repisas y lámparas. No salgas corriendo mientras se mueve.</p>
+              </div>
+            </article>
+
+            <article class="prep">
+              <button type="button" class="prep-hit" data-action="prep-toggle" aria-expanded="false" aria-controls="prep-more-2">
+                <span class="prep-fig prep-fig-bag" aria-hidden="true">
+                  <img class="prep-photo prep-photo-light" src="./img/mochila-clara.svg" alt="">
+                  <img class="prep-photo prep-photo-dark" src="./img/mochila-oscura.svg" alt="">
+                </span>
+                <span class="prep-copy">
+                  <span class="prep-n">02</span>
+                  <span class="prep-title" id="prep-title-2" data-i18n="prepBagTitle">Prepara tu mochila de emergencia</span>
+                  <span class="prep-text" data-i18n="prepBagText">Ten preparados agua, linterna, botiquín, documentos importantes y artículos esenciales.</span>
+                  <span class="prep-cue"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5"/></svg><span class="when-closed" data-i18n="prepMore">Consejos</span><span class="when-open" data-i18n="prepLess">Ocultar</span></span>
+                </span>
+              </button>
+              <div class="prep-more" id="prep-more-2" role="region" aria-labelledby="prep-title-2" hidden>
+                <p data-i18n="kitSub">Marca lo que ya tienes. El avance se guarda en este navegador.</p>
+                <p class="fine" id="kitProgress"></p>
+                <div class="checks" id="kitList"></div>
+              </div>
+            </article>
+
+            <article class="prep">
+              <button type="button" class="prep-hit" data-action="prep-toggle" aria-expanded="false" aria-controls="prep-more-3">
+                <span class="prep-fig prep-fig-room" aria-hidden="true">
+                  <img class="prep-photo prep-photo-light" src="./img/objetos-hogar-claro.png?v=2" alt="">
+                  <img class="prep-photo prep-photo-dark" src="./img/objetos-hogar-oscuro.png" alt="">
+                </span>
+                <span class="prep-copy">
+                  <span class="prep-n">03</span>
+                  <span class="prep-title" id="prep-title-3" data-i18n="prepFixTitle">Asegura los objetos de tu hogar</span>
+                  <span class="prep-text" data-i18n="prepFixText">Evita que muebles, estanterías y objetos pesados puedan caer durante un sismo.</span>
+                  <span class="prep-cue"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5"/></svg><span class="when-closed" data-i18n="prepMore">Consejos</span><span class="when-open" data-i18n="prepLess">Ocultar</span></span>
+                </span>
+              </button>
+              <div class="prep-more" id="prep-more-3" role="region" aria-labelledby="prep-title-3" hidden>
+                <p data-i18n="beforeFixDesc">Fija estantes, el televisor y los cuadros pesados. Lo que está suelto y alto es lo que más golpea.</p>
+                <p class="fine" id="homeProgress"></p>
+                <div class="checks" id="homeList"></div>
+              </div>
+            </article>
+
+            <article class="prep">
+              <button type="button" class="prep-hit" data-action="prep-toggle" aria-expanded="false" aria-controls="prep-more-4">
+                <span class="prep-fig prep-fig-cover" aria-hidden="true">
+                  <img class="prep-photo prep-photo-light" src="./img/protegerse-claro.png" alt="">
+                  <img class="prep-photo prep-photo-dark" src="./img/protegerse-oscuro.png" alt="">
+                </span>
+                <span class="prep-copy">
+                  <span class="prep-n">04</span>
+                  <span class="prep-title" id="prep-title-4" data-i18n="prepLearnTitle">Aprende cómo protegerte</span>
+                  <span class="prep-text" data-i18n="prepLearnText">Aprende a agacharte, cubrirte y sujetarte cuando comience el movimiento.</span>
+                  <span class="prep-cue"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5"/></svg><span class="when-closed" data-i18n="prepMore">Consejos</span><span class="when-open" data-i18n="prepLess">Ocultar</span></span>
+                </span>
+              </button>
+              <div class="prep-more" id="prep-more-4" role="region" aria-labelledby="prep-title-4" hidden>
+                <ul class="prep-remind">
+                  <li><b data-i18n="duringRule1Title">Agáchate</b><span data-i18n="duringRule1Desc">Apoya rodillas y manos antes de que el movimiento te tire. Así no caes de pie y puedes moverte si hace falta.</span></li>
+                  <li><b data-i18n="duringRule2Title">Cúbrete</b><span data-i18n="duringRule2Desc">Métete bajo una mesa firme y protege la cabeza y el cuello. Si no hay mesa, junto a un muro interior, lejos de vidrios.</span></li>
+                  <li><b data-i18n="duringRule3Title">Sujétate</b><span data-i18n="duringRule3Desc">Agárrate a la mesa hasta que pare. Si la mesa se corre, córrete con ella.</span></li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div data-pane="despues" role="tabpanel" hidden>
+          <ol class="steps">
+            <li><span>1</span><div><h2 data-i18n="afterGasTitle">Gas y electricidad</h2><p data-i18n="afterGasDesc"></p></div></li>
+            <li><span>2</span><div><h2 data-i18n="afterDamageTitle">La estructura</h2><p data-i18n="afterDamageDesc"></p></div></li>
+            <li><span>3</span><div><h2 data-i18n="afterReplicasTitle">Réplicas</h2><p data-i18n="afterReplicasDesc"></p></div></li>
+            <li><span>4</span><div><h2 data-i18n="afterInfoTitle">A quién creer</h2><p data-i18n="afterInfoDesc"></p></div></li>
+          </ol>
+          <h2 class="block-title" data-i18n="emergencyContactsHeading">Líneas de emergencia en Colombia</h2>
+          <div class="phones">
+            <a href="tel:119"><b>119</b><span data-i18n="contactFire">Bomberos</span></a>
+            <a href="tel:132"><b>132</b><span data-i18n="contactRedCross">Cruz Roja</span></a>
+            <a href="tel:144"><b>144</b><span data-i18n="contactCivilDefense">Defensa Civil</span></a>
+            <a href="tel:123"><b>123</b><span data-i18n="contactPolice">Emergencias</span></a>
+          </div>
+        </div>
+        <aside class="guide-aside">
+          <span data-i18n="deskRemember">Recordatorio</span>
+          <h3 data-i18n="tabDuring">Durante</h3>
+          <p data-i18n="contextHomeDesc">Aléjate de ventanas, repisas y lámparas. No salgas corriendo mientras se mueve.</p>
+          <a href="tel:123"><b>123</b><span data-i18n="contactPolice">Emergencias</span></a>
+        </aside>
+      </section>
+
+      <section class="view" id="view-ajustes">
+        <header class="fig-pagehead">
+          <div>
+            <p data-i18n="deskSettingsEyebrow">Preferencias locales</p>
+            <h2 data-i18n="navSettings">Configuración</h2>
+            <span data-i18n="deskSettingsLead">Lectura, escalas y pruebas guardadas en este navegador.</span>
+          </div>
+        </header>
+        <div class="desk-pagehead">
+          <button type="button" class="desk-back icon-btn" data-action="back" data-i18n-aria="back" aria-label="Volver">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+          </button>
+          <h1 class="desk-title" data-i18n="settingsHeading">Ajustes</h1>
+        </div>
+        <p class="lead" data-i18n="settingsLead">Idioma, apariencia y el tramo de eventos que puede generar un aviso.</p>
+
+        <div class="settings-board">
+        <nav class="set-jump" aria-label="Preferencias">
+          <span data-i18n="deskPrefs">Preferencias</span>
+          <button type="button" data-action="jump-setting" data-target="set-look" data-i18n="secAppearance">Apariencia y lectura</button>
+          <button type="button" data-action="jump-setting" data-target="set-scales" data-i18n="secScales">Escalas</button>
+          <button type="button" data-action="jump-setting" data-target="set-range" data-i18n="secThresholds">Qué eventos te avisamos</button>
+          <button type="button" data-action="jump-setting" data-target="set-sim" data-i18n="secSimulator">Ensayo</button>
+        </nav>
+        <div class="set-block set-lang" id="set-lang">
+        <h2 class="set-label" data-i18n="secLanguage">Idioma</h2>
+        <div class="set-group">
+          <div class="set-row">
+            <div><h3 data-i18n="secLanguage">Idioma</h3><p data-i18n="optLanguageSub"></p></div>
+            <div class="seg" role="group" data-i18n-aria="secLanguage" aria-label="Idioma">
+              <button type="button" data-action="lang" data-lang="es" data-i18n="langSpanish">Español</button>
+              <button type="button" data-action="lang" data-lang="en" data-i18n="langEnglish">English</button>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <div class="set-block set-look" id="set-look">
+        <h2 class="set-label" data-i18n="secAppearance">Apariencia y lectura</h2>
+        <div class="set-group">
+          <div class="set-row">
+            <div><h3 data-i18n="optTheme">Tema</h3><p data-i18n="optThemeSub">Claro, oscuro o el del sistema</p></div>
+            <div class="seg" role="group" data-i18n-aria="optTheme" aria-label="Tema">
+              <button type="button" data-action="theme" data-theme="system" data-i18n="themeAuto">Automático</button>
+              <button type="button" data-action="theme" data-theme="light" data-i18n="themeLight">Claro</button>
+              <button type="button" data-action="theme" data-theme="dark" data-i18n="themeDark">Oscuro</button>
+            </div>
+          </div>
+          <div class="set-row">
+            <div><h3 data-i18n="optFontSize">Tamaño del texto</h3><p data-i18n="optFontSub">Normal o grande, en toda la aplicación</p></div>
+            <div class="seg" role="group" data-i18n-aria="optFontSize" aria-label="Tamaño del texto">
+              <button type="button" data-action="font" data-font="normal" data-i18n="fontNormal">Normal</button>
+              <button type="button" data-action="font" data-font="large" data-i18n="fontLarge">Grande</button>
+            </div>
+          </div>
+          <div class="set-row">
+            <div><h3 data-i18n="optReduceMotion">Menos movimiento</h3><p data-i18n="optReduceMotionSub"></p></div>
+            <label class="switch"><input type="checkbox" id="switchMotion"><span class="switch-ui"></span></label>
+          </div>
+        </div>
+        </div>
+
+        <div class="set-block set-scales" id="set-scales">
+        <h2 class="set-label" data-i18n="secScales">Escalas</h2>
+        <p class="set-note" data-i18n="scaleChoiceLead">Así se muestran los registros. No cambia qué avisos recibes.</p>
+        <div class="set-group">
+          <div class="set-row col">
+            <p data-i18n="scalesExplanation"></p>
+            <button type="button" class="choice" data-action="scale" data-scale="mercalli">
+              <span class="radio"></span>
+              <span><b data-i18n="optScaleMercalli">Intensidad Mercalli</b><small data-i18n="optScaleMercalliSub"></small></span>
+            </button>
+            <button type="button" class="choice" data-action="scale" data-scale="richter">
+              <span class="radio"></span>
+              <span><b data-i18n="optScaleRichter">Magnitud Richter</b><small data-i18n="optScaleRichterSub"></small></span>
+            </button>
+          </div>
+        </div>
+        </div>
+
+        <div class="set-block set-range" id="set-range">
+        <h2 class="set-label" data-i18n="secThresholds">Qué eventos te avisamos</h2>
+        <p class="set-note" data-i18n="rangeLead"></p>
+        <div class="set-group" id="rangePanel">
+          <div class="set-row col">
+            <div class="seg" role="group" aria-labelledby="notifyScaleLabel">
+              <button type="button" data-action="notify-scale" data-scale="mercalli" data-i18n="optScaleMercalli">Intensidad Mercalli</button>
+              <button type="button" data-action="notify-scale" data-scale="richter" data-i18n="optScaleRichter">Magnitud Richter</button>
+            </div>
+            <p class="fine" id="rangeScaleNote"></p>
+            <div class="seg" role="group" id="rangePresets">
+              <button type="button" data-action="range-preset" data-preset="all" data-i18n="presetAll">Todos</button>
+              <button type="button" data-action="range-preset" data-preset="from" data-i18n="presetFrom">Desde un nivel</button>
+              <button type="button" data-action="range-preset" data-preset="custom" data-i18n="presetCustom">Personalizado</button>
+            </div>
+            <p class="fine" id="presetHint"></p>
+            <div class="range-readout">
+              <p><span data-i18n="rangeMin">Mínimo</span><strong id="readMin"></strong></p>
+              <p><span data-i18n="rangeMax">Máximo</span><strong id="readMax"></strong></p>
+            </div>
+            <div class="range-control">
+              <div class="range-ticks" id="rangeTicks"></div>
+              <div class="range-track">
+                <div class="range-fill" id="rangeFill"></div>
+                <input type="range" id="rangeMin">
+                <input type="range" id="rangeMax">
+              </div>
+            </div>
+            <div class="range-fields">
+              <label class="field" for="numMin">
+                <span data-i18n="rangeMin">Mínimo</span>
+                <span class="num-line"><input id="numMin" type="number" inputmode="decimal"><em id="numMinUnit"></em></span>
+              </label>
+              <label class="field" for="numMax">
+                <span data-i18n="rangeMax">Máximo</span>
+                <span class="num-line"><input id="numMax" type="number" inputmode="decimal"><em id="numMaxUnit"></em></span>
+              </label>
+            </div>
+            <p class="fine" id="rangeLimits"></p>
+          </div>
+          <div class="set-row col">
+            <h3 data-i18n="previewLabel">Vista previa</h3>
+            <p class="range-preview" id="rangePreview"></p>
+          </div>
+          <div class="set-row col">
+            <p class="fine" id="rangeDirty" hidden></p>
+            <div class="range-actions">
+              <button type="button" class="btn" id="btnSaveRange" data-action="save-thresholds" data-i18n="rangeSave">Guardar</button>
+              <button type="button" class="btn ghost" id="btnCancelRange" data-action="cancel-thresholds" data-i18n="rangeCancel">Cancelar</button>
+              <button type="button" class="btn ghost" data-action="reset-thresholds" data-i18n="rangeReset">Restaurar</button>
+            </div>
+            <p class="fine" data-i18n="rangeStored"></p>
+          </div>
+        </div>
+        </div>
+
+        <div class="set-block set-sim" id="set-sim">
+        <h2 class="set-label" data-i18n="secSimulator">Ensayo</h2>
+        <div class="set-group">
+          <div class="set-row col">
+            <p data-i18n="optSimulatorSub"></p>
+            <p class="fine live-only" data-i18n="simLiveNote"></p>
+            <div class="demo-only">
+            <h3 data-i18n="networkStatusSimLabel"></h3>
+            <div class="seg" role="group">
+              <button type="button" data-action="network" data-network="ok" data-i18n="simNet3">Los tres</button>
+              <button type="button" data-action="network" data-network="warn" data-i18n="simNet2">Falta uno</button>
+              <button type="button" data-action="network" data-network="err" data-i18n="simNet0">Ninguno</button>
+            </div>
+            <h3 class="pulse-label" data-i18n="simPulseLabel">Ensayar movimiento</h3>
+            <p class="fine" data-i18n="simPulseSub"></p>
+            <div class="seg pulse-seg" role="group" data-i18n-aria="simPulseLabel" aria-label="Ensayar movimiento">
+              <button type="button" data-action="toggle-sensor" data-id="1">S1</button>
+              <button type="button" data-action="toggle-sensor" data-id="2">S2</button>
+              <button type="button" data-action="toggle-sensor" data-id="3">S3</button>
+            </div>
+            </div>
+            <button type="button" class="btn" data-action="test-alert" data-i18n="btnLaunchAlertTest">Abrir la alerta de prueba</button>
+          </div>
+        </div>
+        </div>
+        </div>
+      </section>
+    </main>
+    </div>
+
+    <nav class="tabbar" aria-label="Principal">
+      <div class="side-head">
+        <div class="side-lockup">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg></span>
+          <div>
+            <p class="side-brand" data-i18n="brandName">VYBRA</p>
+          </div>
+        </div>
+        <button type="button" class="side-toggle" id="navToggle" data-action="nav-toggle" aria-expanded="true" data-i18n-aria="navCollapse" aria-label="Contraer menú">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+        </button>
+      </div>
+      <button type="button" class="tab on" data-action="nav" data-view="ahora">
+        <span class="tab-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10.5 8-6.5 8 6.5"/><path d="M6.5 9.8V20h11V9.8"/></svg></span>
+        <span data-i18n="navHome">Inicio</span>
+      </button>
+      <button type="button" class="tab" data-action="nav" data-view="mapa">
+        <span class="tab-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 6 2 5-2v16l-5 2-6-2-5 2V6l5-2z"/><path d="M9 4v16M15 6v16"/></svg></span>
+        <span data-i18n="navMap">Mapa</span>
+      </button>
+      <button type="button" class="tab" data-action="nav" data-view="avisos">
+        <span class="tab-ic">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 7 2 7 2 7H4s2 0 2-7"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
+          <i class="badge" id="navBadge" hidden></i>
+        </span>
+        <span data-i18n="navAlerts">Avisos</span>
+      </button>
+      <button type="button" class="tab" data-action="nav" data-view="proteccion">
+        <span class="tab-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z"/></svg></span>
+        <span data-i18n="navProtection">Protección</span>
+      </button>
+      <button type="button" class="tab" data-action="nav" data-view="ajustes">
+        <span class="tab-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+        <span data-i18n="navSettings">Configuración</span>
+      </button>
+      <div class="side-tools" id="sideTools"></div>
+    </nav>
+    <p id="live" class="sr-only" aria-live="polite"></p>
+  </div>
+
+  <dialog class="alarm" id="alarm" aria-labelledby="alarmHeading">
+    <div class="alarm-in">
+      <svg class="alarm-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 7 2 7 2 7H4s2 0 2-7"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M5 8a8 8 0 0 1 1.2-3M19 8a8 8 0 0 0-1.2-3"/></svg>
+      <p class="alarm-kicker" id="alarmKicker"></p>
+      <h2 id="alarmHeading"></h2>
+      <p class="alarm-action" id="alarmAction"></p>
+      <p class="alarm-lead" id="alarmLead"></p>
+      <p class="alarm-meta" id="alarmMeta"></p>
+      <ol class="alarm-steps">
+        <li><span>1</span><b data-i18n="alarmDrop">Agáchate</b></li>
+        <li><span>2</span><b data-i18n="alarmCover">Cúbrete</b></li>
+        <li><span>3</span><b data-i18n="alarmHold">Sujétate</b></li>
+      </ol>
+      <button type="button" class="alarm-link" data-action="alarm-details" data-i18n="alarmDetails">Ver el registro</button>
+      <p class="alarm-fine" id="alarmFine"></p>
+      <p class="alarm-timer" id="alarmTimer"></p>
+      <button type="button" class="alarm-dismiss" data-action="dismiss-alarm" data-i18n="alarmDismiss">Estoy a salvo</button>
+    </div>
+  </dialog>
+
+  <dialog class="types-dialog" id="typesDialog" aria-labelledby="typesTitle">
+    <h3 id="typesTitle" data-i18n="typesTitle">Tipos de aviso</h3>
+    <p class="fine" data-i18n="typesLead"></p>
+    <div id="typeList"></div>
+    <p class="fine" data-i18n="typesNote"></p>
+    <button type="button" class="btn" data-action="close-types" data-i18n="understood">Entendido</button>
+  </dialog>
+
+  <dialog class="help" id="helpDialog" aria-labelledby="helpTitle">
+    <h3 id="helpTitle"></h3>
+    <p id="helpBody"></p>
+    <button type="button" class="btn" data-action="close-help" data-i18n="understood">Entendido</button>
+  </dialog>
+
+  <audio id="alertaAudio" src="./audio/alerta-simulacro.mp3" preload="auto"></audio>
+  <script defer src="./vendor/leaflet/leaflet.js"></script>
+  <script defer src="./js/i18n.js?v=24"></script>
+  <script defer src="./js/vivo.js?v=1"></script>
+  <script defer src="./js/cliente-app.js?v=32"></script>
+  <iframe id="reviewFrame" class="review-frame" hidden title="Revisión de estados"></iframe>
+  <button type="button" id="reviewClose" class="review-close" data-action="close-review" hidden>Cerrar revisión</button>
+</body>
+</html>
