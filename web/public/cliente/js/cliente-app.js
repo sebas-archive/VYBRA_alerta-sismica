@@ -916,7 +916,7 @@
     const tone = c.level === 'good' ? '' : c.level;
     if (c.kind === 'switch') {
       const trial = c.pref === 'soundEnabled'
-        ? `<button type="button" class="btn slim" id="btnTestSound" data-action="test-sound"><span>${soundTest ? t('btnStopSound') : t('btnTestSound')}</span></button>`
+        ? `<button type="button" class="btn slim" id="btnTestSound" data-action="test-sound"><span>${soundTest ? t('btnStopSound') : t('btnTestSound')}</span></button> <button type="button" class="btn slim" data-action="test-alert"><span>${t('tryAlert')}</span></button>`
         : '';
       return `<article class="check ${tone}">
         ${c.icon}

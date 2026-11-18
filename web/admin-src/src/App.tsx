@@ -1412,15 +1412,6 @@ function Alerts({
             eventos.
             {!(data.leader && data.quorum) ? " Sin líder y quórum no hay consenso para confirmarlas." : ""}
           </span>
-          {!data.real && (<button
-            className="test-alarm"
-            onClick={onTest}
-            disabled={!data.real && !(data.leader && data.quorum)}
-            title={data.real || (data.leader && data.quorum) ? "Reproduce la pantalla de alerta con sonido (ensayo local, no es una alerta de la red)" : "Requiere líder y quórum"}
-          >
-            <Icon name="alert" />
-            Probar alerta con sonido
-          </button>)}
         </Surface>
       ) : (
         <Surface className="incident-detail">
@@ -1434,15 +1425,6 @@ function Alerts({
             </div>
             <div>
               <Pill tone={a.test ? "gray" : "green"}>{a.test ? "Ensayo" : "Confirmada"}</Pill>
-              {!data.real && (<button
-                className="test-alarm"
-                onClick={onTest}
-                disabled={!data.real && !(data.leader && data.quorum)}
-                title={data.real || (data.leader && data.quorum) ? "Reproduce la pantalla de alerta con sonido (ensayo local, no es una alerta de la red)" : "Requiere líder y quórum"}
-              >
-                <Icon name="alert" />
-                Probar alerta con sonido
-              </button>)}
             </div>
           </div>
           <div className="incident-metrics">
@@ -1868,7 +1850,9 @@ function Settings({
   prefs,
   set,
   reset,
+  onTestAlert,
 }: {
+  onTestAlert: () => void;
   prefs: Prefs;
   set: <K extends keyof Prefs>(k: K, v: Prefs[K]) => void;
   reset: () => void;
@@ -2027,6 +2011,11 @@ function Settings({
           />
           <button className="set-btn" onClick={testSound} disabled={!prefs.sound}>
             Probar sonido
+          </button>
+        </SetRow>
+        <SetRow title="Pantalla de alerta" desc="Muestra la pantalla de alerta con su sonido para ensayarla. No se registra ni se envía a los nodos.">
+          <button className="set-btn" onClick={onTestAlert}>
+            Probar pantalla de alerta
           </button>
         </SetRow>
         <SetRow title="Pantalla de alerta desde" desc="Las alertas de menor nivel solo muestran el banner.">
@@ -2477,7 +2466,7 @@ export default function App() {
             )}
             {page === "Registros" && <Logs data={data} hist={hist} />}
             {page === "Configuración" && (
-              <Settings prefs={prefs} set={setPref} reset={() => setPrefs({ ...DEFAULTS })} />
+              <Settings prefs={prefs} set={setPref} reset={() => setPrefs({ ...DEFAULTS })} onTestAlert={testAlarm} />
             )}
           </main>
         </div>
