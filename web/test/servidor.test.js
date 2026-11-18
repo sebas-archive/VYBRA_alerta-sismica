@@ -289,12 +289,19 @@ test('la vista pública solo expone campos del usuario: nada de datos internos',
       f.agregarEntrada(ev('nodo-3-b', 3, 6, t0 + 2000));
       f.alertas.push({ id: 2, promedio: 5.5, nivel: 'media', eventos: ['nodo-3-b', 'nodo-2-a'], termino: 1, lider: 1 });
     });
+    // otra alerta con el MISMO número (el clúster se reinició) pero otros eventos y otra hora: no se funde con la primera
+    E.fakes.forEach((f) => {
+      f.agregarEntrada(ev('nodo-1-c', 1, 2, t0 + 600000));
+      f.agregarEntrada(ev('nodo-2-d', 2, 3, t0 + 601000));
+      f.alertas.push({ id: 2, promedio: 2.5, nivel: 'baja', eventos: ['nodo-2-d', 'nodo-1-c'], termino: 2, lider: 1 });
+    });
     E.fakes[0].estado.commit_index = 2;                  // nodo-3-b sin confirmar en el servidor 1 (en los demás sí)
     await E.recoger();
     const al = (await json(`${E.panel}/api/publico/historial?tipo=alertas`)).cuerpo;
-    assert.equal(al.registros.length, 1);
+    assert.equal(al.registros.length, 2, 'dos alertas distintas con el mismo id no se funden');
+    assert.equal(al.total, 2);
     assert.deepEqual(Object.keys(al.registros[0]).sort(), ['detectores', 'id', 'nivel', 'promedio', 'ts', 'servidor', 'servidores'].sort());
-    assert.deepEqual(al.registros[0].detectores, [2, 3]);
+    assert.deepEqual(al.registros[1].detectores, [2, 3]);    // la más antigua es la de nodo-2 + nodo-3
     const evs = (await json(`${E.panel}/api/publico/historial?tipo=eventos`)).cuerpo;
     for (const r of evs.registros) assert.ok(!('termino' in r) && !('recibido_por' in r) && !('datos' in r) && !('pga' in r), JSON.stringify(r));
     assert.ok(evs.registros.length >= 1);

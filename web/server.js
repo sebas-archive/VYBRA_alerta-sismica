@@ -209,7 +209,10 @@ export function crearManejador({
   }
   // Lo que se replica en los tres ESP32 (Raft) se guarda en los tres servidores: en el modo "todos" se une sin duplicar.
   const REPLICADOS = new Set(['eventos', 'alertas', 'log']);
-  const claveReplicada = (tipo, r) => (tipo === 'eventos' ? r.id : tipo === 'alertas' ? `${r.alerta_id ?? r.id}|${(r.eventos || []).slice().sort().join(',')}` : r.clave);
+  // Los ids de alerta se repiten si el clúster se reinicia: la clave incluye los eventos (o, en la vista pública, hora y detectores).
+  const claveReplicada = (tipo, r) => (tipo === 'eventos' ? r.id
+    : tipo === 'alertas' ? `${r.alerta_id ?? r.id}|${r.eventos ? r.eventos.slice().sort().join(',') : `${r.ts}|${(r.detectores || []).join(',')}`}`
+    : r.clave);
   const MAX_FUSION = 1000;
   // Página `pagina` de `limite` registros de varias bases a la vez, sin cargar más de lo necesario:
   // de cada servidor se piden solo los primeros pagina×limite registros ya ordenados, y se mezclan.
@@ -293,7 +296,7 @@ export function crearManejador({
           const s = servidores.find((x) => x.n === Number(sel));
           consulta.set('pagina', String(pagina)); consulta.set('limite', String(limite));
           return pedirServidor(s, `${ruta}?${consulta}`)
-            .then((r) => responderJson(res, 200, { ...r, servidores: [{ n: s.n, ok: true, total: r.total }] }))
+            .then((r) => responderJson(res, 200, { ...r, registros: r.registros.map((x) => ({ servidor: s.n, ...x })), servidores: [{ n: s.n, ok: true, total: r.total }] }))
             .catch((e) => responderJson(res, e.status === 400 ? 400 : 502, { error: e.message, servidores: [{ n: s.n, ok: false, total: 0, error: e.message }] }));
         }
         return historialTodos({ tipo, pagina, limite: publico ? Math.min(limite, 50) : limite, orden: q.get('orden') === 'asc' ? 'asc' : 'desc', consulta, ruta, replicado: REPLICADOS.has(tipo), tam: publico ? 50 : 200 })

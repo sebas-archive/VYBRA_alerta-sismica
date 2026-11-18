@@ -190,6 +190,40 @@
           <button type="button" class="linkish" data-action="mark-read" data-i18n="markAllRead">Marcar leídos</button>
         </div>
         <div id="feed"></div>
+        <button type="button" class="link-row hist-link" data-action="open-historial">
+          <span data-i18n="histLink">Historial de alertas y lecturas</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </section>
+
+      <section class="view" id="view-historial" aria-label="Historial">
+        <header class="fig-pagehead">
+          <div>
+            <p data-i18n="histEyebrow">Registro de esta instalación</p>
+            <h2 data-i18n="histHeading">Historial</h2>
+            <span data-i18n="histLead">Alertas confirmadas y lecturas de los sismógrafos de esta red local.</span>
+          </div>
+        </header>
+        <div class="page-head">
+          <h1 data-i18n="histHeading">Historial</h1>
+        </div>
+        <div class="chip-row" role="group" data-i18n-aria="histKind" aria-label="Tipo de registro">
+          <button type="button" class="chip on" data-action="hist-tipo" data-tipo="alertas" data-i18n="histAlerts">Alertas confirmadas</button>
+          <button type="button" class="chip" data-action="hist-tipo" data-tipo="eventos" data-i18n="histReadings">Lecturas</button>
+        </div>
+        <div class="chip-row" role="group" data-i18n-aria="histPeriod" aria-label="Periodo">
+          <button type="button" class="chip" data-action="hist-rango" data-rango="24h" data-i18n="histR24">24 horas</button>
+          <button type="button" class="chip" data-action="hist-rango" data-rango="7d" data-i18n="histR7">7 días</button>
+          <button type="button" class="chip" data-action="hist-rango" data-rango="30d" data-i18n="histR30">30 días</button>
+          <button type="button" class="chip on" data-action="hist-rango" data-rango="todo" data-i18n="histRAll">Todo</button>
+        </div>
+        <div id="histBox" aria-live="polite"></div>
+        <nav class="hist-pager" id="histPager" aria-label="Paginación" hidden>
+          <button type="button" class="btn slim" data-action="hist-pag" data-dir="-1" data-i18n="histPrev">Anterior</button>
+          <span id="histPage"></span>
+          <button type="button" class="btn slim" data-action="hist-pag" data-dir="1" data-i18n="histNext">Siguiente</button>
+        </nav>
+        <p class="fine" data-i18n="histNote">Solo se muestran registros de esta instalación. Los aparatos se activan con un pulsador: son simulacros, no hay epicentro.</p>
       </section>
 
       <section class="view" id="view-proteccion">
@@ -670,7 +704,7 @@
   <script defer src="./js/i18n.js?v=24"></script>
   <script defer src="../shared/island.js?v=1"></script>
   <script defer src="./js/vivo.js?v=1"></script>
-  <script defer src="./js/cliente-app.js?v=32"></script>
+  <script defer src="./js/cliente-app.js?v=33"></script>
   <iframe id="reviewFrame" class="review-frame" hidden title="Revisión de estados"></iframe>
   <button type="button" id="reviewClose" class="review-close" data-action="close-review" hidden>Cerrar revisión</button>
 </body>

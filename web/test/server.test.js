@@ -393,7 +393,7 @@ test('servidores de datos: /api/servidores, /api/historial y registro de accione
     assert.deepEqual(j.registros.map((x) => x.id).sort(), ['r1', 'r2']);
     assert.deepEqual(j.servidores.map((x) => x.ok), [true, true, false]);
     r = await fetch(`${b}/api/historial?tipo=alertas&servidor=2`);
-    assert.deepEqual((await r.json()).registros, [{ id: 'r2', ts: 2 }]);
+    assert.deepEqual((await r.json()).registros, [{ servidor: 2, id: 'r2', ts: 2 }]);
     r = await fetch(`${b}/api/historial?tipo=raro&servidor=1`);
     assert.equal(r.status, 400);
     // una pulsación al nodo 2 queda registrada en el servidor 2 (no en el 1)

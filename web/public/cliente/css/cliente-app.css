@@ -1524,3 +1524,18 @@ html[data-vivo="1"] .demo-only { display: none; }
 
 .tone-pick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
 .tone-pick .seg { width: auto; }
+
+/* Historial */
+.hist-link { margin-top: 14px; }
+.hist-list { display: grid; gap: 0; }
+.hist-item .event-row { width: 100%; }
+.hist-more { display: none; padding: 4px 16px 14px 76px; font-size: 14px; }
+.hist-item.open .hist-more { display: block; }
+.hist-item.open .event-row .chev { transform: rotate(90deg); }
+.hist-more p { margin: 4px 0; }
+.hist-load { padding: 28px 0; text-align: center; color: var(--muted, #68726e); }
+.hist-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0 6px; }
+.hist-pager[hidden] { display: none; }
+.hist-pager button:disabled { opacity: 0.4; }
+.hist-pager span { font-size: 14px; }
+@media (max-width: 480px) { .hist-more { padding-left: 16px; } }

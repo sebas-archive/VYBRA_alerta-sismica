@@ -504,10 +504,11 @@
     background: color-mix(in srgb, var(--ink) 4%, var(--bg));
   }
 
-  #view-avisos.on, #view-proteccion.on, #view-ajustes.on, #view-sismografos.on, #view-prevencion.on, #view-detalle.on {
+  #view-avisos.on, #view-proteccion.on, #view-ajustes.on, #view-sismografos.on, #view-prevencion.on, #view-detalle.on, #view-historial.on {
     display: block;
     width: min(1540px, 100%);
   }
+  #view-historial > .page-head,
   #view-avisos > .page-head,
   #view-proteccion > .page-head,
   #view-prevencion > .page-head,

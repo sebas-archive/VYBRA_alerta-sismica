@@ -23,10 +23,10 @@
 
   const KIT = ['kitWater', 'kitLight', 'kitAid', 'kitRadio', 'kitWhistle', 'kitFood', 'kitDocs', 'kitMeds'];
   const HOME_ITEMS = ['homeFixItem', 'homeExitItem', 'homeSpotItem', 'homeGasItem'];
-  const VIEWS = ['ahora', 'mapa', 'detalle', 'avisos', 'proteccion', 'sismografos', 'prevencion', 'ajustes'];
-  const ALIAS = { sensores: 'sismografos', historial: 'avisos', notificaciones: 'avisos', ahora: 'ahora' };
-  const TITLES = { detalle: 'detailHeading', sismografos: 'sensorsHeading', prevencion: 'prevHeading', ajustes: 'settingsHeading' };
-  const PARENT = { detalle: 'mapa', sismografos: 'ahora', prevencion: 'ahora', ajustes: 'ahora' };
+  const VIEWS = ['ahora', 'mapa', 'detalle', 'avisos', 'proteccion', 'sismografos', 'prevencion', 'ajustes', 'historial'];
+  const ALIAS = { sensores: 'sismografos', notificaciones: 'avisos', ahora: 'ahora' };
+  const TITLES = { detalle: 'detailHeading', sismografos: 'sensorsHeading', prevencion: 'prevHeading', ajustes: 'settingsHeading', historial: 'histHeading' };
+  const PARENT = { detalle: 'mapa', sismografos: 'ahora', prevencion: 'ahora', ajustes: 'ahora', historial: 'avisos' };
   const ALERT_SECONDS = 59;
   const TRACE_WINDOW = 24;
 
@@ -194,6 +194,8 @@
   let ultimaConexion = null;
   // ---------- Notificaciones: cápsulas (web/public/shared/island.js) ----------
   const L = (es, en) => (lang === 'en' ? en : es);
+  // Leaflet global. No usar "L" para esto: arriba es el helper de traducción y taparía a Leaflet.
+  const LF = window.L;
   const isl = (o) => { if (window.VybraIsland) window.VybraIsland.show(o); };
   const islOff = (id) => { if (window.VybraIsland) window.VybraIsland.dismiss(id); };
   const islandsOn = () => settings.notifEnabled && settings.notifyService;
@@ -1437,13 +1439,13 @@
     placeChrome();
     document.body.dataset.view = currentView;
     const wide = layoutWide();
-    const stacked = ['detalle', 'sismografos', 'prevencion'].includes(currentView);
+    const stacked = ['detalle', 'sismografos', 'prevencion', 'historial'].includes(currentView);
     $('#btnBack').hidden = !stacked;
     $('#wordmark').hidden = wide || currentView !== 'ahora';
     $('#topActions').hidden = false;
     const namesTitle = {
       ahora: t('navHome'), mapa: t('navMap'), avisos: t('feedTitle'), proteccion: t('navProtection'),
-      detalle: t('viewDetails'), sismografos: t('sensorsHeading'), prevencion: t('prevHeading'), ajustes: t('navSettings')
+      detalle: t('viewDetails'), sismografos: t('sensorsHeading'), prevencion: t('prevHeading'), ajustes: t('navSettings'), historial: t('histHeading')
     };
     const title = $('#topTitle');
     if (layoutWide()) {
@@ -1454,7 +1456,7 @@
       title.textContent = t(TITLES[currentView] || 'brandName');
     } else title.hidden = true;
     $$('.tab').forEach((tab) => {
-      const on = tab.dataset.view === currentView;
+      const on = tab.dataset.view === (currentView === 'historial' ? 'avisos' : currentView);
       tab.classList.toggle('on', on);
       if (on) tab.setAttribute('aria-current', 'page');
       else tab.removeAttribute('aria-current');
@@ -1484,6 +1486,78 @@
     if (text) text.textContent = label;
   }
 
+  // ---------- Historial público (alertas confirmadas y lecturas, leídas de las bases de los servidores) ----------
+  const hist = { tipo: 'alertas', rango: 'todo', pagina: 1, ctl: null };
+  const HIST_PAGINA = 20;
+  const RANGOS = { '24h': 86400000, '7d': 7 * 86400000, '30d': 30 * 86400000 };
+  function syncHistChips() {
+    $$('[data-action="hist-tipo"]').forEach((b) => b.classList.toggle('on', b.dataset.tipo === hist.tipo));
+    $$('[data-action="hist-rango"]').forEach((b) => b.classList.toggle('on', b.dataset.rango === hist.rango));
+  }
+  function histVacio(titulo, texto, reintentar) {
+    $('#histBox').innerHTML = `<div class="empty"><b>${titulo}</b><p>${texto}</p>${reintentar ? `<button type="button" class="btn slim" data-action="hist-retry">${t('histRetry')}</button>` : ''}</div>`;
+    $('#histPager').hidden = true;
+  }
+  async function cargarHistorial() {
+    if (!LIVE) { histVacio(t('histDemoTitle'), t('histDemoSub'), false); return; }
+    if (hist.ctl) hist.ctl.abort();
+    const ctl = hist.ctl = new AbortController();
+    const box = $('#histBox');
+    box.setAttribute('aria-busy', 'true');
+    if (!box.querySelector('.hist-item')) box.innerHTML = `<div class="hist-load" role="status">${t('histLoading')}</div>`;
+    const q = new URLSearchParams({ tipo: hist.tipo, pagina: String(hist.pagina), limite: String(HIST_PAGINA) });
+    if (RANGOS[hist.rango]) q.set('desde', String(Date.now() - RANGOS[hist.rango]));
+    // Hasta 2 reintentos si falla la red o el servidor responde 5xx.
+    for (let i = 0; i < 3; i++) {
+      try {
+        const r = await fetch(`/api/publico/historial?${q}`, { signal: ctl.signal, cache: 'no-store' });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok) { box.removeAttribute('aria-busy'); renderHistorial(j); return; }
+        if (r.status < 500 || i === 2) { box.removeAttribute('aria-busy'); histVacio(t('histErrTitle'), t('histErrSub'), true); return; }
+      } catch (e) {
+        if (ctl.signal.aborted) return;
+        if (i === 2) { box.removeAttribute('aria-busy'); histVacio(t('histErrTitle'), t('histErrSub'), true); return; }
+      }
+      await new Promise((ok) => setTimeout(ok, 700 * (i + 1)));
+      if (ctl.signal.aborted) return;
+    }
+  }
+  function renderHistorial(j) {
+    const filas = j.registros || [];
+    if (!filas.length) { histVacio(t('histEmptyTitle'), t(hist.rango === 'todo' ? 'histEmptySub' : 'histEmptyRange'), false); return; }
+    $('#histBox').innerHTML = `<div class="group hist-list">${filas.map((x) => {
+      const nivel = hist.tipo === 'alertas' ? Math.round(Number(x.promedio) || 1) : x.nivel;
+      const m = medida(nivel);
+      const nombre = hist.tipo === 'alertas' ? t('histAlertName') : tf('histReadingName', { n: x.detector });
+      const quien = hist.tipo === 'alertas' ? names(x.detectores || []) : 'S' + x.detector;
+      const cls = m.mercalliNivel >= 6 ? '' : m.mercalliNivel >= 4 ? 'mid' : 'light';
+      const texto = lang === 'en' ? m.textoEn : m.textoEs;
+      const efectos = lang === 'en' ? m.efectosEn : m.efectosEs;
+      return `<div class="hist-item">
+        <button type="button" class="event-row" data-action="hist-toggle" aria-expanded="false">
+          <div class="mag ${cls}">${m.mercalli}</div>
+          <div class="event-copy">
+            <span class="event-title-row"><b>${nombre}</b><span class="when">${clock(x.ts / 1000)}</span></span>
+            <p>${quien} · ${texto}</p>
+            <div class="tags"><span class="tag ok">${t('confirmed')}</span><span class="tag drill">${t('drill')}</span></div>
+          </div>
+          ${ICONS.chev}
+        </button>
+        <div class="hist-more">
+          <p><b>${t('histWhen')}</b> ${fullWhen(x.ts / 1000)}</p>
+          <p><b>${t('histWho')}</b> ${quien}</p>
+          <p><b>${t('intensityWord')}</b> ${m.mercalli} · ${texto}</p>
+          <p class="fine">${efectos}</p>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+    const pager = $('#histPager');
+    pager.hidden = j.paginas <= 1;
+    $('#histPage').textContent = tf('histPage', { p: j.pagina, n: j.paginas });
+    pager.querySelector('[data-dir="-1"]').disabled = j.pagina <= 1;
+    pager.querySelector('[data-dir="1"]').disabled = j.pagina >= j.paginas;
+  }
+
   function navigate(view, id) {
     view = ALIAS[view] || view;
     if (!VIEWS.includes(view)) view = 'ahora';
@@ -1508,6 +1582,7 @@
     }
     if (view === 'sismografos') drawWavesOnce();
     if (view === 'avisos') renderFeed();
+    if (view === 'historial') cargarHistorial();
   }
 
   function showProtocol(name) {
@@ -1717,8 +1792,8 @@
       refreshMarkers();
       return;
     }
-    map = L.map('liveMap', { zoomControl: false, attributionControl: true });
-    tiles = L.tileLayer(tileUrl(), {
+    map = LF.map('liveMap', { zoomControl: false, attributionControl: true });
+    tiles = LF.tileLayer(tileUrl(), {
       attribution: '&copy; OpenStreetMap',
       maxZoom: 19
     }).addTo(map);
@@ -1726,9 +1801,9 @@
     [1, 2, 3].forEach((n) => {
       const p = INSTRUMENTS[n];
       bounds.push([p.lat, p.lon]);
-      markers[n] = L.circleMarker([p.lat, p.lon], markerStyle(n)).addTo(map);
+      markers[n] = LF.circleMarker([p.lat, p.lon], markerStyle(n)).addTo(map);
       markers[n].on('click', (ev) => {
-        L.DomEvent.stopPropagation(ev);
+        LF.DomEvent.stopPropagation(ev);
         selectedSensor = n;
         sheetMode = 'sensor';
         renderSheet();
@@ -1743,10 +1818,10 @@
       }
     });
     const c = centroid();
-    L.marker([c.lat, c.lon], {
+    LF.marker([c.lat, c.lon], {
       interactive: false,
       keyboard: false,
-      icon: L.divIcon({ className: 'group-label', html: '<span>S1 · S2 · S3</span>', iconSize: [108, 24], iconAnchor: [54, 34] })
+      icon: LF.divIcon({ className: 'group-label', html: '<span>S1 · S2 · S3</span>', iconSize: [108, 24], iconAnchor: [54, 34] })
     }).addTo(map);
     map.fitBounds(bounds, { padding: [80, 80], maxZoom: 18 });
     refreshMarkers();
@@ -1759,14 +1834,14 @@
       return;
     }
     if (!detailMap) {
-      detailMap = L.map('detailMap', { zoomControl: false, attributionControl: true, scrollWheelZoom: false });
-      detailTiles = L.tileLayer(tileUrl(), {
+      detailMap = LF.map('detailMap', { zoomControl: false, attributionControl: true, scrollWheelZoom: false });
+      detailTiles = LF.tileLayer(tileUrl(), {
         attribution: '&copy; OpenStreetMap',
         maxZoom: 19
       }).addTo(detailMap);
       [1, 2, 3].forEach((n) => {
         const p = INSTRUMENTS[n];
-        L.circleMarker([p.lat, p.lon], { radius: 7, color: '#0b6b57', weight: 2, fillColor: '#fff', fillOpacity: 1 })
+        LF.circleMarker([p.lat, p.lon], { radius: 7, color: '#0b6b57', weight: 2, fillColor: '#fff', fillOpacity: 1 })
           .addTo(detailMap);
       });
       const bounds = Object.values(INSTRUMENTS).map((p) => [p.lat, p.lon]);
@@ -1784,7 +1859,7 @@
       userPoint = { lat: pos.coords.latitude, lon: pos.coords.longitude };
       if (map && window.L) {
         if (userMarker) map.removeLayer(userMarker);
-        userMarker = L.circleMarker([userPoint.lat, userPoint.lon], {
+        userMarker = LF.circleMarker([userPoint.lat, userPoint.lon], {
           radius: 7, color: '#24558a', weight: 2, fillColor: '#24558a', fillOpacity: 0.9
         }).addTo(map);
         const bounds = [...Object.values(INSTRUMENTS).map((p) => [p.lat, p.lon]), [userPoint.lat, userPoint.lon]];
@@ -2083,6 +2158,12 @@
     } else if (action === 'zoom-in') map && map.zoomIn();
     else if (action === 'zoom-out') map && map.zoomOut();
     else if (action === 'locate') locate();
+    else if (action === 'open-historial') navigate('historial');
+    else if (action === 'hist-tipo') { hist.tipo = el.dataset.tipo === 'eventos' ? 'eventos' : 'alertas'; hist.pagina = 1; syncHistChips(); cargarHistorial(); }
+    else if (action === 'hist-rango') { hist.rango = el.dataset.rango; hist.pagina = 1; syncHistChips(); cargarHistorial(); }
+    else if (action === 'hist-pag') { hist.pagina = Math.max(1, hist.pagina + Number(el.dataset.dir)); cargarHistorial(); }
+    else if (action === 'hist-toggle') { const row = el.closest('.hist-item'); if (row) { const open = row.classList.toggle('open'); el.setAttribute('aria-expanded', String(open)); } }
+    else if (action === 'hist-retry') cargarHistorial();
     else if (action === 'sound-tone') {
       if (soundTest) toggleSoundTest();      // detiene la prueba en curso antes de cambiar de tono
       settings.soundTone = el.dataset.tone === 'emergencia' ? 'emergencia' : 'simulacro';

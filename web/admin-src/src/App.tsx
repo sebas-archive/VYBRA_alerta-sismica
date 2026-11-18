@@ -22,7 +22,7 @@ import { startI18n } from "./i18n";
 import { notify, dismissIsland, loadIsland, islandTheme, islandReduce } from "./island";
 import { useLive, startLive, control, pulsar, msParaNivel, type Srv, type Suceso, type LogEntry, type InfraSrv } from "./live";
 
-type Page = "Panorama" | "Sismógrafos" | "Alertas" | "Clúster Raft" | "Servidores" | "Detectores" | "Registros" | "Configuración";
+type Page = "Panorama" | "Sismógrafos" | "Alertas" | "Histórico" | "Clúster Raft" | "Servidores" | "Detectores" | "Registros" | "Configuración";
 type Scenario = "Normal" | "Nodo 2 caído" | "Sin quórum" | "Elección";
 type IconName =
   | "overview"
@@ -108,6 +108,7 @@ const navGroups: { label: string; items: { page: Page; icon: IconName }[] }[] = 
       { page: "Panorama", icon: "overview" },
       { page: "Sismógrafos", icon: "wave" },
       { page: "Alertas", icon: "alert" },
+      { page: "Histórico", icon: "clock" },
     ],
   },
   {
@@ -494,6 +495,7 @@ function Toolbar({
     Alertas: "Eventos de coincidencia e investigaciones",
     "Clúster Raft": "Infraestructura de consenso y replicación",
     Servidores: "Infraestructura: nodos ESP32, sistema, estado y sincronización",
+    Histórico: "Registros guardados en las bases de datos de los servidores",
     Detectores: "Gestión de detectores ESP32",
     Registros: "Historial de eventos replicado",
     Configuración: "Preferencias de la interfaz de ADMIN",
@@ -1270,6 +1272,473 @@ function Servers({ data, infra }: { data: ScenarioData; infra: InfraSrv[] | null
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ---------------- Histórico: lectura paginada de las bases PostgreSQL de los servidores ---------------- */
+type HTipo = "eventos" | "alertas" | "muestras" | "sucesos" | "log" | "acciones";
+type HRow = Record<string, any>;
+type HResp = {
+  tipo: HTipo;
+  pagina: number;
+  limite: number;
+  total: number;
+  paginas: number;
+  servidores: { n: number; ok: boolean; total: number; error?: string }[];
+  registros: HRow[];
+};
+const H_TABS: { id: HTipo; label: string; desc: string }[] = [
+  { id: "eventos", label: "Eventos sísmicos", desc: "Lecturas de intensidad reportadas por los detectores" },
+  { id: "alertas", label: "Alertas", desc: "Coincidencias de dos detectores confirmadas por el clúster" },
+  { id: "muestras", label: "Muestras", desc: "Estado de cada nodo en el tiempo" },
+  { id: "sucesos", label: "Actividad Raft", desc: "Elecciones, caídas y recuperaciones de los nodos" },
+  { id: "log", label: "Log de consenso", desc: "Entradas del log Raft replicado" },
+  { id: "acciones", label: "Pruebas y órdenes", desc: "Pulsaciones y caídas simuladas enviadas a los nodos" },
+];
+const H_CATS: Record<HTipo, { v: string; label: string }[]> = {
+  eventos: [
+    { v: "leve", label: "Leve (1–2)" },
+    { v: "moderado", label: "Moderado (3–4)" },
+    { v: "fuerte", label: "Fuerte (5–7)" },
+    { v: "severo", label: "Severo (8–10)" },
+  ],
+  alertas: [
+    { v: "baja", label: "Baja" },
+    { v: "media", label: "Media" },
+    { v: "alta", label: "Alta" },
+  ],
+  muestras: [
+    { v: "lider", label: "Líder" },
+    { v: "seguidor", label: "Seguidor" },
+    { v: "candidato", label: "Candidato" },
+    { v: "sin_respuesta", label: "Sin respuesta" },
+  ],
+  sucesos: ["postulo", "voto", "gano", "perdio_lider", "cayo", "recupero", "log_lleno", "resincroniza", "movido"].map((v) => ({ v, label: v.replace("_", " ") })),
+  log: [
+    { v: "evento", label: "Evento" },
+    { v: "inicio_termino", label: "Inicio de término" },
+  ],
+  acciones: [
+    { v: "pulsar", label: "Pulsación" },
+    { v: "control", label: "Control de nodo" },
+  ],
+};
+const fmtDT = (ms?: number | null) => {
+  if (!ms) return "sin hora";
+  const d = new Date(ms);
+  return `${d.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" })} ${fmtTime(ms / 1000)}`;
+};
+const toMs = (v: string) => (v ? new Date(v).getTime() : NaN);
+const short = (v: unknown, n = 70) => {
+  const t = typeof v === "string" ? v : JSON.stringify(v);
+  return t == null ? "—" : t.length > n ? t.slice(0, n - 1) + "…" : t;
+};
+const servTxt = (r: HRow) => (r.servidores ? r.servidores.map((x: number) => "S" + x).join(" · ") : r.servidor ? "S" + r.servidor : "—");
+const H_COLS: Record<HTipo, { k: string; w: string; render: (r: HRow) => ReactNode }[]> = {
+  eventos: [
+    { k: "Hora", w: "1.5fr", render: (r) => fmtDT(r.ts) },
+    { k: "Servidor", w: "0.8fr", render: servTxt },
+    { k: "Nodo", w: "0.7fr", render: (r) => (r.nodo != null ? `nodo-${r.nodo}` : "—") },
+    { k: "Nivel", w: "1.4fr", render: (r) => (r.nivel != null ? <SevChip level={r.nivel} /> : "—") },
+    { k: "PGA", w: "0.8fr", render: (r) => (r.pga != null ? pgaText(Number(r.pga)) : "—") },
+    { k: "Estado", w: "1fr", render: (r) => <Pill tone={r.confirmado ? "green" : "amber"}>{r.confirmado ? "Confirmado" : "Pendiente"}</Pill> },
+  ],
+  alertas: [
+    { k: "Hora", w: "1.5fr", render: (r) => fmtDT(r.ts) },
+    { k: "Servidor", w: "0.8fr", render: servTxt },
+    { k: "Nivel", w: "1fr", render: (r) => <Pill tone={r.nivel === "alta" ? "red" : r.nivel === "media" ? "amber" : "green"}>{r.nivel ?? "—"}</Pill> },
+    { k: "Intensidad prom.", w: "1fr", render: (r) => (r.promedio != null ? `${r.promedio} / 10` : "—") },
+    { k: "Detectores", w: "1.4fr", render: (r) => [...new Set((r.eventos ?? []).map((id: string) => /^nodo-(\d)-/.exec(id)?.[1]).filter(Boolean))].map((x) => "nodo-" + x).join(" + ") || "—" },
+    { k: "Término", w: "0.7fr", render: (r) => r.termino ?? "—" },
+  ],
+  muestras: [
+    { k: "Hora", w: "1.5fr", render: (r) => fmtDT(r.ts) },
+    { k: "Servidor", w: "0.8fr", render: servTxt },
+    { k: "Nodo", w: "0.7fr", render: (r) => `nodo-${r.nodo}` },
+    { k: "Rol", w: "0.9fr", render: (r) => (r.alcanzable ? r.rol ?? "—" : "sin respuesta") },
+    { k: "Término", w: "0.7fr", render: (r) => r.termino ?? "—" },
+    { k: "Log / conf.", w: "0.9fr", render: (r) => (r.log_len != null ? `${r.log_len} / ${r.commit_index}` : "—") },
+    { k: "WiFi", w: "0.8fr", render: (r) => (r.rssi ? `${r.rssi} dBm` : "—") },
+    { k: "Situación", w: "1fr", render: (r) => r.situacion ?? "—" },
+  ],
+  sucesos: [
+    { k: "Hora", w: "1.5fr", render: (r) => fmtDT(r.ts) },
+    { k: "Servidor", w: "0.8fr", render: servTxt },
+    { k: "Nodo", w: "0.7fr", render: (r) => `nodo-${r.nodo}` },
+    { k: "Tipo", w: "1fr", render: (r) => r.tipo ?? "—" },
+    { k: "Suceso", w: "3fr", render: (r) => r.texto ?? "—" },
+    { k: "Término", w: "0.7fr", render: (r) => r.termino ?? "—" },
+  ],
+  log: [
+    { k: "Guardado", w: "1.5fr", render: (r) => fmtDT(r.ts) },
+    { k: "Servidor", w: "0.8fr", render: servTxt },
+    { k: "Índice", w: "0.6fr", render: (r) => r.indice },
+    { k: "Término", w: "0.7fr", render: (r) => r.termino },
+    { k: "Entrada", w: "3fr", render: (r) => (r.clase === "evento" && r.datos?.ev ? `Evento ${r.datos.ev.id} · nivel ${r.datos.ev.nivel}` : r.clase === "inicio_termino" ? `Inicio de término, líder S${r.datos?.lider}` : r.clase) },
+    { k: "Estado", w: "1fr", render: (r) => <Pill tone={r.confirmada ? "green" : "amber"}>{r.confirmada ? "Confirmada" : "Pendiente"}</Pill> },
+  ],
+  acciones: [
+    { k: "Hora", w: "1.5fr", render: (r) => fmtDT(r.ts) },
+    { k: "Servidor", w: "0.8fr", render: servTxt },
+    { k: "Nodo", w: "0.7fr", render: (r) => (r.nodo != null ? `nodo-${r.nodo}` : "—") },
+    { k: "Tipo", w: "1fr", render: (r) => r.tipo },
+    { k: "Parámetros", w: "1.6fr", render: (r) => short(r.parametros) },
+    { k: "HTTP", w: "0.6fr", render: (r) => r.estado_http ?? "—" },
+    { k: "Respuesta del nodo", w: "2fr", render: (r) => short(r.resultado) },
+    { k: "Origen", w: "0.8fr", render: (r) => r.origen ?? "—" },
+  ],
+};
+const rowKey = (t: HTipo, r: HRow) => `${r.servidor}|${t === "eventos" ? r.id : t === "alertas" || t === "log" || t === "sucesos" ? r.clave : r.id}`;
+const rowId = (t: HTipo, r: HRow) => String(t === "eventos" ? r.id : t === "alertas" || t === "log" || t === "sucesos" ? r.clave : r.id);
+
+function History({ real }: { real: boolean }) {
+  const [tipo, setTipo] = useState<HTipo>("eventos"),
+    [servidor, setServidor] = useState("todos"),
+    [nodo, setNodo] = useState(""),
+    [cat, setCat] = useState(""),
+    [estado, setEstado] = useState(""),
+    [desde, setDesde] = useState(""),
+    [hasta, setHasta] = useState(""),
+    [texto, setTexto] = useState(""),
+    [q, setQ] = useState(""),
+    [pagina, setPagina] = useState(1),
+    [limite, setLimite] = useState(25),
+    [fuente, setFuente] = useState("activo"),
+    [intento, setIntento] = useState(0);
+  const [res, setRes] = useState<{ estado: "carga" | "ok" | "error"; datos?: HResp; error?: string; reintentos?: number }>({ estado: "carga" });
+  const [sel, setSel] = useState<{ tipo: HTipo; servidor: number; id: string } | null>(null);
+  const [det, setDet] = useState<{ estado: "carga" | "ok" | "error"; reg?: HRow; error?: string }>({ estado: "carga" });
+  const avisados = useRef("");
+
+  // La búsqueda espera 350 ms tras dejar de escribir.
+  useEffect(() => {
+    const t = window.setTimeout(() => setQ(texto.trim()), 350);
+    return () => clearTimeout(t);
+  }, [texto]);
+  // Cualquier cambio de filtro vuelve a la primera página.
+  useEffect(() => setPagina(1), [tipo, servidor, nodo, cat, estado, desde, hasta, q, limite, fuente]);
+  useEffect(() => {
+    setCat("");
+    setEstado("");
+  }, [tipo]);
+
+  const url = useMemo(() => {
+    const p = new URLSearchParams({ tipo, servidor, pagina: String(pagina), limite: String(limite) });
+    if (nodo) p.set("nodo", nodo);
+    if (cat) p.set("categoria", cat);
+    if (estado) p.set("estado", estado);
+    if (q) p.set("q", q);
+    const d = toMs(desde),
+      h = toMs(hasta);
+    if (!Number.isNaN(d)) p.set("desde", String(d));
+    if (!Number.isNaN(h)) p.set("hasta", String(h));
+    if (fuente === "archivo") p.set("fuente", "archivo");
+    return `/api/historial?${p}`;
+  }, [tipo, servidor, nodo, cat, estado, desde, hasta, q, pagina, limite, fuente]);
+  const rangoMal = !Number.isNaN(toMs(desde)) && !Number.isNaN(toMs(hasta)) && toMs(desde) > toMs(hasta);
+
+  useEffect(() => {
+    if (!real || rangoMal) return;
+    const ac = new AbortController();
+    setRes((r) => ({ estado: "carga", datos: r.datos }));
+    // Hasta 2 reintentos (0,8 s y 1,6 s) si falla la red o el servidor responde 5xx; los errores 4xx no se reintentan.
+    (async () => {
+      for (let i = 0; i < 3; i++) {
+        try {
+          const r = await fetch(url, { signal: ac.signal, cache: "no-store" });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok) return setRes({ estado: "ok", datos: j as HResp });
+          if (r.status < 500 || i === 2) return setRes({ estado: "error", error: j.error ?? `HTTP ${r.status}`, datos: undefined });
+        } catch (e) {
+          if (ac.signal.aborted) return;
+          if (i === 2) return setRes({ estado: "error", error: "No hay conexión con el servidor del PC" });
+        }
+        await new Promise((ok) => setTimeout(ok, 800 * (i + 1)));
+        if (ac.signal.aborted) return;
+      }
+    })();
+    return () => ac.abort();
+  }, [url, real, rangoMal, intento]);
+
+  // Aviso (cápsula) cuando alguna base no responde; se repite solo si cambia el conjunto de servidores caídos.
+  useEffect(() => {
+    const caidos = (res.datos?.servidores ?? []).filter((x) => !x.ok).map((x) => x.n);
+    const k = caidos.join(",");
+    if (res.estado !== "ok" || k === avisados.current) return;
+    avisados.current = k;
+    if (caidos.length) notify({ id: "hist-bd", kind: "warn", icon: "server", title: `Sin respuesta de la base de ${caidos.map((n) => "S" + n).join(", ")}`, text: "El histórico muestra solo lo que responde." });
+    else dismissIsland("hist-bd");
+  }, [res]);
+
+  useEffect(() => {
+    if (!sel) return;
+    const ac = new AbortController();
+    setDet({ estado: "carga" });
+    fetch(`/api/registro?${new URLSearchParams({ servidor: String(sel.servidor), tipo: sel.tipo, id: sel.id, ...(fuente === "archivo" ? { fuente } : {}) })}`, { signal: ac.signal })
+      .then(async (r) => {
+        const j = await r.json().catch(() => ({}));
+        setDet(r.ok ? { estado: "ok", reg: j.registro } : { estado: "error", error: j.error ?? `HTTP ${r.status}` });
+      })
+      .catch((e) => !ac.signal.aborted && setDet({ estado: "error", error: String(e.message ?? e) }));
+    return () => ac.abort();
+  }, [sel, fuente]);
+  useEffect(() => {
+    if (!sel) return;
+    const k = (e: KeyboardEvent) => e.key === "Escape" && setSel(null);
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [sel]);
+
+  const d = res.datos;
+  const cols = H_COLS[tipo];
+  const grid = cols.map((c) => c.w).join(" ");
+  const filtrando = !!(nodo || cat || estado || q || desde || hasta);
+  const exportCsv = () => {
+    if (!d) return;
+    const filas = [cols.map((c) => c.k), ...d.registros.map((r) => cols.map((c) => { const v = c.render(r); return typeof v === "string" || typeof v === "number" ? String(v) : ""; }))];
+    const csv = filas.map((f) => f.map((v) => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const u = URL.createObjectURL(new Blob([csv], { type: "text/csv" })),
+      a = document.createElement("a");
+    a.href = u;
+    a.download = `historico-${tipo}-p${pagina}.csv`;
+    a.click();
+    URL.revokeObjectURL(u);
+  };
+  const reset = () => {
+    setNodo("");
+    setCat("");
+    setEstado("");
+    setDesde("");
+    setHasta("");
+    setTexto("");
+  };
+
+  if (!real)
+    return (
+      <div className="screen hist-screen">
+        <Surface className="hist-empty">
+          <Icon name="server" size={20} />
+          <strong>El histórico necesita el servidor del PC</strong>
+          <span>Se lee de las bases PostgreSQL de los servidores de datos. En modo de demostración no hay registros guardados que mostrar.</span>
+        </Surface>
+      </div>
+    );
+
+  return (
+    <div className="screen hist-screen">
+      <div className="hist-tabs" role="tablist" aria-label="Tipo de registro">
+        {H_TABS.map((t) => (
+          <button key={t.id} role="tab" aria-selected={tipo === t.id} className={tipo === t.id ? "active" : ""} onClick={() => setTipo(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <p className="sx-lead">{H_TABS.find((t) => t.id === tipo)!.desc}. Solo se muestra lo que hay guardado en las bases de datos.</p>
+      <Surface className="log-explorer">
+        <div className="log-tools rg-toolbar hist-tools">
+          <div className="log-search">
+            <Icon name="search" />
+            <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Buscar en los registros" aria-label="Buscar en el histórico" maxLength={80} />
+          </div>
+          <label className="rg-select">
+            Servidor
+            <select value={servidor} onChange={(e) => setServidor(e.target.value)}>
+              <option value="todos">Todos</option>
+              {[1, 2, 3].map((n) => (
+                <option key={n} value={n}>
+                  Servidor {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="rg-select">
+            Nodo
+            <select value={nodo} onChange={(e) => setNodo(e.target.value)}>
+              <option value="">Todos</option>
+              {[1, 2, 3].map((n) => (
+                <option key={n} value={n}>
+                  nodo-{n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="rg-select">
+            Categoría
+            <select value={cat} onChange={(e) => setCat(e.target.value)}>
+              <option value="">Todas</option>
+              {H_CATS[tipo].map((c) => (
+                <option key={c.v} value={c.v}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {(tipo === "eventos" || tipo === "log") && (
+            <label className="rg-select">
+              Estado
+              <select value={estado} onChange={(e) => setEstado(e.target.value)}>
+                <option value="">Todos</option>
+                <option value="confirmado">Confirmado</option>
+                <option value="pendiente">Pendiente</option>
+              </select>
+            </label>
+          )}
+          <label className="rg-select">
+            Desde
+            <input type="datetime-local" value={desde} onChange={(e) => setDesde(e.target.value)} aria-invalid={rangoMal} />
+          </label>
+          <label className="rg-select">
+            Hasta
+            <input type="datetime-local" value={hasta} onChange={(e) => setHasta(e.target.value)} aria-invalid={rangoMal} />
+          </label>
+          <label className="rg-select">
+            Fuente
+            <select value={fuente} onChange={(e) => setFuente(e.target.value)}>
+              <option value="activo">Activos</option>
+              <option value="archivo">Archivados</option>
+            </select>
+          </label>
+          {filtrando && (
+            <button className="export-button" onClick={reset}>
+              Limpiar filtros
+            </button>
+          )}
+          <button className="export-button" onClick={exportCsv} disabled={!d || !d.registros.length}>
+            <Icon name="download" />
+            Exportar página (CSV)
+          </button>
+        </div>
+        {rangoMal && <div className="hist-note err">La fecha «Desde» es posterior a «Hasta».</div>}
+        {d && d.servidores.some((x) => !x.ok) && (
+          <div className="hist-note warn" role="status">
+            <Icon name="wifi" size={13} />
+            {d.servidores
+              .filter((x) => !x.ok)
+              .map((x) => `Servidor ${x.n}: ${x.error ?? "sin respuesta"}`)
+              .join(" · ")}
+            . Se muestra solo lo que responde.
+            <button onClick={() => setIntento((n) => n + 1)}>Reintentar</button>
+          </div>
+        )}
+        <div className="rg-card hist-card" aria-busy={res.estado === "carga"}>
+          {res.estado === "carga" && <div className="hist-loading" role="progressbar" aria-label="Cargando registros" />}
+          {d && d.registros.length > 0 && (
+            <div className="hist-table" role="table">
+              <div className="rg-row head" style={{ gridTemplateColumns: grid }} role="row">
+                {cols.map((c) => (
+                  <span key={c.k} role="columnheader">
+                    {c.k}
+                  </span>
+                ))}
+              </div>
+              {d.registros.map((r) => (
+                <button
+                  key={rowKey(tipo, r)}
+                  className={`rg-row hist-row ${sel && sel.id === rowId(tipo, r) && sel.servidor === (r.servidores?.[0] ?? r.servidor) ? "on" : ""}`}
+                  style={{ gridTemplateColumns: grid }}
+                  role="row"
+                  onClick={() => setSel({ tipo, servidor: r.servidores?.[0] ?? r.servidor, id: rowId(tipo, r) })}
+                  aria-label={`Ver detalle del registro del ${fmtDT(r.ts)}`}
+                >
+                  {cols.map((c) => (
+                    <span key={c.k} data-l={c.k} role="cell">
+                      {c.render(r)}
+                    </span>
+                  ))}
+                </button>
+              ))}
+            </div>
+          )}
+          {res.estado === "error" && (
+            <div className="empty-log hist-error" role="alert">
+              <Icon name="wifi" />
+              <strong>{/SERVIDORES/.test(res.error ?? "") ? "No hay servidores de datos configurados" : "No se pudo leer el histórico"}</strong>
+              <span>{res.error}</span>
+              <button className="export-button" onClick={() => setIntento((n) => n + 1)}>
+                Reintentar
+              </button>
+            </div>
+          )}
+          {res.estado === "ok" && d && d.registros.length === 0 && (
+            <div className="empty-log">
+              <Icon name="search" />
+              <strong>{filtrando || pagina > 1 ? "Sin registros con estos filtros" : fuente === "archivo" ? "No hay registros archivados" : "Todavía no hay registros guardados"}</strong>
+              <span>{filtrando ? "Prueba otro término, otro rango de fechas o limpia los filtros." : "Aparecerán aquí cuando los nodos reporten."}</span>
+            </div>
+          )}
+          {res.estado === "carga" && !d && <div className="hist-skeleton">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>}
+        </div>
+        <div className="table-footer hist-foot">
+          <span>
+            {d ? `${d.total.toLocaleString("es-CO")} registro${d.total === 1 ? "" : "s"}${d.servidores.length > 1 ? ` · ${d.servidores.filter((x) => x.ok).length} de ${d.servidores.length} bases responden` : ""}` : "Cargando…"}
+          </span>
+          <label className="rg-select">
+            Por página
+            <select value={limite} onChange={(e) => setLimite(Number(e.target.value))}>
+              {[25, 50, 100, 200].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="hist-pager">
+            <button onClick={() => setPagina(1)} disabled={pagina <= 1} aria-label="Primera página">
+              «
+            </button>
+            <button onClick={() => setPagina((p) => Math.max(1, p - 1))} disabled={pagina <= 1} aria-label="Página anterior">
+              ‹
+            </button>
+            <span>
+              Página {pagina} de {d?.paginas ?? 1}
+            </span>
+            <button onClick={() => setPagina((p) => p + 1)} disabled={!d || pagina >= d.paginas} aria-label="Página siguiente">
+              ›
+            </button>
+            <button onClick={() => d && setPagina(d.paginas)} disabled={!d || pagina >= d.paginas} aria-label="Última página">
+              »
+            </button>
+          </div>
+        </div>
+      </Surface>
+      {sel && (
+        <aside className="hist-detail" role="dialog" aria-label="Detalle del registro">
+          <header>
+            <div>
+              <span>DETALLE · SERVIDOR {sel.servidor}</span>
+              <strong>{H_TABS.find((t) => t.id === sel.tipo)!.label}</strong>
+            </div>
+            <button onClick={() => setSel(null)} aria-label="Cerrar detalle" autoFocus>
+              <Icon name="close" size={15} />
+            </button>
+          </header>
+          {det.estado === "carga" && <div className="hist-loading" role="progressbar" aria-label="Cargando detalle" />}
+          {det.estado === "error" && <p className="hist-note err">{det.error}</p>}
+          {det.estado === "ok" && det.reg && (
+            <>
+              <dl className="server-facts">
+                {Object.entries(det.reg)
+                  .filter(([, v]) => v === null || typeof v !== "object")
+                  .map(([k, v]) => (
+                    <div key={k}>
+                      <dt>{k}</dt>
+                      <dd>{v === null ? "—" : ["ts", "t_ms", "t_lider_ms", "guardado", "t"].includes(k) ? (typeof v === "number" ? fmtDT(v) : fmtDT(Date.parse(String(v)))) + ` (${v})` : String(v)}</dd>
+                    </div>
+                  ))}
+              </dl>
+              {Object.entries(det.reg)
+                .filter(([, v]) => v !== null && typeof v === "object")
+                .map(([k, v]) => (
+                  <details key={k} open>
+                    <summary>{k}</summary>
+                    <pre>{JSON.stringify(v, null, 2)}</pre>
+                  </details>
+                ))}
+            </>
+          )}
+        </aside>
+      )}
     </div>
   );
 }
@@ -2636,6 +3105,7 @@ export default function App() {
               <Alerts data={data} alerts={alerts} sel={selAlert} setSel={setSelAlert} onTest={testAlarm} />
             )}
             {page === "Servidores" && <Servers data={data} infra={live.infra} />}
+            {page === "Histórico" && <History real={real} />}
             {page === "Registros" && <Logs data={data} hist={hist} />}
             {page === "Configuración" && (
               <Settings prefs={prefs} set={setPref} reset={() => setPrefs({ ...DEFAULTS })} onTestAlert={testAlarm} />
