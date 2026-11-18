@@ -1,0 +1,23 @@
+# HTTPS local para el panel (cliente y admin). Caddy firma con su propia CA local ("tls internal").
+# Para que el navegador deje de marcar "No seguro", instala una vez el certificado raíz en cada
+# dispositivo: abre https://IP:8443/ca.crt, descárgalo e instálalo como autoridad de confianza.
+{
+	skip_install_trust
+}
+
+https://{$HOST_PUBLICO:192.168.80.227}:8443 {
+	tls internal
+
+	handle /ca.crt {
+		root * /data/caddy/pki/authorities/local
+		rewrite * /root.crt
+		header Content-Type application/x-x509-ca-cert
+		file_server
+	}
+
+	handle {
+		reverse_proxy panel:8090 {
+			flush_interval -1
+		}
+	}
+}
