@@ -1508,3 +1508,6 @@ html[data-reduce-motion="true"] .view.on > * {
 .live-only { display: none; }
 html[data-vivo="1"] .live-only { display: block; }
 html[data-vivo="1"] .demo-only { display: none; }
+
+.event-row.empty-latest { cursor: default; }
+.event-row.empty-latest:hover { transform: none; }

@@ -894,7 +894,17 @@
   function renderLatest() {
     const q = quakes.slice().sort((a, b) => b.t - a.t)[0];
     const box = $('#latestEvent');
-    if (!q) { box.innerHTML = ''; return; }
+    if (!q) {
+      box.innerHTML = `
+      <div class="event-row empty-latest">
+        <div class="mag light">—</div>
+        <div class="event-copy">
+          <span class="event-title-row"><b>${t('latestNone')}</b></span>
+          <p>${t('latestNoneSub')}</p>
+        </div>
+      </div>`;
+      return;
+    }
     const m = measure(q);
     const nombre = lang === 'en' ? q.nombreEn : q.nombreEs;
     box.innerHTML = `

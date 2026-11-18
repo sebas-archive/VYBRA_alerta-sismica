@@ -335,9 +335,9 @@
   .home-hero { grid-column: 1; grid-row: 2; min-width: 0; }
   .home-side > .section-head:first-child { display: none; }
   #latestEvent { grid-column: 1; grid-row: 3; min-width: 0; }
-  .sensors-slot { display: flex; flex-direction: column; grid-column: 1; grid-row: 4; min-width: 0; }
-  .protect-slot { display: flex; flex-direction: column; grid-column: 1; grid-row: 5; min-width: 0; }
-  .home-util { grid-column: 1; grid-row: 6; }
+  .sensors-slot { display: flex; flex-direction: column; grid-column: 1; grid-row: 5; min-width: 0; }
+  .protect-slot { display: flex; flex-direction: column; grid-column: 1; grid-row: 6; min-width: 0; }
+  .home-util { grid-column: 1; grid-row: 4; }
 
   .status-card {
     position: relative;
@@ -872,9 +872,9 @@
   .fig-pagehead { grid-column: 1 / -1; grid-row: 1; }
   .home-hero { grid-column: 1; grid-row: 2; }
   #latestEvent { grid-column: 2; grid-row: 2; }
-  .sensors-slot { grid-column: 1; grid-row: 3; margin-right: 14px; }
-  .protect-slot { grid-column: 2; grid-row: 3; }
-  .home-util { grid-column: 1 / -1; grid-row: 4; }
+  .sensors-slot { grid-column: 1; grid-row: 4; margin-right: 14px; }
+  .protect-slot { grid-column: 2; grid-row: 4; }
+  .home-util { grid-column: 1 / -1; grid-row: 3; }
   .status-card {
     min-height: 300px;
     border-radius: 12px 0 0 12px;
