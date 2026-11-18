@@ -13,6 +13,10 @@ web/datos/
 # Material de diseño histórico: no forma parte de la versión estable (enlaces rotos, nombre antiguo)
 preview/
 
+# Export de Figma y capturas locales: material de trabajo, no forma parte de la entrega
+figma/
+capturas/
+
 # Artefactos locales de validación de la Fase 3 (fuera del repo por tamaño/reproducibilidad)
 entrega/05-pruebas/logs/*.tmp
 
@@ -30,3 +34,6 @@ entrega/05-pruebas/datos/ips.env
 
 # Secretos de producción (claves de las bases de datos)
 secretos/
+
+# Binario del nodo simulado (se compila con web/nodo-sim/compilar.sh)
+web/nodo-sim/nodo-sim
