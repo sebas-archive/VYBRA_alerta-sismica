@@ -111,8 +111,8 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
         </button>
         <p class="fine" id="nearbyLine" hidden></p>
-        <p class="disclaimer" data-i18n="homeDisclaimer">Los registros de esta aplicación son simulacros de la red local. No hay epicentro ni consulta a catálogos externos.</p>
-        <button type="button" class="linkish quiet" data-action="test-alert" data-i18n="tryAlert">Probar la pantalla de alerta</button>
+        <p class="disclaimer demo-only" data-i18n="homeDisclaimer">Los registros de esta aplicación son simulacros de la red local. No hay epicentro ni consulta a catálogos externos.</p>
+        <button type="button" class="linkish quiet demo-only" data-action="test-alert" data-i18n="tryAlert">Probar la pantalla de alerta</button>
         </div>
         </div>
       </section>
@@ -446,7 +446,7 @@
           <button type="button" data-action="jump-setting" data-target="set-look" data-i18n="secAppearance">Apariencia y lectura</button>
           <button type="button" data-action="jump-setting" data-target="set-scales" data-i18n="secScales">Escalas</button>
           <button type="button" data-action="jump-setting" data-target="set-range" data-i18n="secThresholds">Qué eventos te avisamos</button>
-          <button type="button" data-action="jump-setting" data-target="set-sim" data-i18n="secSimulator">Ensayo</button>
+          <button type="button" data-action="jump-setting" data-target="set-sim" class="demo-only" data-i18n="secSimulator">Ensayo</button>
         </nav>
         <div class="set-block set-lang" id="set-lang">
         <h2 class="set-label" data-i18n="secLanguage">Idioma</h2>
@@ -560,7 +560,7 @@
         </div>
         </div>
 
-        <div class="set-block set-sim" id="set-sim">
+        <div class="set-block set-sim demo-only" id="set-sim">
         <h2 class="set-label" data-i18n="secSimulator">Ensayo</h2>
         <div class="set-group">
           <div class="set-row col">
