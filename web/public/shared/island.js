@@ -62,7 +62,7 @@
     const t = theme || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     Object.values(slots).forEach((s) => { s.el.dataset.theme = t; s.el.dataset.reduce = reduce || reducedQuery.matches ? '1' : '0'; });
   }
-  // La cápsula "bajo la top bar" se centra en la barra y queda 8 px por debajo de ella; no desplaza nada.
+  // La cápsula "bajo la top bar" queda 8 px por debajo de ella y centrada en la ventana; no desplaza nada.
   function anchor(slot) {
     if (slot.place !== 'bar') return;
     const bar = document.querySelector('[data-island-anchor]') || document.getElementById('topbar') || document.querySelector('.toolbar');
@@ -72,7 +72,7 @@
     const libre = t ? t.bottom + 8 : 0;
     if (r && r.height > 0) {
       slot.el.style.top = Math.max(r.bottom + 8, libre, 8) + 'px';
-      slot.el.style.left = r.left + r.width / 2 + 'px';
+      slot.el.style.left = '50%';   // siempre centrada en la ventana, también en escritorio con barra lateral
     } else {
       slot.el.style.top = Math.max(64, libre) + 'px';
       slot.el.style.left = '50%';
