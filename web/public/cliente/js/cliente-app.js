@@ -189,6 +189,7 @@
   let primeraFoto = true;
   const alertasVistas = new Set();
   let ultimoQuorum = null;
+  let ultimaConexion = null;
   const clampNivel = (n) => Math.min(10, Math.max(1, Math.round(Number(n) || 1)));
   const richterDe = (nivel) => Math.round((1.5 + 0.55 * nivel) * 10) / 10;
   function medida(nivel) {
@@ -245,14 +246,23 @@
         bodyEn: `Intensity ${m.mercalli} (${m.textoEn}). ${enAlerta.has(e.id) ? 'Part of a confirmed alert.' : e.confirmado ? 'Only one seismograph: no alert was opened.' : 'The server majority has not confirmed it yet.'}` });
     });
     // Avisos de servicio solo por cambios reales de quórum durante la sesión
-    if (ultimoQuorum !== null && ultimoQuorum !== liveNet.quorum) {
+    if (fresco && ultimoQuorum !== null && ultimoQuorum !== liveNet.quorum) {
       nuevosAvisos.push({ id: 'n-s-' + Date.now(), type: 'service', time: now(),
         titleEs: liveNet.quorum ? 'La red recuperó el consenso' : 'La red perdió el consenso',
         titleEn: liveNet.quorum ? 'The network regained consensus' : 'The network lost consensus',
         bodyEs: liveNet.quorum ? 'Al menos dos servidores coinciden en el líder.' : 'No hay dos servidores que coincidan en el líder: los eventos quedan pendientes.',
         bodyEn: liveNet.quorum ? 'At least two servers agree on the leader.' : 'No two servers agree on the leader: events stay pending.' });
     }
-    ultimoQuorum = liveNet.quorum;
+    if (ultimaConexion !== null && ultimaConexion !== fresco) {
+      nuevosAvisos.push({ id: 'n-c-' + Date.now(), type: 'service', time: now(),
+        titleEs: fresco ? 'Conexión restablecida' : 'El servicio no responde',
+        titleEn: fresco ? 'Connection restored' : 'The service is not responding',
+        bodyEs: fresco ? 'Se reanudó la lectura de los sismógrafos.' : 'No hay respuesta del servidor de la red: se muestran los últimos datos conocidos.',
+        bodyEn: fresco ? 'Reading of the seismographs resumed.' : 'The network server is not responding: the last known data is shown.' });
+      if (settings.notifEnabled && settings.notifyService) systemNotice(lang === 'en' ? (fresco ? 'Connection restored' : 'The service is not responding') : (fresco ? 'Conexión restablecida' : 'El servicio no responde'), '');
+    }
+    ultimaConexion = fresco;
+    if (fresco) ultimoQuorum = liveNet.quorum;
     const servicios = notices.filter((n) => n.type === 'service');
     nuevosAvisos.push(...servicios.filter((n) => !nuevosAvisos.some((m) => m.id === n.id)));
     nuevosAvisos.forEach((n) => { n.isRead = n.isRead != null ? n.isRead : leidos.has(n.id); });

@@ -2199,6 +2199,28 @@ export default function App() {
   demo.confirmed = Boolean(data.leader && data.quorum);
   demo.live = liveEv;
   const hist = real ? live.hist : history(data.leader);
+  // Avisos por cambios reales: pérdida/recuperación de quórum, del servidor del PC y de nodos.
+  const prevSt = useRef<{ q: boolean | null; conn: string; down: number[] }>({ q: null, conn: "conectado", down: [] });
+  useEffect(() => {
+    if (!real) return;
+    const p = prevSt.current;
+    if (live.conn !== p.conn) {
+      setNotice(live.conn === "conectado" ? "Conexión con el servidor del PC restablecida." : "El servidor del PC no responde. Se muestran los últimos datos conocidos.");
+    } else if (live.conn === "conectado") {
+      const down = [1, 2, 3].filter((i) => !data.connected.includes(i));
+      if (p.q !== null && p.q !== data.quorum)
+        setNotice(data.quorum ? "Quórum restablecido: el clúster vuelve a confirmar eventos." : "Sin quórum: no hay mayoría de servidores. Los eventos quedan pendientes.");
+      else {
+        const nuevos = down.filter((i) => !p.down.includes(i));
+        if (p.q !== null && nuevos.length) setNotice(`Sin respuesta de ${nuevos.map((i) => "S" + i).join(", ")}.`);
+        const vuelven = p.down.filter((i) => !down.includes(i));
+        if (p.q !== null && !nuevos.length && vuelven.length) setNotice(`${vuelven.map((i) => "S" + i).join(", ")} vuelve a responder.`);
+      }
+      p.down = down;
+      p.q = data.quorum;
+    }
+    p.conn = live.conn;
+  }, [real, live.conn, data]);
   const alerts = hist.alerts;
   const seen = useRef<Set<number>>(new Set());
   const closeAlarm = () => {
@@ -2385,7 +2407,7 @@ export default function App() {
             data={data}
             time={time}
           />
-          {!(real && live.conn === "conectado") && (
+          {!(real && live.conn === "conectado" && data.quorum) && (
           <div className={`demo-notice ${loading ? "loading" : ""}`}>
             {live.mode === "connecting" ? (
               <>
@@ -2393,12 +2415,14 @@ export default function App() {
                 <span>Conectando con el servidor del PC…</span>
               </>
             ) : real ? (
-              live.conn === "conectado" ? null : (
-                <>
-                  <Icon name="server" size={13} />
-                  <span>Reconectando con el servidor del PC… se muestran los últimos datos conocidos</span>
-                </>
-              )
+              <>
+                <Icon name="server" size={13} />
+                <span>
+                  {live.conn === "conectado"
+                    ? "Sin quórum: no hay mayoría de servidores. Los eventos quedan pendientes hasta que se restablezca."
+                    : "Reconectando con el servidor del PC… se muestran los últimos datos conocidos"}
+                </span>
+              </>
             ) : loading ? (
               <>
                 <i />
