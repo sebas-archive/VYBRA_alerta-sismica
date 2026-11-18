@@ -1306,3 +1306,8 @@ html[data-review="true"] .review-close {
 @media (min-width: 1200px) {
   .status-card .radar { width: 360px; height: 360px; }
 }
+
+/* En vivo no hay aviso de simulacros: "Qué hacer si tiembla" ocupa toda la fila. */
+@media (min-width: 1024px) {
+  html[data-vivo="1"] .home-util .link-row { grid-column: 1 / -1; }
+}
