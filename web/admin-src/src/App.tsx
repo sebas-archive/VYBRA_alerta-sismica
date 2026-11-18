@@ -2191,7 +2191,6 @@ export default function App() {
   const live = useLive();
   useEffect(() => startLive(), []);
   const real = live.mode === "real" && !!live.data;
-  const seenInit = useRef(false);
   const presses = useRef<{ id: number; t: number; level: number }[]>([]),
     audio = useRef<HTMLAudioElement | null>(null);
   const data: ScenarioData = useMemo(() => (real ? live.data! : scenarios[scenario]), [real, live.data, scenario]);
@@ -2222,27 +2221,34 @@ export default function App() {
     p.conn = live.conn;
   }, [real, live.conn, data]);
   const alerts = hist.alerts;
-  const seen = useRef<Set<number>>(new Set());
+  const seen = useRef<Set<number | string>>(new Set());
+  const baseReady = useRef(false);
   const closeAlarm = () => {
     setAlarm(null);
     presses.current = [];
   };
   // Una alerta nueva generada con pulsaciones simuladas abre la pantalla de alerta (con sonido).
   useEffect(() => {
+    let fresh: HAlert | undefined;
     if (real) {
-      // En vivo: se abre la pantalla de alerta solo para una alerta confirmada que llega ahora
-      // (las que ya existían al cargar no la disparan).
-      if (!seenInit.current) {
-        if (live.mode === "real") {
-          alerts.forEach((a) => seen.current.add(a.id));
-          seenInit.current = true;
-        }
+      // En vivo: solo abre la pantalla (y el sonido) una alerta confirmada que acaba de ocurrir.
+      // Toda alerta vista se marca (id + hora, porque los ids se repiten si el clúster se reinicia)
+      // para que no vuelva a sonar cuando el log se resincroniza o cambia la fuente.
+      const key = (a: HAlert) => `${a.id}@${a.t}`;
+      // Línea base: la primera foto con el log completo solo se marca como vista (abrir la página nunca suena).
+      if (!baseReady.current) {
+        if ((data.log?.length ?? 0) < (data.logLen ?? 0)) return;
+        alerts.forEach((x) => seen.current.add(key(x)));
+        baseReady.current = true;
         return;
       }
-    }
-    const fresh = real ? alerts.find((a) => !seen.current.has(a.id)) : alerts.find((a) => a.live && !seen.current.has(a.id));
+      const unseen = alerts.filter((a) => !seen.current.has(key(a)));
+      unseen.forEach((a) => seen.current.add(key(a)));
+      fresh = unseen.find((a) => a.t > 0 && nowS() - a.t < 60 && nowS() - a.t > -10);
+      if (fresh) seen.current.add(fresh.id);
+    } else fresh = alerts.find((a) => a.live && !seen.current.has(a.id));
     if (!fresh) return;
-    seen.current.add(fresh.id);
+    if (!real) seen.current.add(fresh.id);
     const rank = { baja: 0, media: 1, alta: 2 };
     if (rank[fresh.level] < rank[prefs.minLevel]) return;
     if (alarm) return;

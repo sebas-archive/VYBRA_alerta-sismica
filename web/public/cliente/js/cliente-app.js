@@ -281,8 +281,10 @@
     if (!quakeById(detailId)) detailId = quakes[0] ? quakes[0].id : detailId;
 
     // Pantalla de alerta: solo para una alerta confirmada, reciente y no vista antes
-    const recientes = quakes.filter((q) => q.confirmado && q.id.startsWith('a-') && now() - q.t < ALERTA_RECIENTE_S && !alertasVistas.has(q.id));
-    quakes.filter((q) => q.id.startsWith('a-')).forEach((q) => alertasVistas.add(q.id));
+    const clave = (q) => q.id + '@' + q.t; // los ids se repiten si el clúster se reinicia
+    const sinVer = quakes.filter((q) => q.confirmado && q.id.startsWith('a-') && !alertasVistas.has(clave(q)));
+    sinVer.forEach((q) => alertasVistas.add(clave(q)));
+    const recientes = sinVer.filter((q) => now() - q.t < ALERTA_RECIENTE_S && now() - q.t > -10);
     if (!primeraFoto && recientes.length) {
       const q = recientes[0];
       if (settings.notifEnabled && settings.notifyAlerts && meetsThreshold(q)) {
@@ -290,7 +292,7 @@
         openAlarm(q, { force: false });
       }
     }
-    primeraFoto = false;
+    if ((f.log || []).length >= (fuente && fuente.estado ? fuente.estado.log_len : 0)) primeraFoto = false;
     renderAll();
     syncPulse();
   }
