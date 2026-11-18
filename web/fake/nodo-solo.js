@@ -10,12 +10,11 @@ if (![1, 2, 3].includes(n)) { console.error('Falta N=1, 2 o 3'); process.exit(1)
 const puerto = Number(process.env.PUERTO) || 8080;
 const host = process.env.HOST || '0.0.0.0';
 
-// Sistema operativo del contenedor (cada servidor corre en uno distinto).
+// Sistema del contenedor: solo para el mensaje de arranque (el ESP32 real no informa sistema operativo).
 let sistema = 'desconocido';
 try { sistema = /^PRETTY_NAME="?([^"\n]*)"?/m.exec(fs.readFileSync('/etc/os-release', 'utf8'))?.[1] ?? sistema; } catch { /* sin os-release */ }
 
 const f = crearNodoFalso({ n, puerto, host });
-f.estado.sistema = sistema;
 await f.listo;
 
 const ahora = Date.now();

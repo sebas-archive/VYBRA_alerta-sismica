@@ -1,41 +1,115 @@
-# Sistema completo sin hardware: un contenedor por servidor y uno para el panel.
-# Cada servidor corre en un sistema operativo distinto (Windows Server no: sus contenedores
-# solo funcionan en un host Windows).
+# Sistema completo sin hardware. Cada ESP32 (nodo) tiene asignado un servidor con su propia base de datos:
+#   nodoN  = ESP32 simulado (toma y transporta datos; no guarda nada, como el real)
+#   servidorN + dbN = servidor de datos (Fedora / openSUSE / Ubuntu) con su PostgreSQL y su volumen
+#   panel  = ADMIN y CLIENTE; lee el estado de los nodos y el histórico de los servidores
+# Windows Server no: sus contenedores solo funcionan en un host Windows.
 #   docker compose up --build
-#   Panel:   http://localhost:8095/        Vista pública: http://localhost:8095/publico
-# Los ESP32 reales no corren en Docker: cada servidor imita su API HTTP (web/fake/nodo-falso.js).
-# Para usar el panel con los ESP32 reales: NODOS="http://IP1,http://IP2,http://IP3" docker compose up panel
+#   Panel:   http://localhost:8095/        ADMIN: /admin/        Vista pública: /publico
+# Con los ESP32 reales (no corren en Docker): NODO1_URL=http://IP1 NODO2_URL=http://IP2 NODO3_URL=http://IP3
+#   NODOS="http://IP1,http://IP2,http://IP3" docker compose up panel servidor1 servidor2 servidor3 db1 db2 db3
 # (en el contenedor no resuelve sismo-nodo-N.local; usa las IP).
+# Contraseña de las bases: DB_PASSWORD (por defecto "vybra", solo para desarrollo; las bases no publican puerto).
 x-nodo: &nodo
   restart: unless-stopped
   healthcheck:
-    # El puerto se lee de PUERTO para que el healthcheck siga siendo válido si se cambia el puerto
-    # del nodo (antes estaba fijado a 8080).
     test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+(process.env.PUERTO||8080)+'/estado').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     interval: 5s
     timeout: 3s
     retries: 6
     start_period: 5s
+x-servidor: &servidor
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8100/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+    start_period: 10s
+x-db: &db
+  image: postgres:16-alpine
+  restart: unless-stopped
+  environment: &dbenv
+    POSTGRES_USER: vybra
+    POSTGRES_PASSWORD: ${DB_PASSWORD:-vybra}
+    POSTGRES_DB: vybra
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U vybra -d vybra"]
+    interval: 4s
+    timeout: 3s
+    retries: 15
 
 services:
+  # ---- ESP32 simulados ----
   nodo1:
     <<: *nodo
-    build: { context: ./web, dockerfile: docker/Dockerfile.fedora }
+    build: ./web
+    command: ["node", "fake/nodo-solo.js"]
     container_name: sismo-nodo-1
     environment: { N: "1", PUERTO: "8080" }
     ports: ["9001:8080"]
   nodo2:
     <<: *nodo
-    build: { context: ./web, dockerfile: docker/Dockerfile.suse }
+    build: ./web
+    command: ["node", "fake/nodo-solo.js"]
     container_name: sismo-nodo-2
     environment: { N: "2", PUERTO: "8080" }
     ports: ["9002:8080"]
   nodo3:
     <<: *nodo
-    build: { context: ./web, dockerfile: docker/Dockerfile.ubuntu }
+    build: ./web
+    command: ["node", "fake/nodo-solo.js"]
     container_name: sismo-nodo-3
     environment: { N: "3", PUERTO: "8080" }
     ports: ["9003:8080"]
+
+  # ---- Bases de datos (una por servidor) ----
+  db1:
+    <<: *db
+    container_name: sismo-db-1
+    volumes: ["sismo-db1:/var/lib/postgresql/data"]
+  db2:
+    <<: *db
+    container_name: sismo-db-2
+    volumes: ["sismo-db2:/var/lib/postgresql/data"]
+  db3:
+    <<: *db
+    container_name: sismo-db-3
+    volumes: ["sismo-db3:/var/lib/postgresql/data"]
+
+  # ---- Servidores de datos (cada uno en un sistema operativo distinto) ----
+  servidor1:
+    <<: *servidor
+    build: { context: ./web, dockerfile: docker/Dockerfile.fedora }
+    container_name: sismo-servidor-1
+    environment:
+      N: "1"
+      PUERTO: "8100"
+      NODO_URL: ${NODO1_URL:-http://nodo1:8080}
+      DATABASE_URL: postgres://vybra:${DB_PASSWORD:-vybra}@db1:5432/vybra
+    ports: ["8101:8100"]
+    depends_on: { db1: { condition: service_healthy } }
+  servidor2:
+    <<: *servidor
+    build: { context: ./web, dockerfile: docker/Dockerfile.suse }
+    container_name: sismo-servidor-2
+    environment:
+      N: "2"
+      PUERTO: "8100"
+      NODO_URL: ${NODO2_URL:-http://nodo2:8080}
+      DATABASE_URL: postgres://vybra:${DB_PASSWORD:-vybra}@db2:5432/vybra
+    ports: ["8102:8100"]
+    depends_on: { db2: { condition: service_healthy } }
+  servidor3:
+    <<: *servidor
+    build: { context: ./web, dockerfile: docker/Dockerfile.ubuntu }
+    container_name: sismo-servidor-3
+    environment:
+      N: "3"
+      PUERTO: "8100"
+      NODO_URL: ${NODO3_URL:-http://nodo3:8080}
+      DATABASE_URL: postgres://vybra:${DB_PASSWORD:-vybra}@db3:5432/vybra
+    ports: ["8103:8100"]
+    depends_on: { db3: { condition: service_healthy } }
 
   panel:
     build: ./web          # Alpine (node:22-alpine)
@@ -45,13 +119,17 @@ services:
     environment:
       PUERTO: "8090"
       NODOS: ${NODOS:-http://nodo1:8080,http://nodo2:8080,http://nodo3:8080}
-      DATOS_DIR: /app/datos
-    volumes: ["sismo-datos:/app/datos"]   # histórico de eventos, alertas y sucesos: sobrevive a reinicios
+      SERVIDORES: http://servidor1:8100,http://servidor2:8100,http://servidor3:8100
     ports: ["${PUERTO_PANEL:-8095}:8090"]
     depends_on:
       nodo1: { condition: service_healthy }
       nodo2: { condition: service_healthy }
       nodo3: { condition: service_healthy }
+      servidor1: { condition: service_healthy }
+      servidor2: { condition: service_healthy }
+      servidor3: { condition: service_healthy }
 
 volumes:
-  sismo-datos:
+  sismo-db1:
+  sismo-db2:
+  sismo-db3:

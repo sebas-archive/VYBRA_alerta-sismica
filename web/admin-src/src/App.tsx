@@ -20,7 +20,7 @@ import {
 import { DEFAULTS, P, loadPrefs, motionReduced, pgaStr, pgaText, savePrefs, seekTo, toneSrc, toneStart, type Prefs } from "./prefs";
 import { startI18n } from "./i18n";
 import { notify, dismissIsland, loadIsland, islandTheme, islandReduce } from "./island";
-import { useLive, startLive, control, pulsar, msParaNivel, type Srv, type Suceso, type LogEntry } from "./live";
+import { useLive, startLive, control, pulsar, msParaNivel, type Srv, type Suceso, type LogEntry, type InfraSrv } from "./live";
 
 type Page = "Panorama" | "Sismógrafos" | "Alertas" | "Clúster Raft" | "Servidores" | "Detectores" | "Registros" | "Configuración";
 type Scenario = "Normal" | "Nodo 2 caído" | "Sin quórum" | "Elección";
@@ -1121,6 +1121,21 @@ function nodeLink(sv: Srv): string {
   }
   return sv.ip ? `http://${sv.ip}` : "";
 }
+/* /info del servidor de datos. Si su URL es interna de Docker, se usa el puerto publicado 810N del mismo equipo. */
+function dataServerLink(n: number, url?: string): string {
+  try {
+    const u = new URL(url ?? "");
+    if (u.hostname.includes(".") || u.hostname === "localhost") return u.origin;
+  } catch {
+    /* sin URL */
+  }
+  return `${location.protocol}//${location.hostname}:${8100 + n}`;
+}
+const fmtAgo = (t?: number | null) => {
+  if (!t) return "—";
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  return s < 60 ? `hace ${s} s` : s < 3600 ? `hace ${Math.floor(s / 60)} min` : `hace ${Math.floor(s / 3600)} h`;
+};
 const fmtUptime = (ms: number) => {
   const s = Math.floor(ms / 1000);
   const d = Math.floor(s / 86400),
@@ -1129,7 +1144,7 @@ const fmtUptime = (ms: number) => {
   return d ? `${d} d ${h} h` : h ? `${h} h ${m} min` : m ? `${m} min` : `${s} s`;
 };
 
-function Servers({ data }: { data: ScenarioData }) {
+function Servers({ data, infra }: { data: ScenarioData; infra: InfraSrv[] | null }) {
   useTick();
   const list = data.servers;
   const real = !!data.real && !!list;
@@ -1141,10 +1156,10 @@ function Servers({ data }: { data: ScenarioData }) {
       <div className="detector-intro">
         <div>
           <span>INFRAESTRUCTURA</span>
-          <h2>Servidores ESP32</h2>
+          <h2>Servidores y nodos</h2>
           <p>
-            Cada servidor es un nodo del clúster Raft. Aquí se ve el sistema que ejecuta, su rol, si está sincronizado con el líder y
-            un enlace a la página que sirve el propio nodo.
+            Cada ESP32 (nodo del clúster Raft) toma y transporta los datos; su servidor asignado, con su propia base de datos,
+            es quien los guarda. Aquí se ve el sistema operativo y la base de cada servidor, y el estado de su ESP32.
           </p>
         </div>
         <div>
@@ -1164,9 +1179,27 @@ function Servers({ data }: { data: ScenarioData }) {
           const synced = !!sv && online && sv.situacion !== "sincronizando" && sv.logLen === ref && sv.commit === (srcSrv?.commit ?? sv.commit);
           const link = sv ? nodeLink(sv) : "";
           const role = !sv ? "—" : sv.role === "leader" ? "Líder" : sv.role === "candidate" ? "Candidato" : sv.role === "follower" ? "Seguidor" : "Desconectado";
+          const ds = infra?.find((x) => x.n === id);
+          const c = ds?.bd?.conteos;
+          const dataRows: [string, ReactNode][] = !real
+            ? []
+            : infra === null
+              ? [["Servidor de datos", "Consultando…"]]
+              : !ds
+                ? [["Servidor de datos", "No configurado (variable SERVIDORES): este ESP32 no tiene dónde guardar su histórico"]]
+                : [
+                    ["Servidor de datos", `Servidor ${id} · ${ds.alcanzable ? "en línea" : "sin respuesta"}`],
+                    ["Sistema operativo", ds.sistema ?? "—"],
+                    ["Base de datos", !ds.alcanzable ? "—" : ds.bd?.ok ? ds.bd.version ?? "PostgreSQL" : `Sin conexión a la base${ds.bd?.error ? `: ${ds.bd.error}` : ""}`],
+                    ["Guardado", c ? `${c.eventos} eventos · ${c.log_entradas} log · ${c.alertas} alertas · ${c.sucesos} sucesos` : "—"],
+                    ["Muestras y pruebas", c ? `${c.muestras} muestras · ${c.acciones} pruebas` : "—"],
+                    ["Última escritura", fmtAgo(ds.bd?.ultimaEscritura)],
+                    ["ESP32 asignado", ds.nodo ? `nodo-${id} · ${ds.nodo.alcanzable ? "responde" : ds.nodo.alcanzable === false ? "sin respuesta" : "—"}` : "—"],
+                  ];
           const rows: [string, ReactNode][] = [
+            ...dataRows,
             ["Detector", `Detector ${id} · nodo-${id} · S${id}`],
-            ["Sistema", sv?.sistema ? sv.sistema : real ? "Firmware ESP32 (no informa sistema)" : "—"],
+            ...(sv?.sistema ? ([["Sistema del nodo", sv.sistema]] as [string, ReactNode][]) : []),
             ["Dirección", sv?.ip || "—"],
             ["Rol", role],
             ["Sincronización", !sv || !sv.reach ? "—" : synced ? "Sincronizado" : sv.situacion === "sincronizando" ? "Sincronizando" : `Atrasado (log ${sv.logLen} de ${ref})`],
@@ -1223,6 +1256,11 @@ function Servers({ data }: { data: ScenarioData }) {
                     <a href={link + "/estado"} target="_blank" rel="noreferrer">
                       Ver /estado (JSON)
                     </a>
+                    {ds && (
+                      <a href={dataServerLink(id, ds.url) + "/info"} target="_blank" rel="noreferrer">
+                        Servidor de datos (/info)
+                      </a>
+                    )}
                   </>
                 ) : (
                   <span>Sin dirección disponible</span>
@@ -2597,7 +2635,7 @@ export default function App() {
             {page === "Alertas" && (
               <Alerts data={data} alerts={alerts} sel={selAlert} setSel={setSelAlert} onTest={testAlarm} />
             )}
-            {page === "Servidores" && <Servers data={data} />}
+            {page === "Servidores" && <Servers data={data} infra={live.infra} />}
             {page === "Registros" && <Logs data={data} hist={hist} />}
             {page === "Configuración" && (
               <Settings prefs={prefs} set={setPref} reset={() => setPrefs({ ...DEFAULTS })} onTestAlert={testAlarm} />

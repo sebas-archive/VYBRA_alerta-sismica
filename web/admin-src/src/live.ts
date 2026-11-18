@@ -45,7 +45,20 @@ export type LiveData = {
   timeline: Suceso[];
   sourceNode: number | null;
 };
+/** Servidor de datos asignado a un ESP32 (de /api/servidores del panel). */
+export type InfraSrv = {
+  n: number;
+  url: string;
+  alcanzable: boolean;
+  error?: string;
+  sistema?: string;
+  node?: string;
+  iniciado?: number;
+  nodo?: { alcanzable: boolean | null; ultimoContacto: number | null; ultimoError?: string | null };
+  bd?: { ok: boolean; version?: string; conteos?: Record<string, number>; ultimaEscritura?: number | null; error?: string };
+};
 export type LiveState = {
+  infra: InfraSrv[] | null;
   mode: "connecting" | "real" | "demo";
   conn: "conectado" | "reconectando";
   beat: number;
@@ -53,7 +66,7 @@ export type LiveState = {
   hist: { events: HEv[]; alerts: HAlert[] };
 };
 
-const EMPTY: LiveState = { mode: "connecting", conn: "reconectando", beat: 0, data: null, hist: { events: [], alerts: [] } };
+const EMPTY: LiveState = { infra: null, mode: "connecting", conn: "reconectando", beat: 0, data: null, hist: { events: [], alerts: [] } };
 let state: LiveState = EMPTY;
 let foto: any = null;
 const subs = new Set<() => void>();
@@ -147,6 +160,15 @@ function rebuild(conn: LiveState["conn"]) {
   set({ data, hist, conn });
 }
 
+async function pollInfra() {
+  try {
+    const r = await fetch("/api/servidores", { cache: "no-store" });
+    if (r.ok) set({ infra: ((await r.json()) as { servidores: InfraSrv[] }).servidores });
+  } catch {
+    /* sin conexión: se conserva lo último */
+  }
+}
+
 let started = false;
 export function startLive() {
   if (started) return;
@@ -175,6 +197,8 @@ export function startLive() {
       set({ mode: "real" });
       rebuild("conectado");
       open();
+      void pollInfra();
+      setInterval(() => void pollInfra(), 5000);
     })
     .catch(() => {
       clearTimeout(abort);

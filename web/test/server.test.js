@@ -353,3 +353,66 @@ test('estaticos: audio mp3 con Accept-Ranges y respuesta 206 a Range', async () 
   r = await fetch(`${base}/a.mp3`, { headers: { Range: 'bytes=50-60' } });
   assert.equal(r.status, 416);
 });
+
+// Servidor de datos de mentira: responde /info, /api/historial y guarda lo que le llega en /acciones.
+async function servidorFalso(n, tipos = ['eventos', 'alertas']) {
+  const acciones = [];
+  const srv = http.createServer((req, res) => {
+    const u = new URL(`http://x${req.url}`);
+    const out = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+    if (u.pathname === '/info') return out(200, { servidor: n, sistema: `SO-${n}`, bd: { ok: true } });
+    if (u.pathname === '/api/historial') {
+      const tipo = u.searchParams.get('tipo');
+      if (!tipos.includes(tipo)) return out(400, { error: 'tipo' });
+      return out(200, { servidor: n, tipo, total: 1, registros: [{ id: `r${n}` }] });
+    }
+    if (u.pathname === '/acciones' && req.method === 'POST') {
+      let b = ''; req.on('data', (c) => { b += c; }); req.on('end', () => { acciones.push(JSON.parse(b)); out(201, { ok: true }); });
+      return;
+    }
+    out(404, {});
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  return { srv, acciones, url: `http://127.0.0.1:${srv.address().port}`, cerrar: () => new Promise((r) => { srv.closeAllConnections?.(); srv.close(r); }) };
+}
+
+test('servidores de datos: /api/servidores, /api/historial y registro de acciones en el servidor asignado', async () => {
+  const sv = [await servidorFalso(1), await servidorFalso(2), { url: 'http://127.0.0.1:1', cerrar: async () => {} }]; // el 3 está caído
+  const nodos = falsos.map((f) => ({ n: f.n, url: f.url }));
+  const p2 = crearPoller({ nodos, intervaloMs: 30, timeoutMs: 80 });
+  const s2 = crearServidor({ poller: p2, nodos, publicDir: dir, timeoutNodoMs: 300, timeoutServidorMs: 400, servidores: sv.map((s, i) => ({ n: i + 1, url: s.url })) });
+  await new Promise((r) => s2.listen(0, '127.0.0.1', r));
+  const b = `http://127.0.0.1:${s2.address().port}`;
+  try {
+    let r = await fetch(`${b}/api/servidores`);
+    const lista = (await r.json()).servidores;
+    assert.deepEqual(lista.map((x) => x.alcanzable), [true, true, false]);
+    assert.equal(lista[1].sistema, 'SO-2');
+    r = await fetch(`${b}/api/historial?tipo=eventos`);
+    let j = await r.json();
+    assert.deepEqual(j.registros.map((x) => x.id).sort(), ['r1', 'r2']);
+    assert.deepEqual(j.servidores.map((x) => x.ok), [true, true, false]);
+    r = await fetch(`${b}/api/historial?tipo=alertas&servidor=2`);
+    assert.deepEqual((await r.json()).registros, [{ servidor: 2, id: 'r2' }]);
+    r = await fetch(`${b}/api/historial?tipo=raro&servidor=1`);
+    assert.equal(r.status, 400);
+    // una pulsación al nodo 2 queda registrada en el servidor 2 (no en el 1)
+    r = await fetch(`${b}/api/nodos/2/pulsar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ms: 900 }) });
+    assert.equal(r.status, 200);
+    await esperar(() => sv[1].acciones.length === 1);
+    assert.equal(sv[1].acciones[0].tipo, 'pulsar');
+    assert.equal(sv[1].acciones[0].parametros.ms, 900);
+    assert.equal(sv[1].acciones[0].estado_http, 200);
+    assert.equal(sv[0].acciones.length, 0);
+  } finally {
+    p2.detener();
+    s2.closeAllConnections?.();
+    await new Promise((r) => s2.close(r));
+    await Promise.all(sv.map((s) => s.cerrar()));
+  }
+});
+
+test('sin SERVIDORES configurados /api/historial responde 404 claro', async () => {
+  const r = await fetch(`${base}/api/historial`);
+  assert.equal(r.status, 404);
+});

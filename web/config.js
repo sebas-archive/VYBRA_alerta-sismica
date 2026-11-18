@@ -24,3 +24,8 @@ export const UBICACIONES = {
   2: { lat: 4.648176, lon: -74.056661 },
   3: { lat: 4.648177, lon: -74.056703 },
 };
+
+// Servidores de datos: cada ESP32 tiene asignado uno (mismo número) con su propia base PostgreSQL.
+// SERVIDORES="http://servidor1:8100,http://servidor2:8100,http://servidor3:8100". Sin variable: no hay histórico.
+export const SERVIDORES = (process.env.SERVIDORES || '')
+  .split(',').map((u) => u.trim().replace(/\/+$/, '')).filter(Boolean).map((url, i) => ({ n: i + 1, url }));

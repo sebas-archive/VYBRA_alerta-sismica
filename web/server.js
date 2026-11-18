@@ -6,8 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { crearPoller } from './poller.js';
 import os from 'node:os';
 import dns from 'node:dns/promises';
-import { NODOS, PUERTO, UBICACIONES } from './config.js';
-import { crearHistorial, TIPOS as TIPOS_HISTORIAL } from './historial.js';
+import { NODOS, PUERTO, UBICACIONES, SERVIDORES } from './config.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const LIMITE_CUERPO = 4096;
@@ -66,7 +65,7 @@ function leerCuerpo(req, res) {
 export function crearManejador({
   poller, nodos, publicDir = path.join(AQUI, 'public'), timeoutNodoMs = 1000,
   maxPendienteSse = MAX_PENDIENTE, vivoMs = VIVO_MS,
-  ubicaciones = UBICACIONES, historial = null,
+  ubicaciones = UBICACIONES, servidores = [], timeoutServidorMs = 2000,
 }) {
   const raiz = path.resolve(publicDir);
   // Las posiciones de los detectores son fijas (config.js): se agregan a cada foto.
@@ -161,6 +160,7 @@ export function crearManejador({
         signal: AbortSignal.timeout(timeoutNodoMs),
       });
       const texto = await r.text();
+      registrarAccion(n, accion, cuerpo, r.status, texto);
       res.writeHead(r.status, {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-cache',
@@ -168,8 +168,30 @@ export function crearManejador({
       });
       res.end(texto);
     } catch {
+      registrarAccion(n, accion, cuerpo, 502, JSON.stringify({ error: 'nodo inalcanzable' }));
       responderJson(res, 502, { error: 'nodo inalcanzable' });
     }
+  }
+
+  // Cada ESP32 tiene un servidor asignado (mismo número) con su propia base de datos. Las pruebas y órdenes
+  // que se le envían quedan registradas allí (sin esperar: si el servidor no responde, la orden sigue su curso).
+  const servidorDe = (n) => servidores.find((x) => x.n === n);
+  function registrarAccion(n, accion, cuerpo, status, texto) {
+    const s = servidorDe(n);
+    if (!s) return;
+    let parametros = null, resultado = null;
+    try { parametros = JSON.parse(cuerpo); } catch { /* ya validado antes */ }
+    try { resultado = JSON.parse(texto); } catch { resultado = { texto: String(texto).slice(0, 300) }; }
+    fetch(`${s.url}/acciones`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: accion, parametros, estado_http: status, resultado, origen: 'panel' }),
+      signal: AbortSignal.timeout(timeoutServidorMs),
+    }).catch(() => {});
+  }
+  async function pedirServidor(s, ruta) {
+    const r = await fetch(`${s.url}${ruta}`, { signal: AbortSignal.timeout(timeoutServidorMs) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
   }
 
   const manejador = (req, res) => {
@@ -185,13 +207,31 @@ export function crearManejador({
     if (metodo === 'GET' || metodo === 'HEAD') {
       if (pathname === '/api/estado') return responderJson(res, 200, conUbicaciones(poller.foto()));
       if (pathname === '/api/stream') return stream(req, res);
-      // Histórico guardado en disco: /api/historial?tipo=eventos|alertas|sucesos&limite=200
+      // Servidores de datos (uno por ESP32, cada uno con su base PostgreSQL): estado de cada uno.
+      if (pathname === '/api/servidores') {
+        return Promise.all(servidores.map(async (s) => {
+          try { return { n: s.n, url: s.url, alcanzable: true, ...(await pedirServidor(s, '/info')) }; }
+          catch (e) { return { n: s.n, url: s.url, alcanzable: false, error: e.message }; }
+        })).then((lista) => responderJson(res, 200, { servidores: lista }));
+      }
+      // Histórico guardado en las bases de los servidores: /api/historial?tipo=...&limite=200[&servidor=N]
       if (pathname === '/api/historial') {
-        if (!historial) return responderJson(res, 404, { error: 'el histórico no está activado' });
         const q = new URL(`http://x${req.url}`).searchParams;
         const tipo = q.get('tipo') || 'eventos';
-        if (!TIPOS_HISTORIAL.includes(tipo)) return responderJson(res, 400, { error: `tipo debe ser ${TIPOS_HISTORIAL.join(', ')}` });
-        return historial.leer(tipo, Number(q.get('limite')) || 200).then((filas) => responderJson(res, 200, { tipo, total: filas.length, registros: filas }));
+        const limite = Number(q.get('limite')) || 200;
+        const elegidos = q.get('servidor') ? servidores.filter((s) => s.n === Number(q.get('servidor'))) : servidores;
+        if (!elegidos.length) return responderJson(res, 404, { error: 'no hay servidores de datos configurados (variable SERVIDORES)' });
+        return Promise.all(elegidos.map(async (s) => {
+          try { return { n: s.n, ok: true, datos: await pedirServidor(s, `/api/historial?tipo=${encodeURIComponent(tipo)}&limite=${limite}`) }; }
+          catch (e) { return { n: s.n, ok: false, error: e.message }; }
+        })).then((rs) => {
+          if (rs.every((x) => !x.ok && /HTTP 400/.test(x.error))) return responderJson(res, 400, { error: 'tipo inválido' });
+          responderJson(res, 200, {
+            tipo,
+            servidores: rs.map((x) => ({ n: x.n, ok: x.ok, total: x.ok ? x.datos.total : 0, error: x.error })),
+            registros: rs.filter((x) => x.ok).flatMap((x) => x.datos.registros.map((r) => ({ servidor: x.n, ...r }))),
+          });
+        });
       }
       // Frontends nuevos: ADMIN en /admin/ y CLIENTE en /cliente/. Si no están instalados se
       // conservan las vistas anteriores (operador.html y cliente.html) en las mismas rutas.
@@ -254,14 +294,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   // El WiFi de un hotspot responde en 100-2500 ms: con los 250 ms de fábrica todos salían caídos.
   const timeoutNodoMs = Number(process.env.TIMEOUT_NODO_MS) || 3000;
   const poller = crearPoller({ nodos: NODOS, timeoutMs: timeoutNodoMs, intervaloMs: Number(process.env.INTERVALO_MS) || 1000 });
-  // Histórico en disco (carpeta datos/, o DATOS_DIR; en Docker es un volumen).
-  let historial = null;
-  try {
-    historial = crearHistorial({ dir: process.env.DATOS_DIR || path.join(AQUI, 'datos') });
-    poller.on('cambio', (f) => historial.registrar(f));
-    console.log(`Histórico en disco: ${historial.dir}`);
-  } catch (e) { console.error(`Histórico desactivado (no se pudo abrir ${process.env.DATOS_DIR || 'datos/'}): ${e.message}`); }
-  const manejador = crearManejador({ poller, nodos: NODOS, timeoutNodoMs, historial });
+  if (SERVIDORES.length) console.log(`Servidores de datos: ${SERVIDORES.map((s) => `S${s.n} ${s.url}`).join(' · ')}`);
+  const manejador = crearManejador({ poller, nodos: NODOS, timeoutNodoMs, servidores: SERVIDORES });
   const servidor = http.createServer(manejador);
   const ip = ipLan();
   resolverNodos(poller, NODOS);
