@@ -21,8 +21,8 @@ sus propias licencias:
 
 - Las capturas de pantalla, diagramas, guías de montaje y textos de este repositorio son material
   original del proyecto.
-- Las imágenes de diseño (`new interfaz/*.webp`, `interfaz_*.png`, `mockup/`) son material propio de
-  diseño y no son la aplicación entregada.
+- El material de diseño histórico (imágenes y maquetas de la versión anterior) es material propio
+  del proyecto y **ya no forma parte del repositorio**; no es la aplicación entregada.
 - Si se publica una compilación binaria del firmware, deben respetarse las condiciones de la
   **LGPL-2.1** del core de ESP32 (entre ellas, la posibilidad de reenlazar con una versión
   modificada de la biblioteca). Por eso el repositorio distribuye **código fuente**, no binarios.

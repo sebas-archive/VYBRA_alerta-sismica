@@ -80,9 +80,9 @@ Se estabilizó el proyecto y se ejecutaron todas las validaciones que **no** req
 devuelve **solo las 3 líneas anteriores**, todas legítimas. **No quedan controles inoperantes ni
 referencias contradictorias.**
 
-Las capturas históricas `interfaz_1_alerta.png` e `interfaz_2_caida_lider.png` muestran el **panel de
-operador** (alerta y failover); no exponen la función retirada, por lo que no se alteran y quedan
-etiquetadas como "versión anterior".
+Las capturas históricas del **panel de operador** (alerta y failover) no exponen la función retirada,
+por lo que no se alteró ningún archivo. Ese material de diseño ya no forma parte del repositorio y
+solo se conserva, si se cita, como registro de una versión anterior.
 
 ---
 

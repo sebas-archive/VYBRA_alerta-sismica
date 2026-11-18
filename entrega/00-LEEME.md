@@ -41,6 +41,6 @@ diagramas, las evidencias, los registros de pruebas y los informes de validació
 
 ## Regla de oro
 
-Ninguna evidencia de `04-evidencias/` puede ser un mockup, una maqueta ni una captura de
-`preview/`, `mockup/` o `new interfaz/`. Esas carpetas son material de diseño histórico y así deben
-rotularse si se citan.
+Ninguna evidencia de `04-evidencias/` puede ser un mockup, una maqueta ni una captura de material
+de diseño histórico. Ese material ya no forma parte del repositorio; si se cita en algún documento,
+debe rotularse como registro histórico y no como aplicación entregada.

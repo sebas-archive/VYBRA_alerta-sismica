@@ -372,14 +372,11 @@ tiempos por consulta, capturas verificadas y captura pasiva del serial por `usbm
 │   └── test/                 Suite Node
 ├── docs/
 │   ├── prueba-hardware.md    Campaña física con las tres placas
-│   ├── servidores-de-datos.md Servidores de datos, PostgreSQL y apagar/encender
-│   └── superpowers/          Diseño y planes históricos (no vigentes)
+│   └── servidores-de-datos.md Servidores de datos, PostgreSQL y apagar/encender
 ├── entrega/                  Entregables académicos y evidencias
 │   ├── 04-evidencias/        Capturas, logs y tablas por categoría (saneadas)
 │   ├── 05-pruebas/           Datos, registros y scripts de campaña
 │   └── 10-informes-fase3/    Informes técnicos y diagnósticos
-├── mockup/, preview/, new interfaz/, interfaz_*.png
-│                             Material de diseño histórico (no es la aplicación)
 ├── docker-compose.yml        Demo completa: 11 servicios con Raft real, PostgreSQL y controlador
 ├── LICENSE                   MIT
 ├── THIRD-PARTY.md            Licencias de dependencias

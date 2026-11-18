@@ -28,7 +28,7 @@ Actualizado al cierre de la Fase 3. **Nada de esta lista se ha inventado.**
 |---|---|---|---|
 | D-1 | **Licencia y titularidad** | (a) Sin licencia explícita (todos los derechos reservados); (b) MIT; (c) GPL-3.0; (d) CC BY-NC-SA para el documento | **Pendiente**. No se creó `LICENSE` para no inventar titularidad |
 | D-2 | Repositorio remoto (GitHub/GitLab) | Publicar o entregar solo local | **Pendiente**. No se hizo `git push` |
-| D-3 | `preview/`, `mockup/`, `new interfaz/` | Excluir de la versión o conservar como anexo de diseño rotulado | **Recomendado: excluir de la entrega**; `preview/` tiene 4 enlaces muertos y nombre antiguo |
+| D-3 | `preview/`, `mockup/`, `new interfaz/` | Excluir de la versión o conservar como anexo de diseño rotulado | **Resuelta el 2026-11-18**: excluido de la entrega; el material de diseño histórico se retiró del repositorio |
 | D-4 | Corregir la semántica de "quórum" del agregador | Renombrar en la UI ("nodos con líder común") o recalcular mayoría real | **Pendiente**; documentado como limitación |
 | D-5 | Clave del portal rotada | Ya rotada en `secretos.h` (16 caracteres, fuera de git). La clave antigua sigue en el historial de git desde el commit `7cd7f53` | **Documentado**. Si el repositorio se comparte, considerar reescritura de historial |
 
