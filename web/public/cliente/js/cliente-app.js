@@ -49,6 +49,7 @@
   let lang = localStorage.getItem('sismica_lang') === 'en' ? 'en' : 'es';
   let settings = {
     soundEnabled: true,
+    soundTone: 'simulacro',
     notifEnabled: true,
     activeScale: localStorage.getItem('sismica_scale') === 'richter' ? 'richter' : 'mercalli',
     notifyScale: 'mercalli',
@@ -387,6 +388,7 @@
   function savePrefs() {
     localStorage.setItem('sismica_prefs', JSON.stringify({
       soundEnabled: settings.soundEnabled,
+      soundTone: settings.soundTone,
       notifEnabled: settings.notifEnabled,
       notifyScale: settings.notifyScale,
       minMercalli: settings.minMercalli,
@@ -973,7 +975,10 @@
     const tone = c.level === 'good' ? '' : c.level;
     if (c.kind === 'switch') {
       const trial = c.pref === 'soundEnabled'
-        ? `<button type="button" class="btn slim" id="btnTestSound" data-action="test-sound"><span>${soundTest ? t('btnStopSound') : t('btnTestSound')}</span></button>`
+        ? `<div class="tone-pick"><span class="fine">${t('toneLabel')}</span><div class="seg" role="group" aria-label="${t('toneLabel')}">
+            <button type="button" data-action="sound-tone" data-tone="simulacro" class="${settings.soundTone === 'simulacro' ? 'on' : ''}">${t('toneSimulacro')}</button>
+            <button type="button" data-action="sound-tone" data-tone="emergencia" class="${settings.soundTone === 'emergencia' ? 'on' : ''}">${t('toneEmergencia')}</button></div></div>
+          <button type="button" class="btn slim" id="btnTestSound" data-action="test-sound"><span>${soundTest ? t('btnStopSound') : t('btnTestSound')}</span></button>`
         : '';
       return `<article class="check ${tone}">
         ${c.icon}
@@ -1514,7 +1519,13 @@
     $$('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== name; });
   }
 
-  function audioEl() { return $('#alertaAudio'); }
+  const TONES = { simulacro: './audio/alerta-simulacro.mp3', emergencia: '../shared/audio/alarma-emergencia.mp3' };
+  function audioEl() {
+    const el = $('#alertaAudio');
+    const src = TONES[settings.soundTone] || TONES.simulacro;
+    if (el && el.getAttribute('src') !== src) { el.setAttribute('src', src); el.load(); }
+    return el;
+  }
   function startSound() {
     if (!settings.soundEnabled) return;
     const audio = audioEl();
@@ -2069,7 +2080,13 @@
     } else if (action === 'zoom-in') map && map.zoomIn();
     else if (action === 'zoom-out') map && map.zoomOut();
     else if (action === 'locate') locate();
-    else if (action === 'test-sound') toggleSoundTest();
+    else if (action === 'sound-tone') {
+      if (soundTest) toggleSoundTest();      // detiene la prueba en curso antes de cambiar de tono
+      settings.soundTone = el.dataset.tone === 'emergencia' ? 'emergencia' : 'simulacro';
+      savePrefs();
+      audioEl();
+      renderProtection();
+    } else if (action === 'test-sound') toggleSoundTest();
     else if (action === 'protocol') showProtocol(el.dataset.protocol);
     else if (action === 'prep-toggle') togglePrep(el);
   }

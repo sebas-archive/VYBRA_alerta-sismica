@@ -1521,3 +1521,6 @@ html[data-vivo="1"] .demo-only { display: none; }
   }
   #sensorList.has-match .match-box p { max-width: none; }
 }
+
+.tone-pick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+.tone-pick .seg { width: auto; }

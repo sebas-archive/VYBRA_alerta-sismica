@@ -6,6 +6,7 @@ export type Lang = "es" | "en";
 export type Scale = "mercalli" | "richter";
 export type PgaUnit = "g" | "ms2";
 export type Motion = "system" | "reduce" | "full";
+export type Tone = "simulacro" | "emergencia";
 export type MinLevel = "baja" | "media" | "alta";
 
 export type Prefs = {
@@ -19,6 +20,7 @@ export type Prefs = {
   defaultWindow: "30 s" | "1 min" | "5 min";
   defaultYScale: "Común" | "Por canal";
   sound: boolean;
+  tone: Tone;
   volume: number; // 0..1
   minLevel: MinLevel;
   banner: boolean;
@@ -35,6 +37,7 @@ export const DEFAULTS: Prefs = {
   defaultWindow: "30 s",
   defaultYScale: "Común",
   sound: true,
+  tone: "simulacro",
   volume: 1,
   minLevel: "baja",
   banner: true,
@@ -78,3 +81,6 @@ export const pgaUnitLabel = () => (P.pgaUnit === "g" ? "g" : "m/s²");
 
 /** Equivalencia orientativa nivel (1–10) → magnitud tipo Richter. NO es una medición. */
 export const richterOf = (level: number) => Math.round((1.5 + 0.55 * level) * 10) / 10;
+
+/** Archivo de audio de cada tono (los sirve web/server.js). */
+export const toneSrc = (t: Tone) => (t === "emergencia" ? "/shared/audio/alarma-emergencia.mp3" : "./audio/alerta-simulacro.mp3");

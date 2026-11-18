@@ -17,7 +17,7 @@ import {
   viewNow,
   WINDOW_S,
 } from "./seismo";
-import { DEFAULTS, P, loadPrefs, motionReduced, pgaStr, pgaText, savePrefs, type Prefs } from "./prefs";
+import { DEFAULTS, P, loadPrefs, motionReduced, pgaStr, pgaText, savePrefs, toneSrc, type Prefs } from "./prefs";
 import { startI18n } from "./i18n";
 import { notify, dismissIsland, loadIsland, islandTheme, islandReduce } from "./island";
 import { useLive, startLive, control, pulsar, msParaNivel, type Srv, type Suceso, type LogEntry } from "./live";
@@ -1990,7 +1990,7 @@ function Settings({
 }) {
   const live = useLive();
   const testSound = () => {
-    const a = new Audio("./audio/alerta-simulacro.mp3");
+    const a = new Audio(toneSrc(prefs.tone));
     a.volume = prefs.volume;
     a.play().catch(() => {});
     window.setTimeout(() => a.pause(), 3000);
@@ -2139,6 +2139,15 @@ function Settings({
             aria-label="Volumen"
             className="set-range"
             disabled={!prefs.sound}
+          />
+          <Choice
+            label="Tono de alerta"
+            value={prefs.tone}
+            onChange={(v) => set("tone", v)}
+            options={[
+              { v: "simulacro", label: "Simulacro" },
+              { v: "emergencia", label: "Emergencia" },
+            ]}
           />
           <button className="set-btn" onClick={testSound} disabled={!prefs.sound}>
             Probar sonido
@@ -2457,8 +2466,13 @@ export default function App() {
   };
   // Mismo sonido que la alerta de CLIENTE (alerta-simulacro.mp3).
   useEffect(() => {
-    if (!audio.current) audio.current = new Audio("./audio/alerta-simulacro.mp3");
+    if (!audio.current) audio.current = new Audio(toneSrc(prefs.tone));
     const el = audio.current;
+    const want = toneSrc(prefs.tone);
+    if (el.dataset.tone !== prefs.tone) {
+      el.dataset.tone = prefs.tone;
+      if (!el.src.endsWith(want.replace(/^\.?\//, ""))) el.src = want;
+    }
     el.volume = prefs.volume;
     if (alarm && !muted && prefs.sound) {
       el.currentTime = 0;
@@ -2468,7 +2482,7 @@ export default function App() {
       el.pause();
       el.currentTime = 0;
     }
-  }, [alarm, muted, prefs.sound, prefs.volume]);
+  }, [alarm, muted, prefs.sound, prefs.volume, prefs.tone]);
   // Los navegadores bloquean el audio hasta que el usuario interactúa: el primer gesto "desbloquea" el elemento.
   useEffect(() => {
     const unlock = () => {
