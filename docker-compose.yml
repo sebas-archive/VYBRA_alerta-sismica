@@ -5,10 +5,14 @@
 # Windows Server no: sus contenedores solo funcionan en un host Windows.
 #   docker compose up --build
 #   Panel:   http://localhost:8095/        ADMIN: /admin/        Vista pública: /publico
-# Con los ESP32 reales (no corren en Docker): NODO1_URL=http://IP1 NODO2_URL=http://IP2 NODO3_URL=http://IP3
-#   NODOS="http://IP1,http://IP2,http://IP3" docker compose up panel servidor1 servidor2 servidor3 db1 db2 db3
-# (en el contenedor no resuelve sismo-nodo-N.local; usa las IP).
-# Contraseña de las bases: DB_PASSWORD (por defecto "vybra", solo para desarrollo; las bases no publican puerto).
+# ESP32 REALES (sin tocar código): copia ejemplo.env a .env y pon las direcciones de tus ESP32:
+#   NODO1_URL=http://192.168.1.50  NODO2_URL=http://192.168.1.51  NODO3_URL=http://192.168.1.52
+# (o http://sismo-nodo-N.local si tu red resuelve mDNS; dentro de un contenedor suele hacer falta la IP).
+# El panel toma las mismas NODOn_URL (NODOS solo hace falta para sobrescribirlas). Arranca sin los simulados:
+#   docker compose up -d --build --no-deps panel servidor1 servidor2 servidor3 db1 db2 db3
+# Comprueba antes que responden con el contrato esperado:   node web/scripts/verificar-esp32.js
+# PRODUCCIÓN: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build   (ver docs/servidores-de-datos.md)
+# Contraseña de las bases en DESARROLLO: DB_PASSWORD (por defecto "vybra"; nunca en producción). Las bases no publican puerto.
 x-nodo: &nodo
   restart: unless-stopped
   healthcheck:
@@ -25,6 +29,18 @@ x-servidor: &servidor
     timeout: 3s
     retries: 10
     start_period: 10s
+# Retención/archivado (desactivado por defecto: no se archiva ni se elimina nada). Ver docs/servidores-de-datos.md.
+x-retencion: &retencion
+  RETENCION_ACTIVA: ${RETENCION_ACTIVA:-no}
+  RETENCION_MODO: ${RETENCION_MODO:-archivar}
+  RETENCION_CONFIRMAR_ELIMINAR: ${RETENCION_CONFIRMAR_ELIMINAR:-no}
+  RETENCION_CRITICO_NIVEL: ${RETENCION_CRITICO_NIVEL:-6}
+  RETENCION_MUESTRAS_DIAS: ${RETENCION_MUESTRAS_DIAS:-0}
+  RETENCION_SUCESOS_DIAS: ${RETENCION_SUCESOS_DIAS:-0}
+  RETENCION_LOG_DIAS: ${RETENCION_LOG_DIAS:-0}
+  RETENCION_ACCIONES_DIAS: ${RETENCION_ACCIONES_DIAS:-0}
+  RETENCION_EVENTOS_DIAS: ${RETENCION_EVENTOS_DIAS:-0}
+  RETENCION_ALERTAS_DIAS: ${RETENCION_ALERTAS_DIAS:-0}
 x-db: &db
   image: postgres:16-alpine
   restart: unless-stopped
@@ -82,6 +98,7 @@ services:
     build: { context: ./web, dockerfile: docker/Dockerfile.fedora }
     container_name: sismo-servidor-1
     environment:
+      <<: *retencion
       N: "1"
       PUERTO: "8100"
       NODO_URL: ${NODO1_URL:-http://nodo1:8080}
@@ -93,6 +110,7 @@ services:
     build: { context: ./web, dockerfile: docker/Dockerfile.suse }
     container_name: sismo-servidor-2
     environment:
+      <<: *retencion
       N: "2"
       PUERTO: "8100"
       NODO_URL: ${NODO2_URL:-http://nodo2:8080}
@@ -104,6 +122,7 @@ services:
     build: { context: ./web, dockerfile: docker/Dockerfile.ubuntu }
     container_name: sismo-servidor-3
     environment:
+      <<: *retencion
       N: "3"
       PUERTO: "8100"
       NODO_URL: ${NODO3_URL:-http://nodo3:8080}
@@ -118,7 +137,7 @@ services:
     command: ["node", "server.js"]
     environment:
       PUERTO: "8090"
-      NODOS: ${NODOS:-http://nodo1:8080,http://nodo2:8080,http://nodo3:8080}
+      NODOS: ${NODOS:-${NODO1_URL:-http://nodo1:8080},${NODO2_URL:-http://nodo2:8080},${NODO3_URL:-http://nodo3:8080}}
       SERVIDORES: http://servidor1:8100,http://servidor2:8100,http://servidor3:8100
     ports: ["${PUERTO_PANEL:-8095}:8090"]
     depends_on:

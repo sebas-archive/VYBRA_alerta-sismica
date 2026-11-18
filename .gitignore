@@ -27,3 +27,6 @@ entrega/05-pruebas/datos/ips.env
 
 # Metadatos locales de herramientas (no forman parte del proyecto)
 .claude/
+
+# Secretos de producción (claves de las bases de datos)
+secretos/

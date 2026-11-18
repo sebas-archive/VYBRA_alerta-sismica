@@ -1,0 +1,52 @@
+# PRODUCCIÓN: se usa SOBRE docker-compose.yml.
+#   mkdir -p secretos && (umask 077; openssl rand -base64 32 > secretos/db_password.txt)
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# - La clave de las bases sale de un SECRETO (archivo fuera del repositorio), no de variables ni del código.
+# - Los servidores rechazan arrancar con la clave de desarrollo ("vybra") o vacía (VYBRA_ENTORNO=produccion).
+# - No se publica ningún puerto de las bases ni de los servidores de datos: solo el panel.
+# - No se arrancan los ESP32 simulados: define NODO1_URL, NODO2_URL y NODO3_URL con los ESP32 reales (.env).
+x-servidor-prod: &servidor_prod
+  VYBRA_ENTORNO: produccion
+  DATABASE_URL: !reset null
+  DB_HOST: ""
+  DB_NAME: vybra
+  DB_USER: vybra
+  DB_PASSWORD_FILE: /run/secrets/db_password
+  DB_PASSWORD: !reset null
+x-db-prod: &db_prod
+  environment:
+    POSTGRES_PASSWORD: !reset null
+    POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+  secrets: [db_password]
+
+secrets:
+  db_password:
+    file: ./secretos/db_password.txt
+
+services:
+  nodo1: { profiles: ["simulados"] }
+  nodo2: { profiles: ["simulados"] }
+  nodo3: { profiles: ["simulados"] }
+  db1: *db_prod
+  db2: *db_prod
+  db3: *db_prod
+  servidor1:
+    secrets: [db_password]
+    ports: !reset []
+    depends_on: !override { db1: { condition: service_healthy } }
+    environment: { <<: *servidor_prod, DB_HOST: db1 }
+  servidor2:
+    secrets: [db_password]
+    ports: !reset []
+    depends_on: !override { db2: { condition: service_healthy } }
+    environment: { <<: *servidor_prod, DB_HOST: db2 }
+  servidor3:
+    secrets: [db_password]
+    ports: !reset []
+    depends_on: !override { db3: { condition: service_healthy } }
+    environment: { <<: *servidor_prod, DB_HOST: db3 }
+  panel:
+    depends_on: !override
+      servidor1: { condition: service_healthy }
+      servidor2: { condition: service_healthy }
+      servidor3: { condition: service_healthy }

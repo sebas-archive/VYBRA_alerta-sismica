@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { crearPoller } from './poller.js';
 import os from 'node:os';
 import dns from 'node:dns/promises';
+import { randomUUID } from 'node:crypto';
 import { NODOS, PUERTO, UBICACIONES, SERVIDORES } from './config.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
@@ -182,17 +183,75 @@ export function crearManejador({
     let parametros = null, resultado = null;
     try { parametros = JSON.parse(cuerpo); } catch { /* ya validado antes */ }
     try { resultado = JSON.parse(texto); } catch { resultado = { texto: String(texto).slice(0, 300) }; }
-    fetch(`${s.url}/acciones`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo: accion, parametros, estado_http: status, resultado, origen: 'panel' }),
-      signal: AbortSignal.timeout(timeoutServidorMs),
-    }).catch(() => {});
+    // `ref` identifica esta orden: si hay que reintentar, el servidor no la guarda dos veces.
+    const cuerpoAccion = JSON.stringify({ ref: randomUUID(), tipo: accion, parametros, estado_http: status, resultado, origen: 'panel' });
+    const enviar = () => fetch(`${s.url}/acciones`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: cuerpoAccion, signal: AbortSignal.timeout(timeoutServidorMs),
+    }).then((r) => { if (r.status >= 500) throw new Error(`HTTP ${r.status}`); });
+    enviar().catch(() => setTimeout(() => enviar().catch(() => {}), 500).unref());
   }
+  // Consulta a un servidor de datos. Un reintento si falla la red o responde 5xx (no en errores 4xx).
+  class ErrorServidor extends Error { constructor(msg, status) { super(msg); this.status = status; } }
   async function pedirServidor(s, ruta) {
-    const r = await fetch(`${s.url}${ruta}`, { signal: AbortSignal.timeout(timeoutServidorMs) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
+    for (let intento = 0; ; intento++) {
+      try {
+        const r = await fetch(`${s.url}${ruta}`, { signal: AbortSignal.timeout(timeoutServidorMs) });
+        if (r.ok) return await r.json();
+        let msg = `HTTP ${r.status}`;
+        try { msg = (await r.json()).error || msg; } catch { /* sin cuerpo */ }
+        if (r.status < 500) throw new ErrorServidor(msg, r.status);
+        throw new Error(msg);
+      } catch (e) {
+        if (e instanceof ErrorServidor || intento >= 1) throw e;
+        await new Promise((ok) => setTimeout(ok, 250));
+      }
+    }
   }
+  // Lo que se replica en los tres ESP32 (Raft) se guarda en los tres servidores: en el modo "todos" se une sin duplicar.
+  const REPLICADOS = new Set(['eventos', 'alertas', 'log']);
+  const claveReplicada = (tipo, r) => (tipo === 'eventos' ? r.id : tipo === 'alertas' ? `${r.alerta_id ?? r.id}|${(r.eventos || []).slice().sort().join(',')}` : r.clave);
+  const MAX_FUSION = 1000;
+  // Página `pagina` de `limite` registros de varias bases a la vez, sin cargar más de lo necesario:
+  // de cada servidor se piden solo los primeros pagina×limite registros ya ordenados, y se mezclan.
+  async function historialTodos({ tipo, pagina, limite, orden, consulta, ruta, replicado, tam = 200 }) {
+    const K = pagina * limite;
+    if (K > MAX_FUSION) { const e = new Error(`en el modo "todos" solo se puede llegar hasta el registro ${MAX_FUSION}; elige un servidor o afina los filtros`); e.status = 400; throw e; }
+    const resultados = await Promise.all(servidores.map(async (s) => {
+      try {
+        const filas = []; let total = 0;
+        for (let p = 1; filas.length < K; p++) {
+          const q = new URLSearchParams(consulta); q.set('pagina', String(p)); q.set('limite', String(tam));
+          const r = await pedirServidor(s, `${ruta}?${q}`);
+          total = r.total; filas.push(...r.registros);
+          if (r.registros.length < tam || p >= r.paginas) break;
+        }
+        return { n: s.n, ok: true, total, filas: filas.slice(0, K) };
+      } catch (e) { return { n: s.n, ok: false, error: e.message, status: e.status }; }
+    }));
+    const malos = resultados.filter((x) => !x.ok);
+    const err4 = malos.find((x) => x.status === 400);
+    if (err4) { const e = new Error(err4.error); e.status = 400; throw e; }
+    if (malos.length === resultados.length) { const e = new Error('ninguna base de datos responde'); e.status = 502; e.servidores = resultados.map((x) => ({ n: x.n, ok: false, total: 0, error: x.error })); throw e; }
+    const dir = orden === 'asc' ? 1 : -1;
+    let todas = resultados.filter((x) => x.ok).flatMap((x) => x.filas.map((r) => ({ servidor: x.n, ...r })));
+    todas.sort((a, b) => dir * ((a.ts ?? 0) - (b.ts ?? 0)) || a.servidor - b.servidor);
+    if (replicado) {
+      const vistos = new Map();
+      for (const r of todas) {
+        const k = claveReplicada(tipo, r);
+        if (vistos.has(k)) vistos.get(k).servidores.push(r.servidor); else vistos.set(k, { ...r, servidores: [r.servidor] });
+      }
+      todas = [...vistos.values()];
+    }
+    const oks = resultados.filter((x) => x.ok);
+    const total = replicado ? Math.max(...oks.map((x) => x.total)) : oks.reduce((a, x) => a + x.total, 0);
+    return {
+      tipo, pagina, limite, total, paginas: Math.max(1, Math.ceil(total / limite)),
+      servidores: resultados.map((x) => ({ n: x.n, ok: x.ok, total: x.ok ? x.total : 0, error: x.error })),
+      registros: todas.slice((pagina - 1) * limite, pagina * limite),
+    };
+  }
+  const entero = (v, def, min, max) => { if (v == null || v === '') return def; const n = Number(v); return Number.isInteger(n) && n >= min && n <= max ? n : NaN; };
 
   const manejador = (req, res) => {
     // Se antepone el origen como texto: con base, "//x/y" se leería como host.
@@ -214,27 +273,47 @@ export function crearManejador({
           catch (e) { return { n: s.n, url: s.url, alcanzable: false, error: e.message }; }
         })).then((lista) => responderJson(res, 200, { servidores: lista }));
       }
-      // Histórico guardado en las bases de los servidores: /api/historial?tipo=...&limite=200[&servidor=N]
-      if (pathname === '/api/historial') {
+      // Histórico guardado en las bases PostgreSQL de los servidores (paginado y filtrado EN LA BASE):
+      //   /api/historial?tipo=eventos|alertas|muestras|sucesos|log|acciones &servidor=1|2|3|todos &pagina= &limite=(máx 200)
+      //     &nodo= &categoria= &estado= &desde= &hasta= &q= &orden=asc|desc &fuente=activo|archivo
+      if (pathname === '/api/historial' || pathname === '/api/publico/historial') {
         const q = new URL(`http://x${req.url}`).searchParams;
-        const tipo = q.get('tipo') || 'eventos';
-        const limite = Number(q.get('limite')) || 200;
-        const elegidos = q.get('servidor') ? servidores.filter((s) => s.n === Number(q.get('servidor'))) : servidores;
-        if (!elegidos.length) return responderJson(res, 404, { error: 'no hay servidores de datos configurados (variable SERVIDORES)' });
-        return Promise.all(elegidos.map(async (s) => {
-          try { return { n: s.n, ok: true, datos: await pedirServidor(s, `/api/historial?tipo=${encodeURIComponent(tipo)}&limite=${limite}`) }; }
-          catch (e) { return { n: s.n, ok: false, error: e.message }; }
-        })).then((rs) => {
-          if (rs.every((x) => !x.ok && /HTTP 400/.test(x.error))) return responderJson(res, 400, { error: 'tipo inválido' });
-          responderJson(res, 200, {
-            tipo,
-            servidores: rs.map((x) => ({ n: x.n, ok: x.ok, total: x.ok ? x.datos.total : 0, error: x.error })),
-            registros: rs.filter((x) => x.ok).flatMap((x) => x.datos.registros.map((r) => ({ servidor: x.n, ...r }))),
-          });
-        });
+        const publico = pathname === '/api/publico/historial';
+        const tipo = q.get('tipo') || (publico ? 'alertas' : 'eventos');
+        const pagina = entero(q.get('pagina'), 1, 1, 1000000), limite = entero(q.get('limite'), 50, 1, 200);
+        if (Number.isNaN(pagina) || Number.isNaN(limite)) return responderJson(res, 400, { error: 'pagina y limite deben ser enteros (limite máx. 200)' });
+        if (!servidores.length) return responderJson(res, 404, { error: 'no hay servidores de datos configurados (variable SERVIDORES)' });
+        const sel = publico ? 'todos' : (q.get('servidor') || 'todos');
+        if (sel !== 'todos' && !servidores.some((x) => x.n === Number(sel))) return responderJson(res, 400, { error: 'servidor debe ser 1, 2, 3 o todos' });
+        const ruta = publico ? '/api/publico' : '/api/historial';
+        const consulta = new URLSearchParams([...q.entries()].filter(([k]) => !['servidor', 'pagina', 'limite'].includes(k)));
+        consulta.set('tipo', tipo);
+        const falla = (e) => responderJson(res, e.status || 500, { error: e.message, ...(e.servidores ? { servidores: e.servidores } : {}) });
+        if (sel !== 'todos') {
+          const s = servidores.find((x) => x.n === Number(sel));
+          consulta.set('pagina', String(pagina)); consulta.set('limite', String(limite));
+          return pedirServidor(s, `${ruta}?${consulta}`)
+            .then((r) => responderJson(res, 200, { ...r, servidores: [{ n: s.n, ok: true, total: r.total }] }))
+            .catch((e) => responderJson(res, e.status === 400 ? 400 : 502, { error: e.message, servidores: [{ n: s.n, ok: false, total: 0, error: e.message }] }));
+        }
+        return historialTodos({ tipo, pagina, limite: publico ? Math.min(limite, 50) : limite, orden: q.get('orden') === 'asc' ? 'asc' : 'desc', consulta, ruta, replicado: REPLICADOS.has(tipo), tam: publico ? 50 : 200 })
+          .then((r) => responderJson(res, 200, r)).catch(falla);
       }
-      // Frontends nuevos: ADMIN en /admin/ y CLIENTE en /cliente/. Si no están instalados se
-      // conservan las vistas anteriores (operador.html y cliente.html) en las mismas rutas.
+      // Un registro completo de la base de un servidor: /api/registro?servidor=2&tipo=eventos&id=...
+      if (pathname === '/api/registro') {
+        const q = new URL(`http://x${req.url}`).searchParams;
+        const s = servidores.find((x) => x.n === Number(q.get('servidor')));
+        if (!s) return responderJson(res, 400, { error: 'servidor debe ser 1, 2 o 3' });
+        return pedirServidor(s, `/api/registro?${new URLSearchParams({ tipo: q.get('tipo') || '', id: q.get('id') || '', fuente: q.get('fuente') || '' })}`)
+          .then((r) => responderJson(res, 200, r))
+          .catch((e) => responderJson(res, e.status || 502, { error: e.message }));
+      }
+      // Política de retención de cada servidor y qué afectaría ahora (solo lectura).
+      if (pathname === '/api/retencion') {
+        return Promise.all(servidores.map(async (s) => {
+          try { return await pedirServidor(s, '/retencion'); } catch (e) { return { servidor: s.n, error: e.message }; }
+        })).then((lista) => responderJson(res, 200, { servidores: lista }));
+      }
       if (pathname === '/') return existe('admin/index.html') ? redirigir(res, '/admin/') : estatico(res, 'operador.html');
       if (pathname === '/publico') return existe('cliente/index.html') ? redirigir(res, '/cliente/') : estatico(res, 'cliente.html');
       if (pathname === '/admin' || pathname === '/cliente') return redirigir(res, `${pathname}/`);

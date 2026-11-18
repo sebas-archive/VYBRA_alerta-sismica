@@ -364,7 +364,7 @@ async function servidorFalso(n, tipos = ['eventos', 'alertas']) {
     if (u.pathname === '/api/historial') {
       const tipo = u.searchParams.get('tipo');
       if (!tipos.includes(tipo)) return out(400, { error: 'tipo' });
-      return out(200, { servidor: n, tipo, total: 1, registros: [{ id: `r${n}` }] });
+      return out(200, { servidor: n, tipo, total: 1, pagina: 1, limite: 50, paginas: 1, registros: [{ id: `r${n}`, ts: n }] });
     }
     if (u.pathname === '/acciones' && req.method === 'POST') {
       let b = ''; req.on('data', (c) => { b += c; }); req.on('end', () => { acciones.push(JSON.parse(b)); out(201, { ok: true }); });
@@ -393,7 +393,7 @@ test('servidores de datos: /api/servidores, /api/historial y registro de accione
     assert.deepEqual(j.registros.map((x) => x.id).sort(), ['r1', 'r2']);
     assert.deepEqual(j.servidores.map((x) => x.ok), [true, true, false]);
     r = await fetch(`${b}/api/historial?tipo=alertas&servidor=2`);
-    assert.deepEqual((await r.json()).registros, [{ servidor: 2, id: 'r2' }]);
+    assert.deepEqual((await r.json()).registros, [{ id: 'r2', ts: 2 }]);
     r = await fetch(`${b}/api/historial?tipo=raro&servidor=1`);
     assert.equal(r.status, 400);
     // una pulsación al nodo 2 queda registrada en el servidor 2 (no en el 1)
