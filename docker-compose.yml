@@ -45,8 +45,13 @@ services:
     environment:
       PUERTO: "8090"
       NODOS: ${NODOS:-http://nodo1:8080,http://nodo2:8080,http://nodo3:8080}
+      DATOS_DIR: /app/datos
+    volumes: ["sismo-datos:/app/datos"]   # histórico de eventos, alertas y sucesos: sobrevive a reinicios
     ports: ["${PUERTO_PANEL:-8095}:8090"]
     depends_on:
       nodo1: { condition: service_healthy }
       nodo2: { condition: service_healthy }
       nodo3: { condition: service_healthy }
+
+volumes:
+  sismo-datos:

@@ -6,5 +6,7 @@ COPY package.json ./
 COPY *.js ./
 COPY public ./public
 COPY fake ./fake
+# Carpeta del histórico (en compose es un volumen con nombre).
+RUN mkdir -p /app/datos && chown node:node /app/datos
 USER node
 CMD ["node", "server.js"]

@@ -7,6 +7,7 @@ import { crearPoller } from './poller.js';
 import os from 'node:os';
 import dns from 'node:dns/promises';
 import { NODOS, PUERTO, UBICACIONES } from './config.js';
+import { crearHistorial, TIPOS as TIPOS_HISTORIAL } from './historial.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const LIMITE_CUERPO = 4096;
@@ -65,7 +66,7 @@ function leerCuerpo(req, res) {
 export function crearManejador({
   poller, nodos, publicDir = path.join(AQUI, 'public'), timeoutNodoMs = 1000,
   maxPendienteSse = MAX_PENDIENTE, vivoMs = VIVO_MS,
-  ubicaciones = UBICACIONES,
+  ubicaciones = UBICACIONES, historial = null,
 }) {
   const raiz = path.resolve(publicDir);
   // Las posiciones de los detectores son fijas (config.js): se agregan a cada foto.
@@ -184,6 +185,14 @@ export function crearManejador({
     if (metodo === 'GET' || metodo === 'HEAD') {
       if (pathname === '/api/estado') return responderJson(res, 200, conUbicaciones(poller.foto()));
       if (pathname === '/api/stream') return stream(req, res);
+      // Histórico guardado en disco: /api/historial?tipo=eventos|alertas|sucesos&limite=200
+      if (pathname === '/api/historial') {
+        if (!historial) return responderJson(res, 404, { error: 'el histórico no está activado' });
+        const q = new URL(`http://x${req.url}`).searchParams;
+        const tipo = q.get('tipo') || 'eventos';
+        if (!TIPOS_HISTORIAL.includes(tipo)) return responderJson(res, 400, { error: `tipo debe ser ${TIPOS_HISTORIAL.join(', ')}` });
+        return historial.leer(tipo, Number(q.get('limite')) || 200).then((filas) => responderJson(res, 200, { tipo, total: filas.length, registros: filas }));
+      }
       // Frontends nuevos: ADMIN en /admin/ y CLIENTE en /cliente/. Si no están instalados se
       // conservan las vistas anteriores (operador.html y cliente.html) en las mismas rutas.
       if (pathname === '/') return existe('admin/index.html') ? redirigir(res, '/admin/') : estatico(res, 'operador.html');
@@ -245,7 +254,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   // El WiFi de un hotspot responde en 100-2500 ms: con los 250 ms de fábrica todos salían caídos.
   const timeoutNodoMs = Number(process.env.TIMEOUT_NODO_MS) || 3000;
   const poller = crearPoller({ nodos: NODOS, timeoutMs: timeoutNodoMs, intervaloMs: Number(process.env.INTERVALO_MS) || 1000 });
-  const manejador = crearManejador({ poller, nodos: NODOS, timeoutNodoMs });
+  // Histórico en disco (carpeta datos/, o DATOS_DIR; en Docker es un volumen).
+  let historial = null;
+  try {
+    historial = crearHistorial({ dir: process.env.DATOS_DIR || path.join(AQUI, 'datos') });
+    poller.on('cambio', (f) => historial.registrar(f));
+    console.log(`Histórico en disco: ${historial.dir}`);
+  } catch (e) { console.error(`Histórico desactivado (no se pudo abrir ${process.env.DATOS_DIR || 'datos/'}): ${e.message}`); }
+  const manejador = crearManejador({ poller, nodos: NODOS, timeoutNodoMs, historial });
   const servidor = http.createServer(manejador);
   const ip = ipLan();
   resolverNodos(poller, NODOS);
