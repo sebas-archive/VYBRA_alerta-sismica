@@ -95,3 +95,25 @@ El firmware y su contrato HTTP no se modifican. Verificado con las capturas real
 ## Pruebas
 - `npm run test:db` (en `web/`): levanta **tres PostgreSQL reales** efímeros (uno por servidor) y ejecuta todo con `REQUIRE_DB=1`: si falta una base las pruebas **fallan**, no se omiten. Cubre lectura de las tres bases, filtrado por servidor, correspondencia nodo↔base, paginación, filtros y detalle, persistencia tras reiniciar, ausencia de duplicados, caída de una base, vista pública, retención (críticos intactos, alertas solo archivadas, eliminar con confirmación), compatibilidad con las capturas del firmware real y la configuración de ESP32 reales/secretos.
 - `npm test` sin bases omite solo las pruebas que las necesitan (o con `TEST_DATABASE_URL_1..3` propias).
+
+## Apagar y encender servidores (ADMIN → Servidores y nodos)
+Cada tarjeta tiene **Apagar servidor** / **Encender servidor**. Es un apagado REAL de contenedores, no una animación.
+
+**Qué se apaga (servidor N, ESP32 simulado):** el contenedor del ESP32 simulado `nodoN` (Raft real) y el de su servidor de datos `servidorN`.
+**Qué permanece encendido:** la base PostgreSQL `dbN` y su volumen (los datos se conservan), los otros dos servidores con sus nodos, el panel y el controlador.
+**Encender** arranca `nodoN` y `servidorN` (la base ya debe estar encendida; el controlador nunca la arranca ni la para). El nodo vuelve como seguidor, el líder le reenvía lo que le falta y Raft lo marca sincronizado.
+
+**Raft real.** Los ESP32 simulados ya no son una imitación: `web/nodo-sim/` compila el **mismo núcleo Raft del firmware** (`firmware/detector/src/nucleo`) para Linux, con el mismo protocolo UDP (4210) y el mismo contrato HTTP. Al apagar un contenedor, los otros dos dejan de recibir sus latidos y lo detectan solos: si era el líder, eligen otro (término +1); con 2 de 3 se sigue confirmando por mayoría; con 1 de 3 no hay quórum y los eventos quedan **aceptados pero sin confirmar** (`log_len > commit_index`) hasta que vuelva la mayoría.
+ADMIN solo refleja lo que ocurre (estado de Docker + foto real de Raft) y avisa con cápsulas: confirmación previa con las consecuencias, progreso, resultado, «S2 es ahora el líder», «Sin quórum», etc.
+
+**Seguridad (Docker no llega al navegador):**
+- Solo el servicio `controlador` monta el socket de Docker. Entiende únicamente `GET /estado`, `GET /salud` y `POST /servidores/{1|2|3}/{apagar|encender}`; de la petición solo sale un número y una de dos palabras. Solo hace `stop`/`start` de los contenedores `nodoN` y `servidorN` **de su proyecto de compose**; nunca de las bases ni de otros contenedores. No acepta nombres, ids, comandos ni argumentos.
+- No publica puertos (solo lo alcanza el panel por la red interna) y exige un token (`CONTROL_TOKEN`; en producción `CONTROL_TOKEN_FILE` con un secreto). Corre con el sistema de archivos de solo lectura, sin capacidades (`cap_drop: ALL`) y `no-new-privileges`.
+- El panel exige `application/json`, `{"confirmar":true}` y que el `Origin` sea el propio panel (anti-CSRF). El panel **no tiene login**: cualquiera que alcance el panel en la red puede apagar servidores, igual que ya puede enviar pulsaciones. En una red no confiable ponlo detrás de un proxy con autenticación.
+- Montar el socket de Docker da control sobre Docker al controlador; por eso es un servicio mínimo y aislado.
+
+**ESP32 físicos (modo `fisico`):** no hay contenedor `nodoN` (el ESP32 es una placa con corriente). Entonces «apagar» solo detiene el servidor de datos y hace la **desconexión lógica** del ESP32 (`POST /control {"accion":"caer"}`, el mismo mecanismo de «Simular caída»): la placa **sigue encendida**, pero para Raft está caída. «Encender» arranca el servidor de datos y le hace `recuperar`. La tarjeta y los mensajes lo dicen expresamente.
+
+**Registro:** cada orden queda guardada en la tabla `acciones` de la base del servidor afectado (`tipo: infra`), escrita antes de apagar y, al encender, cuando el servidor vuelve a responder.
+
+**Pruebas:** `npm test` (controlador contra un Docker simulado con socket Unix que registra cada petición; panel; Raft nativo) y `npm run test:infra` (Docker real, proyecto aislado `vybraint`: apaga y enciende cada uno de los 3 servidores, comprueba contenedores, volúmenes, cambio de líder, quórum, pérdida de quórum y recuperación).
