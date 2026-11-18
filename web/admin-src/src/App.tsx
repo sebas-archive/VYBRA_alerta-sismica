@@ -2212,6 +2212,7 @@ export default function App() {
   const alerts = hist.alerts;
   const seen = useRef<Set<number | string>>(new Set());
   const baseReady = useRef(false);
+  const lastAlarmAt = useRef(0);
   const closeAlarm = () => {
     setAlarm(null);
     presses.current = [];
@@ -2223,7 +2224,8 @@ export default function App() {
       // En vivo: solo abre la pantalla (y el sonido) una alerta confirmada que acaba de ocurrir.
       // Toda alerta vista se marca (id + hora, porque los ids se repiten si el clúster se reinicia)
       // para que no vuelva a sonar cuando el log se resincroniza o cambia la fuente.
-      const key = (a: HAlert) => `${a.id}@${a.t}`;
+      // Identidad por los eventos que la forman (el id puede recalcularse si cambia la fuente del log).
+      const key = (a: HAlert) => (a.evs.length ? a.evs.map((e) => e.id).sort().join("|") : `${a.id}@${a.t}`);
       // Línea base: la primera foto con el log completo solo se marca como vista (abrir la página nunca suena).
       if (!baseReady.current) {
         if ((data.log?.length ?? 0) < (data.logLen ?? 0)) return;
@@ -2234,7 +2236,12 @@ export default function App() {
       const unseen = alerts.filter((a) => !seen.current.has(key(a)));
       unseen.forEach((a) => seen.current.add(key(a)));
       fresh = unseen.find((a) => a.t > 0 && nowS() - a.t < 60 && nowS() - a.t > -10);
-      if (fresh) seen.current.add(fresh.id);
+      // Pausa entre alarmas: dos disparos seguidos casi siempre son la misma alerta re-sincronizada.
+      if (fresh && Date.now() - lastAlarmAt.current < 20000) fresh = undefined;
+      if (fresh) {
+        lastAlarmAt.current = Date.now();
+        console.info("[VYBRA] alarma por alerta", fresh.id, fresh.evs.map((e) => e.id), "antigüedad", Math.round(nowS() - fresh.t), "s");
+      }
     } else fresh = alerts.find((a) => a.live && !seen.current.has(a.id));
     if (!fresh) return;
     if (!real) seen.current.add(fresh.id);

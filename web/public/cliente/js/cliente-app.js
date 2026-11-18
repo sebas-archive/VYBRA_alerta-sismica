@@ -187,6 +187,7 @@
     ['Movimiento fuerte: puede haber caída de objetos y daños en construcciones frágiles.', 'Strong motion: objects may fall and fragile structures may be damaged.']
   ];
   let primeraFoto = true;
+  let ultimaAlarma = 0;
   const alertasVistas = new Set();
   let ultimoQuorum = null;
   let ultimaConexion = null;
@@ -225,7 +226,7 @@
       const t = tiempos.length ? Math.max(...tiempos) : null;
       if (t == null) return;
       const dets = [...new Set(evs.map((e) => e.det))].sort();
-      const q = { id: 'a-' + a.id, t, simulacro: true, confirmado: true, nodos: dets,
+      const q = { id: 'a-' + a.id, clave: (a.eventos || []).slice().sort().join('|'), t, simulacro: true, confirmado: true, nodos: dets,
         nombreEs: 'Alerta confirmada', nombreEn: 'Confirmed alert', ...medida(a.promedio) };
       nuevasQ.push(q);
       nuevosAvisos.push({ id: 'n-a-' + a.id, type: 'alert', quakeId: q.id, time: t,
@@ -281,11 +282,12 @@
     if (!quakeById(detailId)) detailId = quakes[0] ? quakes[0].id : detailId;
 
     // Pantalla de alerta: solo para una alerta confirmada, reciente y no vista antes
-    const clave = (q) => q.id + '@' + q.t; // los ids se repiten si el clúster se reinicia
+    const clave = (q) => q.clave || (q.id + '@' + q.t); // identidad por eventos: el id puede recalcularse
     const sinVer = quakes.filter((q) => q.confirmado && q.id.startsWith('a-') && !alertasVistas.has(clave(q)));
     sinVer.forEach((q) => alertasVistas.add(clave(q)));
     const recientes = sinVer.filter((q) => now() - q.t < ALERTA_RECIENTE_S && now() - q.t > -10);
-    if (!primeraFoto && recientes.length) {
+    if (!primeraFoto && recientes.length && Date.now() - ultimaAlarma > 20000) {
+      ultimaAlarma = Date.now();
       const q = recientes[0];
       if (settings.notifEnabled && settings.notifyAlerts && meetsThreshold(q)) {
         systemNotice(lang === 'en' ? 'Earthquake alert — protect yourself' : 'Alerta sísmica — protégete', lang === 'en' ? 'Drop, cover, and hold on.' : 'Agáchate, cúbrete y sujétate.');
