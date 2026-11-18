@@ -44,7 +44,6 @@ footer{margin-top:14px;color:var(--suave);font-size:13px;text-align:center}
 <div><dt>Encendido</dt><dd id="encendido">—</dd></div>
 <div><dt>Señal WiFi</dt><dd id="senal">—</dd></div>
 <div><dt>Hora</dt><dd id="hora">—</dd></div>
-<div><dt>Ubicación</dt><dd id="ubic">—</dd></div>
 </dl>
 <footer id="pie">Se actualiza cada 3 s</footer>
 </main><script>
@@ -60,12 +59,7 @@ function hace(ms){
   if(m>0)return 'hace '+m+' min';
   return 'hace '+s+' s';
 }
-function ubicacion(e,pedida){
-  if(pedida)return 'tomando referencia…';
-  if(e.movido)return 'se movió';
-  return e.con_huella?'referencia WiFi lista':'sin referencia';
-}
-function pintar(e,pedida){
+function pintar(e){
   const p=$('p'),sit=SIT[e.situacion]?e.situacion:'';
   p.className='pastilla '+sit;
   p.textContent=SIT[sit]||'Desconocido';
@@ -77,7 +71,6 @@ function pintar(e,pedida){
   $('encendido').textContent=hace(e.uptime_ms);
   $('senal').textContent=e.rssi?e.rssi+' dBm':'sin WiFi';
   $('hora').textContent=e.con_hora?'sincronizada (NTP)':'sin sincronizar';
-  $('ubic').textContent=ubicacion(e,pedida);
 }
 let ocupado=false;
 async function leer(){
@@ -87,7 +80,7 @@ async function leer(){
   try{
     const r=await fetch('/estado',{cache:'no-store',signal:c.signal});
     if(!r.ok)throw new Error(r.status);
-    pintar(await r.json(),r.headers.get('X-Huella-Pedida')==='1');
+    pintar(await r.json());
     $('aviso').hidden=true;$('m').classList.remove('viejo');
     $('pie').textContent='Actualizado '+new Date().toLocaleTimeString();
   }catch(_){
