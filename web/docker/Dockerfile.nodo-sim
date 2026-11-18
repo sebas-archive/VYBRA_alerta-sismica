@@ -1,0 +1,19 @@
+# ESP32 simulado con el núcleo Raft REAL del firmware (firmware/detector/src/nucleo), compilado para Linux.
+# Contexto adicional "nucleo" = ../firmware/detector/src (ver docker-compose.yml). Sin Arduino ni hardware.
+FROM debian:bookworm-slim AS compilar
+RUN apt-get update && apt-get install -y --no-install-recommends g++ curl ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+# ArduinoJson (cabecera única, MIT): misma versión que usa el firmware.
+RUN mkdir -p json && curl -fsSL -o json/ArduinoJson.h https://github.com/bblanchon/ArduinoJson/releases/download/v7.4.3/ArduinoJson-v7.4.3.h
+COPY --from=nucleo . ./src
+COPY nodo-sim/nodo_sim.cpp .
+RUN g++ -std=c++17 -O2 -pthread -static-libstdc++ -static-libgcc -Isrc -Ijson nodo_sim.cpp src/nucleo/*.cpp -o nodo-sim
+
+FROM debian:bookworm-slim
+# Término y voto de Raft (como la NVS del ESP32): sobreviven a docker stop/start del contenedor.
+RUN mkdir -p /var/lib/nodo && chown 65534:65534 /var/lib/nodo
+COPY --from=compilar /src/nodo-sim /usr/local/bin/nodo-sim
+USER 65534
+ENV PUERTO_HTTP=8080 PUERTO_RAFT=4210
+EXPOSE 8080
+CMD ["nodo-sim"]
