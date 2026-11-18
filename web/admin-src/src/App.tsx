@@ -22,7 +22,7 @@ import { startI18n } from "./i18n";
 import { notify, dismissIsland, loadIsland, islandTheme, islandReduce } from "./island";
 import { useLive, startLive, control, pulsar, msParaNivel, type Srv, type Suceso, type LogEntry } from "./live";
 
-type Page = "Panorama" | "Sismógrafos" | "Alertas" | "Clúster Raft" | "Detectores" | "Registros" | "Configuración";
+type Page = "Panorama" | "Sismógrafos" | "Alertas" | "Clúster Raft" | "Servidores" | "Detectores" | "Registros" | "Configuración";
 type Scenario = "Normal" | "Nodo 2 caído" | "Sin quórum" | "Elección";
 type IconName =
   | "overview"
@@ -114,6 +114,7 @@ const navGroups: { label: string; items: { page: Page; icon: IconName }[] }[] = 
     label: "INFRAESTRUCTURA",
     items: [
       { page: "Clúster Raft", icon: "cluster" },
+      { page: "Servidores", icon: "server" },
       { page: "Detectores", icon: "detector" },
       { page: "Registros", icon: "logs" },
     ],
@@ -492,6 +493,7 @@ function Toolbar({
     Sismógrafos: "Espacio de trabajo de señales sincronizadas",
     Alertas: "Eventos de coincidencia e investigaciones",
     "Clúster Raft": "Infraestructura de consenso y replicación",
+    Servidores: "Infraestructura: nodos ESP32, sistema, estado y sincronización",
     Detectores: "Gestión de detectores ESP32",
     Registros: "Historial de eventos replicado",
     Configuración: "Preferencias de la interfaz de ADMIN",
@@ -1101,6 +1103,134 @@ function Cluster({
         {[1, 2, 3].map((id) => (
           <ServerInspector key={id} id={id} data={data} hist={hist} onAction={onAction} />
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* Dirección a la que apunta el enlace de cada nodo: la URL con la que el servidor del PC lo consulta
+   (sismo-nodo-N.local, IP o localhost:900N). Si es un nombre interno de Docker (no abrible desde el
+   navegador) se usa la IP que informa el propio nodo. */
+function nodeLink(sv: Srv): string {
+  try {
+    const u = new URL(sv.url);
+    const internal = !u.hostname.includes(".") && u.hostname !== "localhost" && !/^[\d.]+$/.test(u.hostname);
+    if (!internal) return u.origin;
+  } catch {
+    /* sin URL válida */
+  }
+  return sv.ip ? `http://${sv.ip}` : "";
+}
+const fmtUptime = (ms: number) => {
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400),
+    h = Math.floor((s % 86400) / 3600),
+    m = Math.floor((s % 3600) / 60);
+  return d ? `${d} d ${h} h` : h ? `${h} h ${m} min` : m ? `${m} min` : `${s} s`;
+};
+
+function Servers({ data }: { data: ScenarioData }) {
+  useTick();
+  const list = data.servers;
+  const real = !!data.real && !!list;
+  const src = data.sourceNode ?? null;
+  const srcSrv = list?.find((x) => x.id === src);
+  const ref = srcSrv ? srcSrv.logLen : 0;
+  return (
+    <div className="screen servers-screen">
+      <div className="detector-intro">
+        <div>
+          <span>INFRAESTRUCTURA</span>
+          <h2>Servidores ESP32</h2>
+          <p>
+            Cada servidor es un nodo del clúster Raft. Aquí se ve el sistema que ejecuta, su rol, si está sincronizado con el líder y
+            un enlace a la página que sirve el propio nodo.
+          </p>
+        </div>
+        <div>
+          <Metric label="EN LÍNEA" value={`${data.connected.length} / 3`} sub="servidores" />
+          <Metric label="LÍDER" value={data.leader ? `Servidor ${data.leader}` : "Ninguno"} sub={`Término ${data.term}`} />
+        </div>
+      </div>
+      {!real && (
+        <p className="sx-note">
+          <Icon name="server" size={13} /> DEMOSTRACIÓN: sin servidor del PC no hay datos de infraestructura reales.
+        </p>
+      )}
+      <div className="servers-grid">
+        {[1, 2, 3].map((id) => {
+          const sv = list?.find((x) => x.id === id);
+          const online = !!sv && sv.reach && !sv.caido;
+          const synced = !!sv && online && sv.situacion !== "sincronizando" && sv.logLen === ref && sv.commit === (srcSrv?.commit ?? sv.commit);
+          const link = sv ? nodeLink(sv) : "";
+          const role = !sv ? "—" : sv.role === "leader" ? "Líder" : sv.role === "candidate" ? "Candidato" : sv.role === "follower" ? "Seguidor" : "Desconectado";
+          const rows: [string, ReactNode][] = [
+            ["Detector", `Detector ${id} · nodo-${id} · S${id}`],
+            ["Sistema", sv?.sistema ? sv.sistema : real ? "Firmware ESP32 (no informa sistema)" : "—"],
+            ["Dirección", sv?.ip || "—"],
+            ["Rol", role],
+            ["Sincronización", !sv || !sv.reach ? "—" : synced ? "Sincronizado" : sv.situacion === "sincronizando" ? "Sincronizando" : `Atrasado (log ${sv.logLen} de ${ref})`],
+            ["Estado del nodo", !sv || !sv.reach ? "Sin respuesta" : sv.caido ? "Caído (simulado)" : sv.situacion || "funcionando"],
+            ["Término / voto", sv && sv.reach ? `${sv.term} · votó por ${sv.votedFor ? "S" + sv.votedFor : "nadie"} · líder conocido ${sv.leaderKnown ? "S" + sv.leaderKnown : "ninguno"}` : "—"],
+            ["Log / confirmadas", sv && sv.reach ? `${sv.logLen} / ${sv.commit}${sv.pend ? ` · ${sv.pend} pendiente${sv.pend > 1 ? "s" : ""}` : ""}${sv.full ? " · log lleno" : ""}` : "—"],
+            ["Señal WiFi", sv && sv.reach && sv.rssi ? `${sv.rssi} dBm` : "—"],
+            ["Tiempo encendido", sv && sv.reach ? fmtUptime(sv.uptime) : "—"],
+            ["Reloj", sv && sv.reach ? (sv.conHora ? "Con hora sincronizada" : "Sin hora") : "—"],
+            ["Posición", sv && sv.reach ? (sv.movido ? "Movido" : sv.huella ? "Fija (huella registrada)" : "Sin huella de referencia") : "—"],
+            ["Sucesos", sv && sv.reach ? `${sv.ev} registrado${sv.ev === 1 ? "" : "s"}` : "—"],
+          ];
+          return (
+            <Surface key={id} className={`server-inspector server-full ${!online ? "disabled" : ""}`}>
+              <div className="server-title">
+                <div className="server-glyph">
+                  <Icon name="server" />
+                </div>
+                <div>
+                  <h3>Servidor {id}</h3>
+                  <span>{sv?.url || `nodo-${id}`}</span>
+                </div>
+                <Pill tone={!online ? "red" : sv?.role === "leader" ? "blue" : sv?.role === "candidate" ? "purple" : "gray"}>
+                  {!online ? "Desconectado" : role}
+                </Pill>
+              </div>
+              <div className="server-tags">
+                <Pill tone={online ? "green" : "red"}>
+                  <Dot state={online ? "good" : "bad"} />
+                  {online ? "En línea" : "Sin respuesta"}
+                </Pill>
+                {online && <Pill tone={synced ? "green" : "amber"}>{synced ? "Sincronizado" : "No sincronizado"}</Pill>}
+                {sv?.role === "leader" && online && (
+                  <Pill tone="blue">
+                    <Icon name="crown" size={11} />
+                    Líder
+                  </Pill>
+                )}
+              </div>
+              <dl className="server-facts">
+                {rows.map(([k, v]) => (
+                  <div key={k}>
+                    <dt>{k}</dt>
+                    <dd>{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="server-links">
+                {link ? (
+                  <>
+                    <a href={link + "/"} target="_blank" rel="noreferrer">
+                      Abrir página del nodo
+                    </a>
+                    <a href={link + "/estado"} target="_blank" rel="noreferrer">
+                      Ver /estado (JSON)
+                    </a>
+                  </>
+                ) : (
+                  <span>Sin dirección disponible</span>
+                )}
+              </div>
+            </Surface>
+          );
+        })}
       </div>
     </div>
   );
@@ -2452,6 +2582,7 @@ export default function App() {
             {page === "Alertas" && (
               <Alerts data={data} alerts={alerts} sel={selAlert} setSel={setSelAlert} onTest={testAlarm} />
             )}
+            {page === "Servidores" && <Servers data={data} />}
             {page === "Registros" && <Logs data={data} hist={hist} />}
             {page === "Configuración" && (
               <Settings prefs={prefs} set={setPref} reset={() => setPrefs({ ...DEFAULTS })} onTestAlert={testAlarm} />

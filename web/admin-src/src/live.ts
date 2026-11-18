@@ -17,6 +17,16 @@ export type Srv = {
   rssi: number;
   ip: string;
   uptime: number;
+  url: string;
+  situacion: string;
+  sistema: string;
+  conHora: boolean;
+  movido: boolean;
+  huella: boolean;
+  leaderKnown: number | null;
+  votedFor: number;
+  full: boolean;
+  ev: number;
 };
 export type Suceso = { n: number; seq: number; t: number; tipo: string; texto: string; termino: number };
 export type LogEntry = { i: number; T: number; clase: string; lider?: number; ev?: any };
@@ -67,6 +77,8 @@ export function parseFoto(f: any, conn: LiveState["conn"]): { data: LiveData; hi
       id, reach, caido, role,
       term: e ? e.termino : 0, logLen: e ? e.log_len : 0, commit: e ? e.commit_index : 0, pend: e ? e.pendientes || 0 : 0,
       rssi: e ? e.rssi : 0, ip: e ? e.ip : "", uptime: e ? e.uptime_ms : 0,
+      url: nd?.url ?? "", situacion: e?.situacion ?? "", sistema: e?.sistema ?? "", conHora: !!e?.con_hora, movido: !!e?.movido, huella: !!e?.con_huella,
+      leaderKnown: e?.lider_conocido ?? null, votedFor: e?.votado_por ?? 0, full: !!e?.log_lleno, ev: e?.sucesos_seq ?? 0,
     };
   });
   const alive = servers.filter((s) => s.reach && !s.caido);

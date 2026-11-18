@@ -154,7 +154,7 @@ export function crearPoller({ nodos, intervaloMs = 300, timeoutMs = 250, fallosP
       quorum,
       lider,
       fuente,
-      nodos: info.map((x) => ({ n: x.n, alcanzable: x.alcanzable, fallos: x.fallos, estado: x.estado })),
+      nodos: info.map((x) => ({ n: x.n, url: x.url, alcanzable: x.alcanzable, fallos: x.fallos, estado: x.estado })),
       log: fuente !== null && fuenteLog.n === fuente ? fuenteLog.log.slice() : [],
       alertas: fuente !== null && fuenteLog.n === fuente ? fuenteLog.alertas.slice() : [],
       sucesos,
