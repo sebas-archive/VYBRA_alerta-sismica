@@ -191,6 +191,47 @@
   const alertasVistas = new Set();
   let ultimoQuorum = null;
   let ultimaConexion = null;
+  // ---------- Notificaciones: cápsulas (web/public/shared/island.js) ----------
+  const L = (es, en) => (lang === 'en' ? en : es);
+  const isl = (o) => { if (window.VybraIsland) window.VybraIsland.show(o); };
+  const islOff = (id) => { if (window.VybraIsland) window.VybraIsland.dismiss(id); };
+  const islandsOn = () => settings.notifEnabled && settings.notifyService;
+  let estadoPrevio = null; // { conn, quorum, caidos }
+  let capsulaAlerta = null;
+  function avisarEstado(fresco, vivos) {
+    if (!islandsOn()) { islOff('estado'); return; }
+    const p = estadoPrevio;
+    if (!fresco) {
+      isl({ id: 'estado', place: 'bar', kind: 'conn', icon: 'wifi-off', sticky: true, dismissible: false, pri: 7,
+        title: L('Sin conexión con la red', 'No connection to the network'),
+        text: L('Reconectando… se muestran los últimos datos conocidos.', 'Reconnecting… the last known data is shown.') });
+    } else if (!liveNet.quorum) {
+      isl({ id: 'estado', place: 'bar', kind: 'warn', sticky: true, dismissible: false, pri: 5,
+        title: L('Sin acuerdo entre sismógrafos', 'No agreement between seismographs'),
+        text: L('La red no puede confirmar alertas hasta que se restablezca.', 'The network cannot confirm alerts until it recovers.') });
+    } else islOff('estado');
+    if (p && fresco && p.conn === false) isl({ id: 'c-ok', kind: 'success', icon: 'wifi', title: L('Conexión restablecida', 'Connection restored'), text: L('Se reanudó la lectura de los sismógrafos.', 'Reading of the seismographs resumed.') });
+    if (p && fresco && p.conn && p.quorum === false && liveNet.quorum) isl({ id: 'q-ok', kind: 'success', title: L('La red recuperó el acuerdo', 'The network regained agreement') });
+    if (p && fresco && p.conn) {
+      const caidos = [1, 2, 3].filter((n) => !vivos.includes(n));
+      const nuevos = caidos.filter((n) => !p.caidos.includes(n));
+      const vuelven = p.caidos.filter((n) => !caidos.includes(n));
+      if (nuevos.length) isl({ id: 'n-down', kind: 'warn', icon: 'wifi-off', title: L(`Sin respuesta de ${names(nuevos)}`, `No response from ${names(nuevos)}`) });
+      else if (vuelven.length) isl({ id: 'n-up', kind: 'success', icon: 'wifi', title: L(`${names(vuelven)} vuelve a responder`, `${names(vuelven)} is responding again`) });
+    }
+    estadoPrevio = { conn: fresco, quorum: fresco ? liveNet.quorum : (p ? p.quorum : null), caidos: fresco ? [1, 2, 3].filter((n) => !vivos.includes(n)) : (p ? p.caidos : []) };
+  }
+  // Alerta confirmada: al cerrar la pantalla de alerta queda una cápsula crítica expandible bajo la barra.
+  function capsulaDeAlerta(q) {
+    if (!q || !String(q.id).startsWith('a-')) return;
+    capsulaAlerta = { id: 'alerta-' + q.id, t: q.t };
+    const m = measure(q);
+    isl({ id: capsulaAlerta.id, place: 'bar', kind: 'critical', sticky: true, pri: 9,
+      title: L('Alerta confirmada', 'Confirmed alert'),
+      text: L(`${names(q.nodos)} coincidieron · ${m.caption}`, `${names(q.nodos)} matched · ${m.caption}`),
+      rows: [[L('Sismógrafos', 'Seismographs'), names(q.nodos)], [L('Intensidad', 'Intensity'), `${q.mercalli} · ${lang === 'en' ? q.textoEn : q.textoEs}`], [L('Hora', 'Time'), clockSec(q.t)]],
+      actions: [{ label: L('Ver detalle', 'View details'), primary: true, onClick: () => navigate('detalle', q.id) }] });
+  }
   const clampNivel = (n) => Math.min(10, Math.max(1, Math.round(Number(n) || 1)));
   const richterDe = (nivel) => Math.round((1.5 + 0.55 * nivel) * 10) / 10;
   function medida(nivel) {
@@ -206,6 +247,8 @@
     const vivos = nodos.filter((x) => x.alcanzable && x.estado && !x.estado.caido).map((x) => x.n);
     const fresco = !window.VybraVivo || window.VybraVivo.conexion === 'conectado';
     liveNet = { id: 'live', connected: fresco ? vivos : [], quorum: fresco && !!f.quorum };
+    avisarEstado(fresco, vivos);
+    if (capsulaAlerta && now() - capsulaAlerta.t > 600 && window.VybraIsland) { islOff(capsulaAlerta.id); capsulaAlerta = null; }
     if (f.ubicaciones) [1, 2, 3].forEach((n) => { if (f.ubicaciones[n]) INSTRUMENTS[n] = f.ubicaciones[n]; });
 
     // Eventos del log (los confirma la mayoría) y alertas de la fuente
@@ -745,6 +788,7 @@
     const meta = $('meta[name="theme-color"]');
     if (meta) meta.content = resolved === 'dark' ? '#0e1412' : '#f6f6f3';
     $$('[data-action="theme"]').forEach((b) => b.classList.toggle('on', b.dataset.theme === choice));
+    if (window.VybraIsland) window.VybraIsland.setTheme(resolved);
     syncThemeButton();
     if (tiles) tiles.setUrl(tileUrl());
     if (detailTiles) detailTiles.setUrl(tileUrl());
@@ -761,6 +805,7 @@
     settings.reduceMotion = !!on;
     localStorage.setItem('sismica_motion', String(settings.reduceMotion));
     document.documentElement.dataset.reduceMotion = String(settings.reduceMotion);
+    if (window.VybraIsland) window.VybraIsland.setReduce(settings.reduceMotion);
     const box = $('#switchMotion');
     if (box) box.checked = settings.reduceMotion;
   }
@@ -1528,7 +1573,9 @@
     clearTimeout(alarmTimer);
     alarmTick = null;
     alarmTimer = null;
+    const cerrada = alarmQuake;
     alarmQuake = null;
+    if (LIVE && cerrada) capsulaDeAlerta(cerrada);
     [1, 2, 3].forEach((n) => {
       clearTimeout(sensors[n].timer);
       sensors[n].triggered = false;
@@ -2051,17 +2098,20 @@
   }
 
   function requestBrowserPermission() {
+    const aviso = (kind, texto) => isl({ id: 'permiso', kind, title: t('checkPermTitle'), text: texto.split('. ')[0].replace(/\.$/, ''), more: texto, ttl: 12000 });
     if (!('Notification' in window)) {
-      openHelp(t('checkPermTitle'), t('checkPermNaHelp'));
+      aviso('info', t('checkPermNaHelp'));
       renderProtection();
       return;
     }
     if (Notification.permission !== 'default') {
-      openHelp(t('checkPermTitle'), Notification.permission === 'denied' ? t('checkPermBlocked') : t('checkPermGrantedHelp'));
+      aviso(Notification.permission === 'denied' ? 'warn' : 'success', Notification.permission === 'denied' ? t('checkPermBlocked') : t('checkPermGrantedHelp'));
       renderProtection();
       return;
     }
-    Notification.requestPermission().finally(() => {
+    Notification.requestPermission().then((r) => {
+      aviso(r === 'granted' ? 'success' : 'warn', r === 'granted' ? t('checkPermGrantedHelp') : t('checkPermBlocked'));
+    }).finally(() => {
       renderHome();
       renderProtection();
     });

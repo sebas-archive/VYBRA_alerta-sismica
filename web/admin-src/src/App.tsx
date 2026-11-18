@@ -19,6 +19,7 @@ import {
 } from "./seismo";
 import { DEFAULTS, P, loadPrefs, motionReduced, pgaStr, pgaText, savePrefs, type Prefs } from "./prefs";
 import { startI18n } from "./i18n";
+import { notify, dismissIsland, loadIsland, islandTheme, islandReduce } from "./island";
 import { useLive, startLive, control, pulsar, msParaNivel, type Srv, type Suceso, type LogEntry } from "./live";
 
 type Page = "Panorama" | "Sismógrafos" | "Alertas" | "Clúster Raft" | "Detectores" | "Registros" | "Configuración";
@@ -496,7 +497,7 @@ function Toolbar({
     Configuración: "Preferencias de la interfaz de ADMIN",
   };
   return (
-    <header className="toolbar">
+    <header className="toolbar" data-island-anchor>
       <div className="title-area">
         <h1>{page}</h1>
         <p>{descriptions[page]}</p>
@@ -2174,7 +2175,6 @@ export default function App() {
     [alarm, setAlarm] = useState<Alarm | null>(null),
     [left, setLeft] = useState(ALARM_SECONDS),
     [muted, setMuted] = useState(false),
-    [notice, setNotice] = useState<string | null>(null),
     [liveEv, setLiveEv] = useState<{ det: number; t: number; level: number }[]>([]),
     [blocked, setBlocked] = useState(false);
   const live = useLive();
@@ -2193,16 +2193,17 @@ export default function App() {
     if (!real) return;
     const p = prevSt.current;
     if (live.conn !== p.conn) {
-      setNotice(live.conn === "conectado" ? "Conexión con el servidor del PC restablecida." : "El servidor del PC no responde. Se muestran los últimos datos conocidos.");
+      // La caída de conexión la muestra la cápsula de estado (bajo la barra); aquí solo se avisa de la recuperación.
+      if (live.conn === "conectado") notify({ id: "conn-ok", kind: "success", icon: "wifi", title: "Conexión restablecida", text: "El servidor del PC vuelve a responder." });
     } else if (live.conn === "conectado") {
       const down = [1, 2, 3].filter((i) => !data.connected.includes(i));
       if (p.q !== null && p.q !== data.quorum)
-        setNotice(data.quorum ? "Quórum restablecido: el clúster vuelve a confirmar eventos." : "Sin quórum: no hay mayoría de servidores. Los eventos quedan pendientes.");
+        data.quorum && notify({ id: "quorum-ok", kind: "success", title: "Quórum restablecido", text: "El clúster vuelve a confirmar eventos." });
       else {
         const nuevos = down.filter((i) => !p.down.includes(i));
-        if (p.q !== null && nuevos.length) setNotice(`Sin respuesta de ${nuevos.map((i) => "S" + i).join(", ")}.`);
+        if (p.q !== null && nuevos.length) notify({ id: "node-down", kind: "warn", icon: "wifi-off", title: `Sin respuesta de ${nuevos.map((i) => "S" + i).join(", ")}`, text: "El PC no recibe respuesta de este nodo." });
         const vuelven = p.down.filter((i) => !down.includes(i));
-        if (p.q !== null && !nuevos.length && vuelven.length) setNotice(`${vuelven.map((i) => "S" + i).join(", ")} vuelve a responder.`);
+        if (p.q !== null && !nuevos.length && vuelven.length) notify({ id: "node-up", kind: "success", icon: "wifi", title: `${vuelven.map((i) => "S" + i).join(", ")} vuelve a responder` });
       }
       p.down = down;
       p.q = data.quorum;
@@ -2210,6 +2211,48 @@ export default function App() {
     p.conn = live.conn;
   }, [real, live.conn, data]);
   const alerts = hist.alerts;
+  useEffect(() => loadIsland(), []);
+  useEffect(() => islandTheme(dark), [dark]);
+  useEffect(() => islandReduce(motionReduced()), [prefs.motion]);
+  // Estado persistente (bajo la barra): conexión con el servidor del PC, quórum y modo de demostración.
+  useEffect(() => {
+    const demoTag = real ? "" : " (demostración)";
+    if (live.mode === "connecting")
+      notify({ id: "status", place: "bar", kind: "conn", icon: "sync", spin: true, sticky: true, dismissible: false, pri: 7, title: "Conectando con el servidor del PC…" });
+    else if (real && live.conn !== "conectado")
+      notify({ id: "status", place: "bar", kind: "conn", icon: "wifi-off", sticky: true, dismissible: false, pri: 7, title: "Sin conexión con el servidor del PC", text: "Reconectando… se muestran los últimos datos conocidos." });
+    else if (!real && loading)
+      notify({ id: "status", place: "bar", kind: "conn", icon: "sync", spin: true, sticky: true, dismissible: false, pri: 7, title: "Aplicando escenario de demostración…" });
+    else if (!data.quorum)
+      notify({ id: "status", place: "bar", kind: "warn", sticky: true, dismissible: false, pri: 5, title: `Sin quórum${demoTag}`, text: "No hay mayoría de servidores. Los eventos quedan pendientes hasta que se restablezca." });
+    else if (!real && live.mode === "demo")
+      notify({ id: "status", place: "bar", kind: "info", icon: "server", ttl: 7000, title: `${scenario} · DEMOSTRACIÓN`, text: "Datos simulados · sin telemetría ESP32 en vivo." });
+    else dismissIsland("status");
+  }, [live.mode, live.conn, real, loading, data.quorum, scenario]);
+  // Última alerta confirmada (antes un banner): cápsula crítica expandible, se puede ocultar.
+  const topAlert = alerts[0];
+  const topHidden = topAlert ? hiddenBanner.includes(topAlert.id) : true;
+  useEffect(() => {
+    if (!prefs.banner || !topAlert || topHidden) return void dismissIsland("alert-banner");
+    const age = nowS() - topAlert.t;
+    notify({
+      id: "alert-banner",
+      place: "bar",
+      kind: "critical",
+      sticky: true,
+      pri: age < 120 ? 9 : 3,
+      title: `${alertLevelName(topAlert.level)} confirmada a las ${fmtTime(topAlert.t)}`,
+      text: `2 detectores coincidieron (${topAlert.dets.map(nodeName).join(", ")}), intensidad promedio ${topAlert.avg} de 10.`,
+      rows: [
+        ["Detectores", topAlert.dets.map(nodeName).join(" + ")],
+        ["Intensidad promedio", `${topAlert.avg} / 10 · ${scaleLabel(Math.round(topAlert.avg))}`],
+        ["Hora", fmtTime(topAlert.t)],
+        ["Término Raft", String(topAlert.term ?? data.term)],
+      ],
+      actions: [{ label: "Ver detalle", primary: true, onClick: () => { setSelAlert(topAlert.id); setPage("Alertas"); } }],
+      onClose: () => setHiddenBanner((v) => [...v, topAlert.id]),
+    });
+  }, [prefs.banner, topAlert?.id, topAlert?.t, topHidden]);
   const seen = useRef<Set<number | string>>(new Set());
   const baseReady = useRef(false);
   const lastAlarmAt = useRef(0);
@@ -2260,14 +2303,11 @@ export default function App() {
     setLiveEv((v) => [...v.filter((e) => nowS() - e.t < 600), { det: id, t: nowS(), level: levels[level].level }]);
     const other = presses.current.find((p) => p.id !== id);
     if (!other) {
-      setNotice(`Pulsación en nodo-${id} registrada. Falta otro detector distinto dentro de 10 s.`);
+      notify({ id: "press", kind: "info", title: `Pulsación en nodo-${id} registrada`, text: "Falta otro detector distinto dentro de 10 s." });
       return;
     }
-    setNotice(
-      data.leader && data.quorum
-        ? null
-        : "Coincidencia detectada, pero sin líder y quórum no hay consenso: alerta pendiente.",
-    );
+    if (!(data.leader && data.quorum))
+      notify({ id: "press", kind: "warn", title: "Coincidencia detectada", text: "Sin líder y quórum no hay consenso: la alerta queda pendiente." });
   };
   const testAlarm = () => {
     if (alarm) return;
@@ -2334,11 +2374,6 @@ export default function App() {
     if (alarm && left <= 0) closeAlarm();
   }, [left, alarm]);
   useEffect(() => {
-    if (!notice) return;
-    const t = window.setTimeout(() => setNotice(null), 6000);
-    return () => clearTimeout(t);
-  }, [notice]);
-  useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -2354,12 +2389,12 @@ export default function App() {
       const sv = data.servers?.find((x) => x.id === id);
       const accion = sv?.caido ? "recuperar" : "caer";
       const r = await control(id, accion);
-      setNotice(
+      notify(
         r.status === 200
-          ? `S${id}: el nodo confirmó la orden de ${accion === "caer" ? "caída simulada" : "recuperación"}.`
+          ? { id: `ctl-${id}`, kind: "success", title: `S${id}: orden confirmada`, text: `El nodo confirmó la ${accion === "caer" ? "caída simulada" : "recuperación"}.` }
           : r.status === 0 || r.status === 502
-            ? `S${id}: no hay respuesta del nodo; la orden no se pudo confirmar.`
-            : `S${id}: el nodo rechazó la orden (${r.status}${r.body?.error ? `: ${r.body.error}` : ""}).`,
+            ? { id: `ctl-${id}`, kind: "error", title: `S${id} no respondió`, text: "La orden no se pudo confirmar." }
+            : { id: `ctl-${id}`, kind: "error", title: `S${id} rechazó la orden`, text: `Error ${r.status}${r.body?.error ? `: ${r.body.error}` : ""}.` },
       );
       return;
     }
@@ -2409,60 +2444,6 @@ export default function App() {
             data={data}
             time={time}
           />
-          {!(real && live.conn === "conectado" && data.quorum) && (
-          <div className={`demo-notice ${loading ? "loading" : ""}`}>
-            {live.mode === "connecting" ? (
-              <>
-                <i />
-                <span>Conectando con el servidor del PC…</span>
-              </>
-            ) : real ? (
-              <>
-                <Icon name="server" size={13} />
-                <span>
-                  {live.conn === "conectado"
-                    ? "Sin quórum: no hay mayoría de servidores. Los eventos quedan pendientes hasta que se restablezca."
-                    : "Reconectando con el servidor del PC… se muestran los últimos datos conocidos"}
-                </span>
-              </>
-            ) : loading ? (
-              <>
-                <i />
-                <span>Aplicando escenario de demostración…</span>
-              </>
-            ) : (
-              <>
-                <Icon name="server" size={13} />
-                <span>
-                  <strong>{scenario}</strong> · DEMOSTRACIÓN: datos simulados · sin telemetría ESP32 en vivo
-                </span>
-              </>
-            )}
-          </div>
-          )}
-          {prefs.banner && alerts[0] && !hiddenBanner.includes(alerts[0].id) && (
-            <div className="alert-banner" role="status">
-              <Icon name="alert" />
-              <div>
-                <strong>
-                  {alertLevelName(alerts[0].level)} confirmada a las {fmtTime(alerts[0].t)}
-                </strong>
-                <span>
-                  2 detectores coincidieron ({alerts[0].dets.map(nodeName).join(", ")}), intensidad promedio {alerts[0].avg} de
-                  10.
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  setSelAlert(alerts[0].id);
-                  setPage("Alertas");
-                }}
-              >
-                Ver detalle
-              </button>
-              <button onClick={() => setHiddenBanner((v) => [...v, alerts[0].id])}>Ocultar</button>
-            </div>
-          )}
           <main>
             {page === "Panorama" && <Overview data={data} hist={hist} setPage={setPage} />}
             {page === "Sismógrafos" && <Seismographs data={data} />}
@@ -2477,7 +2458,6 @@ export default function App() {
             )}
           </main>
         </div>
-        {notice && <div className="toast-note" role="status">{notice}</div>}
         {alarm && (
           <AlarmOverlay
             alarm={alarm}
