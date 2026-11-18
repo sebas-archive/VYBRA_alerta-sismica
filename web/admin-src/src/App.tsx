@@ -1412,7 +1412,7 @@ function Alerts({
             eventos.
             {!(data.leader && data.quorum) ? " Sin líder y quórum no hay consenso para confirmarlas." : ""}
           </span>
-          <button
+          {!data.real && (<button
             className="test-alarm"
             onClick={onTest}
             disabled={!data.real && !(data.leader && data.quorum)}
@@ -1420,7 +1420,7 @@ function Alerts({
           >
             <Icon name="alert" />
             Probar alerta con sonido
-          </button>
+          </button>)}
         </Surface>
       ) : (
         <Surface className="incident-detail">
@@ -1434,7 +1434,7 @@ function Alerts({
             </div>
             <div>
               <Pill tone={a.test ? "gray" : "green"}>{a.test ? "Ensayo" : "Confirmada"}</Pill>
-              <button
+              {!data.real && (<button
                 className="test-alarm"
                 onClick={onTest}
                 disabled={!data.real && !(data.leader && data.quorum)}
@@ -1442,7 +1442,7 @@ function Alerts({
               >
                 <Icon name="alert" />
                 Probar alerta con sonido
-              </button>
+              </button>)}
             </div>
           </div>
           <div className="incident-metrics">
@@ -2385,6 +2385,7 @@ export default function App() {
             data={data}
             time={time}
           />
+          {!(real && live.conn === "conectado") && (
           <div className={`demo-notice ${loading ? "loading" : ""}`}>
             {live.mode === "connecting" ? (
               <>
@@ -2392,15 +2393,12 @@ export default function App() {
                 <span>Conectando con el servidor del PC…</span>
               </>
             ) : real ? (
-              <>
-                <Icon name="server" size={13} />
-                <span>
-                  <strong>EN VIVO</strong> ·{" "}
-                  {live.conn === "conectado"
-                    ? "datos reales del clúster Raft a través del servidor del PC"
-                    : "reconectando con el servidor del PC… se muestran los últimos datos conocidos"}
-                </span>
-              </>
+              live.conn === "conectado" ? null : (
+                <>
+                  <Icon name="server" size={13} />
+                  <span>Reconectando con el servidor del PC… se muestran los últimos datos conocidos</span>
+                </>
+              )
             ) : loading ? (
               <>
                 <i />
@@ -2415,6 +2413,7 @@ export default function App() {
               </>
             )}
           </div>
+          )}
           {prefs.banner && alerts[0] && !hiddenBanner.includes(alerts[0].id) && (
             <div className="alert-banner" role="status">
               <Icon name="alert" />
