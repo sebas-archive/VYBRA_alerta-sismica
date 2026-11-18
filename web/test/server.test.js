@@ -319,3 +319,37 @@ test('nodo falso: "mover" marca movido con suceso; /huella lo limpia al fijar la
   await esperar(() => f.estado.con_huella === true);
   assert.equal(f.estado.movido, false);
 });
+
+test('frontends nuevos: / y /publico redirigen a /admin/ y /cliente/ cuando están instalados', async () => {
+  fs.mkdirSync(path.join(dir, 'admin'));
+  fs.mkdirSync(path.join(dir, 'cliente'));
+  fs.writeFileSync(path.join(dir, 'admin', 'index.html'), '<h1>admin</h1>');
+  fs.writeFileSync(path.join(dir, 'cliente', 'index.html'), '<h1>cliente nuevo</h1>');
+  let r = await fetch(`${base}/`, { redirect: 'manual' });
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.get('location'), '/admin/');
+  r = await fetch(`${base}/publico`, { redirect: 'manual' });
+  assert.equal(r.headers.get('location'), '/cliente/');
+  r = await fetch(`${base}/admin`, { redirect: 'manual' });
+  assert.equal(r.headers.get('location'), '/admin/');
+  r = await fetch(`${base}/admin/`);
+  assert.equal(await r.text(), '<h1>admin</h1>');
+  r = await fetch(`${base}/cliente/`);
+  assert.equal(await r.text(), '<h1>cliente nuevo</h1>');
+  // Las vistas anteriores siguen disponibles
+  r = await fetch(`${base}/operador.html`);
+  assert.equal(await r.text(), '<h1>operador</h1>');
+});
+
+test('estaticos: audio mp3 con Accept-Ranges y respuesta 206 a Range', async () => {
+  fs.writeFileSync(path.join(dir, 'a.mp3'), Buffer.from('0123456789'));
+  let r = await fetch(`${base}/a.mp3`);
+  assert.equal(r.headers.get('content-type'), 'audio/mpeg');
+  assert.equal(r.headers.get('accept-ranges'), 'bytes');
+  r = await fetch(`${base}/a.mp3`, { headers: { Range: 'bytes=2-4' } });
+  assert.equal(r.status, 206);
+  assert.equal(r.headers.get('content-range'), 'bytes 2-4/10');
+  assert.equal(await r.text(), '234');
+  r = await fetch(`${base}/a.mp3`, { headers: { Range: 'bytes=50-60' } });
+  assert.equal(r.status, 416);
+});

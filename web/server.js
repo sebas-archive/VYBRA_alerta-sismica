@@ -21,6 +21,11 @@ const TIPOS = {
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+  '.mp3': 'audio/mpeg',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
 };
 
 function responderJson(res, status, obj) {
@@ -66,7 +71,7 @@ export function crearManejador({
   // Las posiciones de los detectores son fijas (config.js): se agregan a cada foto.
   const conUbicaciones = (foto) => ({ ...foto, ubicaciones });
 
-  function estatico(res, nombre) {
+  function estatico(res, nombre, rango) {
     let rel;
     try { rel = decodeURIComponent(nombre); } catch { return responderJson(res, 404, { error: 'no existe' }); }
     // Sin NUL, sin barras iniciales extra ni segmentos '..' (ni con \ de Windows).
@@ -80,9 +85,31 @@ export function crearManejador({
     if (!tipo) return responderJson(res, 404, { error: 'no existe' });
     fs.readFile(ruta, (err, datos) => {
       if (err) return responderJson(res, 404, { error: 'no existe' });
-      res.writeHead(200, { 'Content-Type': tipo, 'Cache-Control': 'no-cache', 'Content-Length': datos.length });
+      // Range: los navegadores lo exigen para reposicionar un audio (currentTime = 0).
+      const m = /^bytes=(\d*)-(\d*)$/.exec(rango ?? '');
+      if (m && (m[1] || m[2])) {
+        let ini = m[1] === '' ? datos.length - Number(m[2]) : Number(m[1]);
+        let fin = m[1] === '' || m[2] === '' ? datos.length - 1 : Math.min(Number(m[2]), datos.length - 1);
+        ini = Math.max(0, ini);
+        if (ini > fin || ini >= datos.length) {
+          res.writeHead(416, { 'Content-Range': `bytes */${datos.length}` });
+          return res.end();
+        }
+        res.writeHead(206, {
+          'Content-Type': tipo, 'Cache-Control': 'no-cache', 'Accept-Ranges': 'bytes',
+          'Content-Range': `bytes ${ini}-${fin}/${datos.length}`, 'Content-Length': fin - ini + 1,
+        });
+        return res.end(datos.subarray(ini, fin + 1));
+      }
+      res.writeHead(200, { 'Content-Type': tipo, 'Cache-Control': 'no-cache', 'Accept-Ranges': 'bytes', 'Content-Length': datos.length });
       res.end(datos);
     });
+  }
+
+  const existe = (rel) => fs.existsSync(path.join(raiz, rel));
+  function redirigir(res, destino) {
+    res.writeHead(302, { Location: destino, 'Cache-Control': 'no-cache' });
+    res.end();
   }
 
   function stream(req, res) {
@@ -157,10 +184,13 @@ export function crearManejador({
     if (metodo === 'GET' || metodo === 'HEAD') {
       if (pathname === '/api/estado') return responderJson(res, 200, conUbicaciones(poller.foto()));
       if (pathname === '/api/stream') return stream(req, res);
-      if (pathname === '/') return estatico(res, 'operador.html');
-      if (pathname === '/publico') return estatico(res, 'cliente.html');
+      // Frontends nuevos: ADMIN en /admin/ y CLIENTE en /cliente/. Si no están instalados se
+      // conservan las vistas anteriores (operador.html y cliente.html) en las mismas rutas.
+      if (pathname === '/') return existe('admin/index.html') ? redirigir(res, '/admin/') : estatico(res, 'operador.html');
+      if (pathname === '/publico') return existe('cliente/index.html') ? redirigir(res, '/cliente/') : estatico(res, 'cliente.html');
+      if (pathname === '/admin' || pathname === '/cliente') return redirigir(res, `${pathname}/`);
       if (pathname.startsWith('/api/')) return responderJson(res, 404, { error: 'no existe' });
-      return estatico(res, pathname.slice(1));
+      return estatico(res, (pathname.endsWith('/') ? `${pathname}index.html` : pathname).slice(1), req.headers.range);
     }
     if (metodo === 'POST') {
       const m = /^\/api\/nodos\/([^/]+)\/(control|pulsar)$/.exec(pathname);
