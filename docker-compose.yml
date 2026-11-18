@@ -16,7 +16,7 @@
 x-nodo: &nodo
   restart: unless-stopped
   healthcheck:
-    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+(process.env.PUERTO||8080)+'/estado').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    test: ["CMD", "nodo-sim", "--salud"]
     interval: 5s
     timeout: 3s
     retries: 6
@@ -55,90 +55,127 @@ x-db: &db
     retries: 15
 
 services:
-  # ---- ESP32 simulados ----
+  # ---- ESP32 simulados: el MISMO núcleo Raft del firmware compilado para Linux (se hablan por UDP 4210) ----
   nodo1:
     <<: *nodo
-    build: ./web
-    command: ["node", "fake/nodo-solo.js"]
-    container_name: sismo-nodo-1
-    environment: { N: "1", PUERTO: "8080" }
-    ports: ["9001:8080"]
+    build:
+      context: ./web
+      dockerfile: docker/Dockerfile.nodo-sim
+      additional_contexts:
+        nucleo: ./firmware/detector/src
+    container_name: ${PREFIJO:-sismo}-nodo-1
+    environment: { N: "1", PUERTO_HTTP: "8080", PUERTO_RAFT: "4210" }
+    ports: ["${PUERTO_NODO1:-9001}:8080"]
   nodo2:
     <<: *nodo
-    build: ./web
-    command: ["node", "fake/nodo-solo.js"]
-    container_name: sismo-nodo-2
-    environment: { N: "2", PUERTO: "8080" }
-    ports: ["9002:8080"]
+    build:
+      context: ./web
+      dockerfile: docker/Dockerfile.nodo-sim
+      additional_contexts:
+        nucleo: ./firmware/detector/src
+    container_name: ${PREFIJO:-sismo}-nodo-2
+    environment: { N: "2", PUERTO_HTTP: "8080", PUERTO_RAFT: "4210" }
+    ports: ["${PUERTO_NODO2:-9002}:8080"]
   nodo3:
     <<: *nodo
-    build: ./web
-    command: ["node", "fake/nodo-solo.js"]
-    container_name: sismo-nodo-3
-    environment: { N: "3", PUERTO: "8080" }
-    ports: ["9003:8080"]
+    build:
+      context: ./web
+      dockerfile: docker/Dockerfile.nodo-sim
+      additional_contexts:
+        nucleo: ./firmware/detector/src
+    container_name: ${PREFIJO:-sismo}-nodo-3
+    environment: { N: "3", PUERTO_HTTP: "8080", PUERTO_RAFT: "4210" }
+    ports: ["${PUERTO_NODO3:-9003}:8080"]
 
   # ---- Bases de datos (una por servidor) ----
   db1:
     <<: *db
-    container_name: sismo-db-1
+    container_name: ${PREFIJO:-sismo}-db-1
     volumes: ["sismo-db1:/var/lib/postgresql/data"]
   db2:
     <<: *db
-    container_name: sismo-db-2
+    container_name: ${PREFIJO:-sismo}-db-2
     volumes: ["sismo-db2:/var/lib/postgresql/data"]
   db3:
     <<: *db
-    container_name: sismo-db-3
+    container_name: ${PREFIJO:-sismo}-db-3
     volumes: ["sismo-db3:/var/lib/postgresql/data"]
 
   # ---- Servidores de datos (cada uno en un sistema operativo distinto) ----
   servidor1:
     <<: *servidor
     build: { context: ./web, dockerfile: docker/Dockerfile.fedora }
-    container_name: sismo-servidor-1
+    container_name: ${PREFIJO:-sismo}-servidor-1
     environment:
       <<: *retencion
+      UV_THREADPOOL_SIZE: "32"
       N: "1"
       PUERTO: "8100"
       NODO_URL: ${NODO1_URL:-http://nodo1:8080}
       DATABASE_URL: postgres://vybra:${DB_PASSWORD:-vybra}@db1:5432/vybra
-    ports: ["8101:8100"]
+    ports: ["${PUERTO_SERVIDOR1:-8101}:8100"]
     depends_on: { db1: { condition: service_healthy } }
   servidor2:
     <<: *servidor
     build: { context: ./web, dockerfile: docker/Dockerfile.suse }
-    container_name: sismo-servidor-2
+    container_name: ${PREFIJO:-sismo}-servidor-2
     environment:
       <<: *retencion
+      UV_THREADPOOL_SIZE: "32"
       N: "2"
       PUERTO: "8100"
       NODO_URL: ${NODO2_URL:-http://nodo2:8080}
       DATABASE_URL: postgres://vybra:${DB_PASSWORD:-vybra}@db2:5432/vybra
-    ports: ["8102:8100"]
+    ports: ["${PUERTO_SERVIDOR2:-8102}:8100"]
     depends_on: { db2: { condition: service_healthy } }
   servidor3:
     <<: *servidor
     build: { context: ./web, dockerfile: docker/Dockerfile.ubuntu }
-    container_name: sismo-servidor-3
+    container_name: ${PREFIJO:-sismo}-servidor-3
     environment:
       <<: *retencion
+      UV_THREADPOOL_SIZE: "32"
       N: "3"
       PUERTO: "8100"
       NODO_URL: ${NODO3_URL:-http://nodo3:8080}
       DATABASE_URL: postgres://vybra:${DB_PASSWORD:-vybra}@db3:5432/vybra
-    ports: ["8103:8100"]
+    ports: ["${PUERTO_SERVIDOR3:-8103}:8100"]
     depends_on: { db3: { condition: service_healthy } }
+
+  # ---- Controlador de infraestructura: único con acceso al socket de Docker; solo puede parar/arrancar nodoN y servidorN ----
+  controlador:
+    build: { context: ./web, dockerfile: docker/Dockerfile.controlador }
+    container_name: ${PREFIJO:-sismo}-controlador
+    restart: unless-stopped
+    environment:
+      PUERTO: "8200"
+      CONTROL_TOKEN: ${CONTROL_TOKEN:-vybra-control-dev}   # solo desarrollo; en producción CONTROL_TOKEN_FILE (secreto)
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    # Sin "ports": no se publica; solo el panel lo alcanza por la red interna de compose.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8200/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
 
   panel:
     build: ./web          # Alpine (node:22-alpine)
-    container_name: sismo-panel
+    container_name: ${PREFIJO:-sismo}-panel
     restart: unless-stopped
     command: ["node", "server.js"]
     environment:
       PUERTO: "8090"
+      # Resolver el nombre de un contenedor APAGADO tarda unos 3 s (Docker lo reenvía al DNS del equipo): con el pool de hilos
+      # por defecto (4) esas búsquedas retrasarían las peticiones a los nodos vivos.
+      UV_THREADPOOL_SIZE: "32"
       NODOS: ${NODOS:-${NODO1_URL:-http://nodo1:8080},${NODO2_URL:-http://nodo2:8080},${NODO3_URL:-http://nodo3:8080}}
       SERVIDORES: http://servidor1:8100,http://servidor2:8100,http://servidor3:8100
+      # Apagar/encender servidores desde ADMIN: el panel habla con el controlador (red interna), nunca con Docker.
+      CONTROLADOR_URL: http://controlador:8200
+      CONTROL_TOKEN: ${CONTROL_TOKEN:-vybra-control-dev}
     ports: ["${PUERTO_PANEL:-8095}:8090"]
     depends_on:
       nodo1: { condition: service_healthy }
