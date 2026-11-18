@@ -7,7 +7,7 @@ import { crearPoller } from './poller.js';
 import os from 'node:os';
 import dns from 'node:dns/promises';
 import { randomUUID } from 'node:crypto';
-import { NODOS, PUERTO, UBICACIONES, SERVIDORES } from './config.js';
+import { NODOS, PUERTO, UBICACIONES, SERVIDORES, CONTROLADOR } from './config.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const LIMITE_CUERPO = 4096;
@@ -67,6 +67,7 @@ export function crearManejador({
   poller, nodos, publicDir = path.join(AQUI, 'public'), timeoutNodoMs = 1000,
   maxPendienteSse = MAX_PENDIENTE, vivoMs = VIVO_MS,
   ubicaciones = UBICACIONES, servidores = [], timeoutServidorMs = 2000,
+  controlador = null, timeoutControlMs = 30000,
 }) {
   const raiz = path.resolve(publicDir);
   // Las posiciones de los detectores son fijas (config.js): se agregan a cada foto.
@@ -256,6 +257,84 @@ export function crearManejador({
   }
   const entero = (v, def, min, max) => { if (v == null || v === '') return def; const n = Number(v); return Number.isInteger(n) && n >= min && n <= max ? n : NaN; };
 
+  // ------------------------------------------------------------ infraestructura: apagar / encender servidores
+  // El navegador solo habla con el panel; el panel habla con el controlador (único con acceso a Docker).
+  // Del navegador solo se acepta un número 1-3 y "apagar" o "encender": nada llega a Docker tal cual.
+  async function llamarControlador(metodo, ruta, ms = 4000) {
+    const r = await fetch(`${controlador.url}${ruta}`, {
+      method: metodo, signal: AbortSignal.timeout(ms),
+      headers: controlador.token ? { Authorization: `Bearer ${controlador.token}` } : {},
+    });
+    let cuerpo = null;
+    try { cuerpo = await r.json(); } catch { /* sin cuerpo */ }
+    return { status: r.status, cuerpo };
+  }
+  async function estadoInfra() {
+    if (!controlador || !controlador.url) return { disponible: false, motivo: 'No hay controlador de infraestructura configurado (variable CONTROLADOR_URL).' };
+    try {
+      const r = await llamarControlador('GET', '/estado');
+      if (r.status !== 200) return { disponible: false, motivo: `El controlador respondió ${r.status}${r.cuerpo?.error ? `: ${r.cuerpo.error}` : ''}.` };
+      return { disponible: true, ...r.cuerpo };
+    } catch { return { disponible: false, motivo: 'El controlador de infraestructura no responde.' }; }
+  }
+  const llamarNodo = async (n, accion) => {
+    const nodo = nodos.find((x) => x.n === n);
+    if (!nodo) return { ok: false, error: 'nodo desconocido' };
+    try {
+      const r = await fetch(`${nodo.url}/control`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion }), signal: AbortSignal.timeout(timeoutNodoMs) });
+      return { ok: r.ok, status: r.status };
+    } catch { return { ok: false, error: 'nodo inalcanzable' }; }
+  };
+  const registrarInfra = (n, parametros, resultado, estado) => {
+    const s = servidorDe(n);
+    if (!s) return;
+    const cuerpo = JSON.stringify({ ref: randomUUID(), tipo: 'infra', parametros, estado_http: estado, resultado, origen: 'panel' });
+    const enviar = () => fetch(`${s.url}/acciones`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: cuerpo, signal: AbortSignal.timeout(timeoutServidorMs) }).then((r) => { if (r.status >= 500) throw new Error('5xx'); });
+    // Al encender el servidor tarda unos segundos en responder: se reintenta hasta 10 veces (mismo ref: no se duplica).
+    let intentos = 0;
+    const probar = () => enviar().catch(() => { if (++intentos < 10) setTimeout(probar, 1500).unref(); });
+    probar();
+  };
+  async function cambiarEstado(res, req, n, accion) {
+    if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) { req.resume(); return responderJson(res, 415, { error: 'se requiere application/json' }); }
+    // Anti-CSRF: una página de otro sitio no puede ordenar un apagado (el navegador envía su Origin).
+    const origen = req.headers.origin;
+    if (origen) { try { if (new URL(origen).host !== req.headers.host) return responderJson(res, 403, { error: 'origen no permitido' }); } catch { return responderJson(res, 403, { error: 'origen no permitido' }); } }
+    const cuerpo = await leerCuerpo(req, res);
+    if (cuerpo === null) return;
+    let datos; try { datos = JSON.parse(cuerpo); } catch { return responderJson(res, 400, { error: 'json invalido' }); }
+    if (!datos || datos.confirmar !== true) return responderJson(res, 400, { error: 'falta la confirmación explícita ({"confirmar":true})' });
+    if (!controlador || !controlador.url) return responderJson(res, 503, { error: 'No hay controlador de infraestructura configurado (CONTROLADOR_URL).' });
+    let previo;
+    try { previo = await llamarControlador('GET', '/estado'); } catch { return responderJson(res, 502, { error: 'El controlador de infraestructura no responde.' }); }
+    const info = previo.cuerpo?.servidores?.find((x) => x.n === n);
+    if (previo.status !== 200 || !info) return responderJson(res, 502, { error: 'No se pudo leer el estado de la infraestructura.' });
+    const modo = info.modo;                       // 'simulado' (contenedor) o 'fisico' (ESP32 real)
+    const foto = poller.foto();
+    const detalle = { modo, eraLider: foto.lider === n };
+    console.log(`Infraestructura: ${accion} servidor ${n} (${modo})`);
+    try {
+      let nodoLogico = null;
+      if (accion === 'apagar') {
+        // El registro se escribe ANTES: después el servidor ya no puede recibirlo.
+        registrarInfra(n, { accion, modo }, { solicitado: true }, 202);
+        if (modo === 'fisico') nodoLogico = await llamarNodo(n, 'caer');       // el ESP32 físico sigue con corriente: se desconecta de Raft
+      }
+      const r = await llamarControlador('POST', `/servidores/${n}/${accion}`, timeoutControlMs);
+      if (r.status !== 200) return responderJson(res, r.status === 409 ? 409 : 502, { error: r.cuerpo?.error || `El controlador respondió ${r.status}`, ...detalle });
+      if (accion === 'encender') {
+        if (modo === 'fisico') nodoLogico = await llamarNodo(n, 'recuperar');
+        registrarInfra(n, { accion, modo }, { iniciados: r.cuerpo.iniciados }, 200);
+      }
+      const mensaje = modo === 'fisico'
+        ? (accion === 'apagar' ? `Servidor ${n} apagado. Su ESP32 es físico: sigue con corriente y quedó desconectado lógicamente de Raft.` : `Servidor ${n} encendido y su ESP32 físico se reincorporó a Raft.`)
+        : (accion === 'apagar' ? `Servidor ${n} apagado: se detuvieron su ESP32 simulado y su servidor de datos. Su base de datos sigue encendida.` : `Servidor ${n} encendido: arrancaron su ESP32 simulado y su servidor de datos; el nodo se reincorpora a Raft.`);
+      return responderJson(res, 200, { ok: true, accion, n, ...detalle, mensaje, nodoLogico, controlador: r.cuerpo });
+    } catch (e) {
+      return responderJson(res, 502, { error: e.name === 'TimeoutError' ? 'El controlador tardó demasiado en responder.' : 'El controlador de infraestructura no responde.', ...detalle });
+    }
+  }
+
   const manejador = (req, res) => {
     // Se antepone el origen como texto: con base, "//x/y" se leería como host.
     // URL normaliza los ".." en silencio: se rechazan antes sobre la ruta cruda.
@@ -269,6 +348,7 @@ export function crearManejador({
     if (metodo === 'GET' || metodo === 'HEAD') {
       if (pathname === '/api/estado') return responderJson(res, 200, conUbicaciones(poller.foto()));
       if (pathname === '/api/stream') return stream(req, res);
+      if (pathname === '/api/infra') return estadoInfra().then((o) => responderJson(res, 200, o));
       // Servidores de datos (uno por ESP32, cada uno con su base PostgreSQL): estado de cada uno.
       if (pathname === '/api/servidores') {
         return Promise.all(servidores.map(async (s) => {
@@ -324,6 +404,8 @@ export function crearManejador({
       return estatico(res, (pathname.endsWith('/') ? `${pathname}index.html` : pathname).slice(1), req.headers.range);
     }
     if (metodo === 'POST') {
+      const inf = /^\/api\/infra\/servidores\/([1-3])\/(apagar|encender)$/.exec(pathname);
+      if (inf) return cambiarEstado(res, req, Number(inf[1]), inf[2]);
       const m = /^\/api\/nodos\/([^/]+)\/(control|pulsar)$/.exec(pathname);
       if (m) {
         const n = /^[1-9]$/.test(m[1]) ? Number(m[1]) : 0;
@@ -377,7 +459,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const timeoutNodoMs = Number(process.env.TIMEOUT_NODO_MS) || 3000;
   const poller = crearPoller({ nodos: NODOS, timeoutMs: timeoutNodoMs, intervaloMs: Number(process.env.INTERVALO_MS) || 1000 });
   if (SERVIDORES.length) console.log(`Servidores de datos: ${SERVIDORES.map((s) => `S${s.n} ${s.url}`).join(' · ')}`);
-  const manejador = crearManejador({ poller, nodos: NODOS, timeoutNodoMs, servidores: SERVIDORES });
+  const manejador = crearManejador({ poller, nodos: NODOS, timeoutNodoMs, servidores: SERVIDORES, controlador: CONTROLADOR.url ? CONTROLADOR : null });
   const servidor = http.createServer(manejador);
   const ip = ipLan();
   resolverNodos(poller, NODOS);

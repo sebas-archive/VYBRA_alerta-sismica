@@ -416,3 +416,110 @@ test('sin SERVIDORES configurados /api/historial responde 404 claro', async () =
   const r = await fetch(`${base}/api/historial`);
   assert.equal(r.status, 404);
 });
+
+// ---------------------------------------------------------------- infraestructura: apagar / encender servidores
+async function controladorFalso({ modos = {}, error = null } = {}) {
+  const llamadas = [];
+  const srv = http.createServer((req, res) => {
+    llamadas.push(`${req.method} ${req.url} auth=${req.headers.authorization ?? ''}`);
+    const out = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+    if (req.url === '/estado') return out(200, { proyecto: 'p', servidores: [1, 2, 3].map((n) => ({ n, modo: modos[n] || 'simulado', nodo: { existe: (modos[n] || 'simulado') === 'simulado', corriendo: true }, servidor: { corriendo: true }, bd: { corriendo: true, volumenes: [`v${n}`] } })) });
+    const m = /^\/servidores\/(\d)\/(apagar|encender)$/.exec(req.url);
+    if (req.method === 'POST' && m) return error ? out(error.status, { error: error.msg }) : out(200, { accion: m[2], n: Number(m[1]), detenidos: m[2] === 'apagar' ? [`nodo${m[1]}`, `servidor${m[1]}`] : undefined, iniciados: m[2] === 'encender' ? [`nodo${m[1]}`, `servidor${m[1]}`] : undefined });
+    out(404, {});
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  return { llamadas, url: `http://127.0.0.1:${srv.address().port}`, cerrar: () => new Promise((r) => { srv.closeAllConnections?.(); srv.close(r); }) };
+}
+async function panelInfra(controlador, extra = {}) {
+  const nodos = falsos.map((f) => ({ n: f.n, url: f.url }));
+  const p = crearPoller({ nodos, intervaloMs: 30, timeoutMs: 80 });
+  const s = crearServidor({ poller: p, nodos, publicDir: dir, timeoutNodoMs: 300, timeoutServidorMs: 400, controlador, ...extra });
+  await new Promise((r) => s.listen(0, '127.0.0.1', r));
+  return { base: `http://127.0.0.1:${s.address().port}`, cerrar: async () => { p.detener(); s.closeAllConnections?.(); await new Promise((r) => s.close(r)); } };
+}
+const orden = (base, n, accion, cuerpo = { confirmar: true }, cab = {}) => fetch(`${base}/api/infra/servidores/${n}/${accion}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...cab }, body: JSON.stringify(cuerpo) });
+
+test('infra: sin controlador la función está desactivada con un motivo claro', async () => {
+  const P = await panelInfra(null);
+  try {
+    const e = await (await fetch(`${P.base}/api/infra`)).json();
+    assert.equal(e.disponible, false);
+    assert.match(e.motivo, /CONTROLADOR_URL/);
+    assert.equal((await orden(P.base, 1, 'apagar')).status, 503);
+  } finally { await P.cerrar(); }
+});
+
+test('infra: estado, confirmación obligatoria, anti-CSRF y rutas válidas', async () => {
+  const C = await controladorFalso();
+  const P = await panelInfra({ url: C.url, token: 'tk' });
+  try {
+    const e = await (await fetch(`${P.base}/api/infra`)).json();
+    assert.equal(e.disponible, true);
+    assert.deepEqual(e.servidores.map((x) => x.modo), ['simulado', 'simulado', 'simulado']);
+    assert.match(C.llamadas[0], /auth=Bearer tk/);
+    // sin confirmar, sin JSON, desde otro origen, ruta inválida: nada llega al controlador
+    assert.equal((await orden(P.base, 1, 'apagar', {})).status, 400);
+    assert.equal((await orden(P.base, 1, 'apagar', { confirmar: 'si' })).status, 400);
+    assert.equal((await fetch(`${P.base}/api/infra/servidores/1/apagar`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: '{"confirmar":true}' })).status, 415);
+    assert.equal((await orden(P.base, 1, 'apagar', { confirmar: true }, { Origin: 'http://sitio-malo.example' })).status, 403);
+    for (const u of ['/api/infra/servidores/4/apagar', '/api/infra/servidores/1/borrar', '/api/infra/servidores/1;ls/apagar', '/api/infra/servidores/db1/apagar']) {
+      assert.equal((await fetch(P.base + u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"confirmar":true}' })).status, 404, u);
+    }
+    assert.equal(C.llamadas.filter((l) => l.startsWith('POST')).length, 0);
+    // válida desde el mismo origen
+    const r = await orden(P.base, 2, 'apagar', { confirmar: true }, { Origin: P.base });
+    assert.equal(r.status, 200);
+    const j = await r.json();
+    assert.equal(j.modo, 'simulado'); assert.match(j.mensaje, /base de datos sigue encendida/);
+    assert.deepEqual(C.llamadas.filter((l) => l.startsWith('POST')).map((l) => l.split(' ')[1]), ['/servidores/2/apagar']);
+  } finally { await P.cerrar(); await C.cerrar(); }
+});
+
+test('infra: ESP32 simulado → solo el controlador; ESP32 físico → además desconexión lógica por /control', async () => {
+  const C = await controladorFalso({ modos: { 2: 'fisico' } });
+  const P = await panelInfra({ url: C.url, token: '' });
+  try {
+    // simulado (servidor 1): el nodo no recibe /control
+    let r = await (await orden(P.base, 1, 'apagar')).json();
+    assert.equal(r.modo, 'simulado'); assert.equal(r.nodoLogico, null);
+    assert.equal(falsos[0].estado.caido, false);
+    // físico (servidor 2): se desconecta lógicamente de Raft y el mensaje lo aclara
+    r = await (await orden(P.base, 2, 'apagar')).json();
+    assert.equal(r.modo, 'fisico'); assert.equal(r.nodoLogico.ok, true);
+    assert.equal(falsos[1].estado.caido, true, 'el ESP32 físico sigue encendido pero caído para Raft');
+    assert.match(r.mensaje, /sigue con corriente/);
+    r = await (await orden(P.base, 2, 'encender')).json();
+    assert.equal(falsos[1].estado.caido, false);
+    assert.match(r.mensaje, /reincorporó/);
+  } finally { await P.cerrar(); await C.cerrar(); }
+});
+
+test('infra: los errores del controlador se muestran tal cual y un controlador caído da 502', async () => {
+  const C = await controladorFalso({ error: { status: 409, msg: 'La base de datos del servidor 1 no está encendida' } });
+  const P = await panelInfra({ url: C.url, token: '' });
+  try {
+    const r = await orden(P.base, 1, 'encender');
+    assert.equal(r.status, 409);
+    assert.match((await r.json()).error, /base de datos/);
+  } finally { await P.cerrar(); await C.cerrar(); }
+  const P2 = await panelInfra({ url: 'http://127.0.0.1:1', token: '' });
+  try {
+    assert.equal((await orden(P2.base, 1, 'apagar')).status, 502);
+    assert.equal((await (await fetch(`${P2.base}/api/infra`)).json()).disponible, false);
+  } finally { await P2.cerrar(); }
+});
+
+test('infra: la orden queda registrada en la base del servidor afectado (acciones, tipo infra)', async () => {
+  const sv = [await servidorFalso(1), await servidorFalso(2), await servidorFalso(3)];
+  const C = await controladorFalso();
+  const P = await panelInfra({ url: C.url, token: '' }, { servidores: sv.map((s, i) => ({ n: i + 1, url: s.url })) });
+  try {
+    assert.equal((await orden(P.base, 3, 'apagar')).status, 200);
+    await esperar(() => sv[2].acciones.length === 1);
+    assert.equal(sv[2].acciones[0].tipo, 'infra');
+    assert.equal(sv[2].acciones[0].parametros.accion, 'apagar');
+    assert.ok(sv[2].acciones[0].ref);
+    assert.equal(sv[0].acciones.length + sv[1].acciones.length, 0);
+  } finally { await P.cerrar(); await C.cerrar(); await Promise.all(sv.map((s) => s.cerrar())); }
+});

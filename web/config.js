@@ -29,3 +29,11 @@ export const UBICACIONES = {
 // SERVIDORES="http://servidor1:8100,http://servidor2:8100,http://servidor3:8100". Sin variable: no hay histórico.
 export const SERVIDORES = (process.env.SERVIDORES || '')
   .split(',').map((u) => u.trim().replace(/\/+$/, '')).filter(Boolean).map((url, i) => ({ n: i + 1, url }));
+
+// Controlador de infraestructura (apagar/encender servidores). Sin CONTROLADOR_URL la función queda desactivada.
+import fs from 'node:fs';
+function leerToken() {
+  if (process.env.CONTROL_TOKEN_FILE) { try { return fs.readFileSync(process.env.CONTROL_TOKEN_FILE, 'utf8').trim(); } catch (e) { console.error(`No se pudo leer CONTROL_TOKEN_FILE: ${e.message}`); } }
+  return process.env.CONTROL_TOKEN || '';
+}
+export const CONTROLADOR = { url: (process.env.CONTROLADOR_URL || '').replace(/\/+$/, ''), token: leerToken() };
