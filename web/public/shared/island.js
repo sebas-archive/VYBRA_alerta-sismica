@@ -163,12 +163,16 @@
       }
       more.appendChild(inn);
       node.appendChild(more);
-      main.addEventListener('click', () => {
+      const toggle = () => {
         const nowOpen = node.dataset.open !== '1';
         node.dataset.open = nowOpen ? '1' : '0';
         main.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
         nowOpen ? pause(slot) : resume(slot);
-      });
+      };
+      main.addEventListener('click', toggle);
+      // El chevron también despliega (el botón accesible sigue siendo el texto de la cápsula).
+      const chevEl = tools.querySelector('.isl-chev');
+      if (chevEl) chevEl.addEventListener('click', toggle);
     }
     // No desaparece mientras el usuario interactúa con ella.
     node.addEventListener('pointerenter', () => pause(slot));
