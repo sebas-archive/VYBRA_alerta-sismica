@@ -1,5 +1,5 @@
 # PRODUCCIÓN: se usa SOBRE docker-compose.yml.
-#   mkdir -p secretos && (umask 077; openssl rand -base64 32 > secretos/db_password.txt)
+#   mkdir -p secretos && (umask 077; openssl rand -base64 32 > secretos/db_password.txt; openssl rand -base64 32 > secretos/control_token.txt)
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 # - La clave de las bases sale de un SECRETO (archivo fuera del repositorio), no de variables ni del código.
 # - Los servidores rechazan arrancar con la clave de desarrollo ("vybra") o vacía (VYBRA_ENTORNO=produccion).
@@ -22,6 +22,8 @@ x-db-prod: &db_prod
 secrets:
   db_password:
     file: ./secretos/db_password.txt
+  control_token:
+    file: ./secretos/control_token.txt     # openssl rand -base64 32 > secretos/control_token.txt
 
 services:
   nodo1: { profiles: ["simulados"] }
@@ -45,7 +47,12 @@ services:
     ports: !reset []
     depends_on: !override { db3: { condition: service_healthy } }
     environment: { <<: *servidor_prod, DB_HOST: db3 }
+  controlador:
+    secrets: [control_token]
+    environment: { CONTROL_TOKEN: !reset null, CONTROL_TOKEN_FILE: /run/secrets/control_token }
   panel:
+    secrets: [control_token]
+    environment: { CONTROL_TOKEN: !reset null, CONTROL_TOKEN_FILE: /run/secrets/control_token }
     depends_on: !override
       servidor1: { condition: service_healthy }
       servidor2: { condition: service_healthy }
