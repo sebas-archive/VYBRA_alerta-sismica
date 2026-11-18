@@ -325,6 +325,7 @@ export const DICT: Record<string, string> = {
   "Reproduce el mismo sonido que la app de cliente.": "Plays the same sound as the client app.",
   Volumen: "Volume",
   "Probar sonido": "Test sound",
+  "Detener sonido": "Stop sound",
   "Pantalla de alerta desde": "Alert screen from",
   "Nivel mínimo": "Minimum level",
   "Las alertas de menor nivel solo muestran el banner.": "Lower-level alerts only show the banner.",

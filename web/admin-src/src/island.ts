@@ -15,6 +15,7 @@ export type IslandOpts = {
   icon?: string;
   spin?: boolean;
   dismissible?: boolean;
+  open?: boolean;
   onClose?: () => void;
 };
 type Api = { show: (o: IslandOpts) => void; dismiss: (id: string) => void; setTheme: (t: string) => void; setReduce: (v: boolean) => void };

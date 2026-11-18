@@ -20,7 +20,7 @@ import {
 import { DEFAULTS, P, loadPrefs, motionReduced, pgaStr, pgaText, savePrefs, seekTo, toneSrc, toneStart, type Prefs } from "./prefs";
 import { startI18n } from "./i18n";
 import { notify, dismissIsland, loadIsland, islandTheme, islandReduce } from "./island";
-import { useLive, startLive, control, pulsar, msParaNivel, type Srv, type Suceso, type LogEntry, type InfraSrv } from "./live";
+import { useLive, startLive, control, pulsar, msParaNivel, infraAccion, refrescarCtl, type Srv, type Suceso, type LogEntry, type InfraSrv, type Ctl, type CtlServidor } from "./live";
 
 type Page = "Panorama" | "Sismógrafos" | "Alertas" | "Histórico" | "Clúster Raft" | "Servidores" | "Detectores" | "Registros" | "Configuración";
 type Scenario = "Normal" | "Nodo 2 caído" | "Sin quórum" | "Elección";
@@ -1146,8 +1146,66 @@ const fmtUptime = (ms: number) => {
   return d ? `${d} d ${h} h` : h ? `${h} h ${m} min` : m ? `${m} min` : `${s} s`;
 };
 
-function Servers({ data, infra }: { data: ScenarioData; infra: InfraSrv[] | null }) {
+function Servers({ data, infra, ctl }: { data: ScenarioData; infra: InfraSrv[] | null; ctl: Ctl | null }) {
   useTick();
+  const [haciendo, setHaciendo] = useState<Record<number, "apagar" | "encender" | undefined>>({});
+  const estadoCtl = (n: number): CtlServidor | undefined => ctl?.servidores?.find((x) => x.n === n);
+  // Texto de las consecuencias REALES de la orden, calculado con el estado actual del clúster.
+  const consecuencias = (n: number, accion: "apagar" | "encender", c: CtlServidor) => {
+    const sv = data.servers?.find((x) => x.id === n);
+    const fis = c.modo === "fisico";
+    if (accion === "encender")
+      return {
+        rows: [
+          ["Se enciende", fis ? `Servidor de datos ${n}` : `ESP32 simulado nodo-${n} y servidor de datos ${n}`],
+          ["Reincorporación", fis ? "El ESP32 físico se reincorpora a Raft" : "El nodo arranca como seguidor y se sincroniza con el líder (Raft)"],
+          ["Base de datos", `PostgreSQL ${n} ya está encendida; conserva sus datos`],
+        ] as [string, string][],
+        texto: "El nodo se reincorpora al clúster y copia lo que le falte.",
+      };
+    const quedan = data.connected.filter((x) => x !== n && (data.servers?.find((y) => y.id === x)?.reach ?? true)).length;
+    const lider = data.leader === n;
+    const sinQuorum = sv?.reach !== false && data.connected.includes(n) ? quedan < 2 : data.connected.length < 2;
+    return {
+      rows: [
+        ["Se apaga", fis ? `Servidor de datos ${n}` : `ESP32 simulado nodo-${n} y servidor de datos ${n}`],
+        ["Sigue encendido", fis ? `El ESP32 físico (con corriente, desconectado de Raft), la base PostgreSQL ${n} y los otros servidores` : `La base PostgreSQL ${n} (volumen conservado) y los otros dos servidores con sus nodos`],
+        ["Efecto en Raft", sinQuorum ? "Se perderá el quórum: no se podrán confirmar eventos" : lider ? "Es el líder: los dos nodos restantes elegirán uno nuevo" : "El clúster sigue con mayoría (2 de 3)"],
+      ] as [string, string][],
+      texto: sinQuorum ? "Quedarás sin quórum: los eventos quedarán pendientes hasta volver a encender un servidor." : lider ? "Es el líder: habrá una elección entre los otros dos nodos." : "El clúster seguirá operando con 2 de 3 servidores.",
+    };
+  };
+  const ejecutar = async (n: number, accion: "apagar" | "encender") => {
+    setHaciendo((h) => ({ ...h, [n]: accion }));
+    const verbo = accion === "apagar" ? "Apagando" : "Encendiendo";
+    notify({ id: `infra-${n}`, kind: "conn", icon: "sync", spin: true, sticky: true, dismissible: false, title: `${verbo} el Servidor ${n}…`, text: accion === "apagar" ? "Deteniendo su ESP32 y su servidor de datos." : "Arrancando su ESP32 y su servidor de datos." });
+    const r = await infraAccion(n, accion);
+    setHaciendo((h) => ({ ...h, [n]: undefined }));
+    void refrescarCtl();
+    if (r.status === 200)
+      notify({ id: `infra-${n}`, kind: "success", icon: "server", title: `Servidor ${n} ${accion === "apagar" ? "apagado" : "encendido"}`, text: r.body?.mensaje, ttl: 7000 });
+    else
+      notify({ id: `infra-${n}`, kind: "error", title: `No se pudo ${accion} el Servidor ${n}`, text: r.body?.error ?? (r.status === 0 ? "Sin conexión con el servidor del PC." : `Error ${r.status}`), ttl: 10000 });
+  };
+  const pedir = (n: number, accion: "apagar" | "encender") => {
+    const c = estadoCtl(n);
+    if (!c) return;
+    const k = consecuencias(n, accion, c);
+    notify({
+      id: `infra-confirmar-${n}`,
+      kind: accion === "apagar" ? "warn" : "info",
+      icon: "server",
+      open: true,
+      sticky: true,
+      title: accion === "apagar" ? `¿Apagar el Servidor ${n}?` : `¿Encender el Servidor ${n}?`,
+      text: k.texto,
+      rows: k.rows,
+      actions: [
+        { label: accion === "apagar" ? "Apagar servidor" : "Encender servidor", primary: true, onClick: () => void ejecutar(n, accion) },
+        { label: "Cancelar" },
+      ],
+    });
+  };
   const list = data.servers;
   const real = !!data.real && !!list;
   const src = data.sourceNode ?? null;
@@ -1198,7 +1256,18 @@ function Servers({ data, infra }: { data: ScenarioData; infra: InfraSrv[] | null
                     ["Última escritura", fmtAgo(ds.bd?.ultimaEscritura)],
                     ["ESP32 asignado", ds.nodo ? `nodo-${id} · ${ds.nodo.alcanzable ? "responde" : ds.nodo.alcanzable === false ? "sin respuesta" : "—"}` : "—"],
                   ];
+          const cs = estadoCtl(id);
+          const est = (x?: { existe: boolean; estado: string; corriendo?: boolean }) => (!x || !x.existe ? "No es un contenedor" : x.corriendo ? "Encendido" : "Apagado");
+          const infraRows: [string, ReactNode][] = real && cs
+            ? [
+                ["Modo del ESP32", cs.modo === "simulado" ? "Simulado (contenedor con el núcleo Raft del firmware)" : "Físico (no se apaga: desconexión lógica de Raft)"],
+                ["Contenedor del nodo", cs.modo === "simulado" ? est(cs.nodo) : "—"],
+                ["Contenedor del servidor", est(cs.servidor)],
+                ["Contenedor de la base", `${est(cs.bd)}${cs.bd.volumenes?.length ? ` · volumen ${cs.bd.volumenes.join(", ")} conservado` : ""}`],
+              ]
+            : [];
           const rows: [string, ReactNode][] = [
+            ...infraRows,
             ...dataRows,
             ["Detector", `Detector ${id} · nodo-${id} · S${id}`],
             ...(sv?.sistema ? ([["Sistema del nodo", sv.sistema]] as [string, ReactNode][]) : []),
@@ -1249,6 +1318,40 @@ function Servers({ data, infra }: { data: ScenarioData; infra: InfraSrv[] | null
                   </div>
                 ))}
               </dl>
+              {real && (
+                <div className="server-power">
+                  {!cs ? (
+                    <span className="server-power-note">{ctl === null ? "Consultando la infraestructura…" : ctl.disponible === false ? `Control de encendido no disponible: ${ctl.motivo ?? "sin controlador"}` : "Sin datos de infraestructura"}</span>
+                  ) : (
+                    (() => {
+                      const hace = haciendo[id] ?? (cs.enCurso ? "apagar" : undefined);
+                      const sOn = !!cs.servidor.corriendo,
+                        nOn = cs.nodo.existe ? !!cs.nodo.corriendo : sOn;
+                      const algoOn = sOn || nOn,
+                        algoOff = !sOn || !nOn;
+                      return (
+                        <>
+                          {algoOn && (
+                            <button className="power-off" disabled={!!hace} onClick={() => pedir(id, "apagar")}>
+                              <Icon name="close" size={13} />
+                              {hace === "apagar" ? "Apagando…" : "Apagar servidor"}
+                            </button>
+                          )}
+                          {algoOff && (
+                            <button className="power-on" disabled={!!hace} onClick={() => pedir(id, "encender")}>
+                              <Icon name="play" size={13} />
+                              {hace === "encender" ? "Encendiendo…" : "Encender servidor"}
+                            </button>
+                          )}
+                          <span className="server-power-note">
+                            {cs.modo === "fisico" ? "ESP32 físico: sigue con corriente; se desconecta de Raft" : !algoOn ? "Apagado: ESP32 y servidor de datos detenidos · base encendida" : algoOff ? "Parcialmente encendido" : "Encendido"}
+                          </span>
+                        </>
+                      );
+                    })()
+                  )}
+                </div>
+              )}
               <div className="server-links">
                 {link ? (
                   <>
@@ -2496,13 +2599,65 @@ function Settings({
   reset: () => void;
 }) {
   const live = useLive();
+  // Ensayo del sonido de alerta: mientras suena, el botón vuelve a pulsarse para detenerlo.
+  const [soundPlaying, setSoundPlaying] = useState(false);
+  const soundAudio = useRef<HTMLAudioElement | null>(null);
+  const soundTimer = useRef<number | null>(null);
+  const stopSoundTest = () => {
+    if (soundTimer.current !== null) {
+      window.clearTimeout(soundTimer.current);
+      soundTimer.current = null;
+    }
+    const a = soundAudio.current;
+    soundAudio.current = null;
+    if (a) {
+      a.pause();
+      a.currentTime = 0;
+    }
+    setSoundPlaying(false);
+  };
   const testSound = () => {
+    if (soundPlaying) {
+      stopSoundTest();
+      return;
+    }
+    stopSoundTest();
     const a = new Audio(toneSrc(prefs.tone));
     a.volume = prefs.volume;
     seekTo(a, toneStart(prefs.tone));
-    a.play().catch(() => {});
-    window.setTimeout(() => a.pause(), 3000);
+    soundAudio.current = a;
+    setSoundPlaying(true);
+    a.play()
+      .then(() => {
+        // Si se detuvo antes de que play() resolviera, no dejarlo sonando.
+        if (soundAudio.current !== a) {
+          a.pause();
+          a.currentTime = 0;
+        }
+      })
+      .catch(() => {});
+    soundTimer.current = window.setTimeout(stopSoundTest, 3000);
   };
+  // Al apagar el sonido o cambiar el tono el ensayo en curso deja de ser válido.
+  useEffect(() => {
+    stopSoundTest();
+  }, [prefs.sound, prefs.tone]);
+  // Sin audio ni temporizador huérfanos si se cambia de pantalla o se desmonta.
+  useEffect(
+    () => () => {
+      if (soundTimer.current !== null) {
+        window.clearTimeout(soundTimer.current);
+        soundTimer.current = null;
+      }
+      const a = soundAudio.current;
+      soundAudio.current = null;
+      if (a) {
+        a.pause();
+        a.currentTime = 0;
+      }
+    },
+    [],
+  );
   return (
     <div className="screen settings-screen">
       <Surface className="set-card">
@@ -2657,8 +2812,13 @@ function Settings({
               { v: "emergencia", label: "Emergencia" },
             ]}
           />
-          <button className="set-btn" onClick={testSound} disabled={!prefs.sound}>
-            Probar sonido
+          <button
+            className={`set-btn${soundPlaying ? " playing" : ""}`}
+            onClick={testSound}
+            disabled={!prefs.sound}
+            aria-pressed={soundPlaying}
+          >
+            {soundPlaying ? "Detener sonido" : "Probar sonido"}
           </button>
         </SetRow>
         <SetRow title="Pantalla de alerta" desc="Muestra la pantalla de alerta con su sonido para ensayarla. No se registra ni se envía a los nodos.">
@@ -2835,7 +2995,7 @@ export default function App() {
   demo.live = liveEv;
   const hist = real ? live.hist : history(data.leader);
   // Avisos por cambios reales: pérdida/recuperación de quórum, del servidor del PC y de nodos.
-  const prevSt = useRef<{ q: boolean | null; conn: string; down: number[] }>({ q: null, conn: "conectado", down: [] });
+  const prevSt = useRef<{ q: boolean | null; conn: string; down: number[]; leader: number | null | undefined }>({ q: null, conn: "conectado", down: [], leader: undefined });
   useEffect(() => {
     if (!real) return;
     const p = prevSt.current;
@@ -2852,6 +3012,12 @@ export default function App() {
         const vuelven = p.down.filter((i) => !down.includes(i));
         if (p.q !== null && !nuevos.length && vuelven.length) notify({ id: "node-up", kind: "success", icon: "wifi", title: `${vuelven.map((i) => "S" + i).join(", ")} vuelve a responder` });
       }
+      // Cambio de líder: lo decide Raft entre los nodos restantes; aquí solo se informa de lo que ocurrió.
+      if (p.leader !== undefined && p.leader !== data.leader) {
+        if (data.leader == null) notify({ id: "leader", kind: "warn", icon: "sync", title: "Sin líder: elección en curso", text: p.leader ? `S${p.leader} dejó de ser el líder.` : undefined });
+        else notify({ id: "leader", kind: "success", icon: "check", title: `S${data.leader} es ahora el líder`, text: `Término ${data.term}${p.leader ? ` · reemplaza a S${p.leader}` : ""}` });
+      }
+      p.leader = data.leader;
       p.down = down;
       p.q = data.quorum;
     }
@@ -3104,7 +3270,7 @@ export default function App() {
             {page === "Alertas" && (
               <Alerts data={data} alerts={alerts} sel={selAlert} setSel={setSelAlert} onTest={testAlarm} />
             )}
-            {page === "Servidores" && <Servers data={data} infra={live.infra} />}
+            {page === "Servidores" && <Servers data={data} infra={live.infra} ctl={live.ctl} />}
             {page === "Histórico" && <History real={real} />}
             {page === "Registros" && <Logs data={data} hist={hist} />}
             {page === "Configuración" && (

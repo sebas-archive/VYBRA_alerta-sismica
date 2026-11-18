@@ -57,7 +57,12 @@ export type InfraSrv = {
   nodo?: { alcanzable: boolean | null; ultimoContacto: number | null; ultimoError?: string | null };
   bd?: { ok: boolean; version?: string; conteos?: Record<string, number>; ultimaEscritura?: number | null; error?: string };
 };
+/** Estado real de los contenedores de cada servidor (de /api/infra, que lee el controlador de infraestructura). */
+export type CtlContenedor = { existe: boolean; estado: string; corriendo?: boolean; salud?: string | null; desde?: string | null; contenedor?: string; volumenes?: string[] };
+export type CtlServidor = { n: number; modo: "simulado" | "fisico"; nodo: CtlContenedor; servidor: CtlContenedor; bd: CtlContenedor; enCurso: boolean };
+export type Ctl = { disponible: boolean; motivo?: string; servidores?: CtlServidor[] };
 export type LiveState = {
+  ctl: Ctl | null;
   infra: InfraSrv[] | null;
   mode: "connecting" | "real" | "demo";
   conn: "conectado" | "reconectando";
@@ -66,7 +71,7 @@ export type LiveState = {
   hist: { events: HEv[]; alerts: HAlert[] };
 };
 
-const EMPTY: LiveState = { infra: null, mode: "connecting", conn: "reconectando", beat: 0, data: null, hist: { events: [], alerts: [] } };
+const EMPTY: LiveState = { ctl: null, infra: null, mode: "connecting", conn: "reconectando", beat: 0, data: null, hist: { events: [], alerts: [] } };
 let state: LiveState = EMPTY;
 let foto: any = null;
 const subs = new Set<() => void>();
@@ -169,6 +174,15 @@ async function pollInfra() {
   }
 }
 
+export async function refrescarCtl() {
+  try {
+    const r = await fetch("/api/infra", { cache: "no-store" });
+    if (r.ok) set({ ctl: (await r.json()) as Ctl });
+  } catch {
+    /* sin conexión: se conserva lo último */
+  }
+}
+
 let started = false;
 export function startLive() {
   if (started) return;
@@ -198,7 +212,9 @@ export function startLive() {
       rebuild("conectado");
       open();
       void pollInfra();
+      void refrescarCtl();
       setInterval(() => void pollInfra(), 5000);
+      setInterval(() => void refrescarCtl(), 2500);
     })
     .catch(() => {
       clearTimeout(abort);
@@ -231,3 +247,7 @@ export const control = (n: number, accion: "caer" | "recuperar") => post(`/api/n
 /** ms = tiempo pulsado (el nodo acepta 80..60000 y calcula nivel = 1 + ms/450). */
 export const pulsar = (n: number, ms: number) => post(`/api/nodos/${n}/pulsar`, { ms: Math.round(ms) });
 export const msParaNivel = (nivel: number) => (nivel - 1) * 450 + 225;
+
+/** Apaga o enciende un servidor (su ESP32 simulado y su servidor de datos). Siempre con confirmación explícita. */
+export const infraAccion = (n: number, accion: "apagar" | "encender") =>
+  post(`/api/infra/servidores/${n}/${accion}`, { confirmar: true });

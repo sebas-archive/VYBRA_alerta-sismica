@@ -3,6 +3,7 @@
  * VybraIsland.show({ id, kind, title, text, rows, actions, place, ttl, sticky, pri, icon, spin, dismissible, onClose })
  *   kind:  info | success | warn | error | critical | conn
  *   place: 'top' (emergente superior, por defecto) | 'bar' (bajo la top bar)
+ *   open:  true = nace desplegada (confirmaciones)
  *   more:  texto largo que se ve al expandir
  *   rows:  [[etiqueta, valor], ...]  información adicional (la cápsula se expande al pulsarla)
  *   actions: [{ label, primary, onClick }]
@@ -81,7 +82,7 @@
   const instant = () => reduce || reducedQuery.matches;
 
   function build(slot, o) {
-    const open = slot.node ? slot.node.dataset.open === '1' : false;
+    const open = slot.node ? slot.node.dataset.open === '1' : !!o.open;
     const k = o.kind;
     const hasMore = !!((o.rows && o.rows.length) || (o.actions && o.actions.length) || o.more);
     const node = document.createElement('div');

@@ -3657,6 +3657,10 @@ main {
   color: var(--sev-severo);
   border-color: color-mix(in srgb, var(--sev-severo) 45%, transparent);
 }
+.set-btn.playing {
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 45%, transparent);
+}
 .set-range {
   width: 160px;
   accent-color: var(--blue);
@@ -3861,3 +3865,14 @@ main {
   .mobile-nav button { padding-left: 2px; padding-right: 2px; }
   .mobile-nav button span { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 8.5px; }
 }
+
+/* Servidores: encendido y apagado (se añade a las tarjetas existentes) */
+.server-power { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 2px; }
+.server-power button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9px; font: inherit; font-size: calc(11.5px * var(--fs, 1)); font-weight: 650; cursor: pointer; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); }
+.server-power button:disabled { opacity: 0.55; cursor: progress; }
+.server-power .power-off { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, var(--line-strong)); }
+.server-power .power-off:hover:not(:disabled) { background: color-mix(in srgb, var(--red) 10%, var(--surface)); }
+.server-power .power-on { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 40%, var(--line-strong)); }
+.server-power .power-on:hover:not(:disabled) { background: var(--blue-soft); }
+.server-power button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.server-power-note { font-size: calc(10.5px * var(--fs, 1)); color: var(--secondary); }
