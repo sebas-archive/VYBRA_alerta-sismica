@@ -1,6 +1,6 @@
 # Avisos de terceros
 
-Este repositorio contiene **solo código y documentación originales**. No incluye código de terceros
+Este repositorio contiene **solo código y documentación originales**. No incluye ningun código de terceros
 vendorizado. Las siguientes dependencias se usan en tiempo de compilación o de ejecución y conservan
 sus propias licencias:
 
