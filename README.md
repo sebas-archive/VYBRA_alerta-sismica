@@ -224,7 +224,7 @@ externas). La única dependencia externa de la interfaz es la tipografía Inter 
 
 ---
 
-## 10. Instalación y configuración
+## 10. Setup inicial
 
 ```bash
 git clone <url-del-repositorio>
