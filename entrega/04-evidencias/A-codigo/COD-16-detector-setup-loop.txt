@@ -1,0 +1,61 @@
+COD-16 — Firmware: setup() y loop() (Raft, HTTP, OTA, NTP, botón, LED)
+Fuente: firmware/detector/detector.ino
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 704-758   (rango del inventario original: 693-747)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  704  void setup() {
+  705    Serial.begin(115200);
+  706    delay(200);
+  707    pinMode(PIN_BOTON, INPUT_PULLUP);
+  708    pinMode(PIN_LED, OUTPUT);
+  709    arranque = esp_random();
+  710    Serial.printf("\nDetector nodo-%d (Raft)\n", NODO);
+  711  
+  712    persistencia.abrir();
+  713    cargarHuella();
+  714  
+  715    conectarWiFi();
+  716    pedirHora();
+  717    proximoNtp = ahoraMs() + NTP_CADA_MS;
+  718  
+  719    nucleo::ConfigRaft cfg;
+  720    cfg.yo = NODO;
+  721    cfg.semilla = esp_random();
+  722    cfg.latidoMs = RAFT_LATIDO_MS;
+  723    cfg.eleccionMinMs = RAFT_ELECCION_MIN_MS;
+  724    cfg.eleccionMaxMs = RAFT_ELECCION_MAX_MS;
+  725    raft = new nucleo::Raft(cfg, persistencia, ahoraEpochMs);
+  726    Serial.printf("término guardado %lu, voto %d\n", (unsigned long)raft->termino(), raft->votadoPor());
+  727  
+  728    udp.begin(PUERTO_RAFT);
+  729    udpDescubrir.begin(PUERTO_DESCUBRIR);
+  730    iniciarHttp();
+  731  
+  732    char nombre[16];
+  733    snprintf(nombre, sizeof nombre, "sismo-nodo-%d", NODO);
+  734    ArduinoOTA.setHostname(nombre);
+  735    ArduinoOTA.setPassword(OTA_CLAVE);
+  736    ArduinoOTA.begin();
+  737  }
+  738  
+  739  void loop() {
+  740    uint64_t ahora = ahoraMs();
+  741    vigilarWiFi(ahora);
+  742    descubrirNodos(ahora);
+  743    recibirUdp(ahora);
+  744    raft->tick(ahora);
+  745    leerBoton(ahora);
+  746    servidor.handleClient();
+  747    enviarSalidas();
+  748    ArduinoOTA.handle();
+  749    vigilarHuella(ahora);
+  750  
+  751    if (ahora >= proximoNtp) {
+  752      pedirHora();
+  753      proximoNtp = ahora + NTP_CADA_MS;
+  754    }
+  755    imprimirSucesos();
+  756    actualizarLed(ahora);
+  757    delay(1);   // cede la CPU a las tareas de WiFi
+  758  }

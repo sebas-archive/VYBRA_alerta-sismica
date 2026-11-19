@@ -1,0 +1,83 @@
+# FIG-SRV-01 — Servidor de datos 1 · API HTTP real (127.0.0.1:8101)
+# fecha: 2026-11-18T13:01:57-05:00
+# fuente: Salida real de curl/jq contra http://127.0.0.1:8101 en el stack Docker, renderizada con Chromium sobre HTML monoespaciado.
+
+$ curl -sS -m 5 http://127.0.0.1:8101/salud
+{"ok":true}
+
+$ curl -sS -m 5 http://127.0.0.1:8101/info | jq '{servidor, sistema, node, nodo, bd: {ok: .bd.ok, version: .bd.version, conteos: .bd.conteos, tamanoBytes: .bd.tamanoBytes}}'
+{
+  "servidor": 1,
+  "sistema": "Fedora Linux 42 (Container Image)",
+  "node": "v22.22.0",
+  "nodo": {
+    "n": 1,
+    "url": "http://nodo1:8080",
+    "alcanzable": true,
+    "ultimoContacto": 1795024912825,
+    "ultimoError": null
+  },
+  "bd": {
+    "ok": true,
+    "version": "PostgreSQL 16.15",
+    "conteos": {
+      "muestras": 342,
+      "log_entradas": 26,
+      "eventos": 24,
+      "alertas": 12,
+      "sucesos": 3,
+      "acciones": 12
+    },
+    "tamanoBytes": 8551447
+  }
+}
+
+$ curl -sS -m 5 'http://127.0.0.1:8101/api/publico?limite=2' | jq '{tipo, servidor, total, pagina, paginas, registros}'
+{
+  "tipo": "alertas",
+  "servidor": 1,
+  "total": 12,
+  "pagina": 1,
+  "paginas": 6,
+  "registros": [
+    {
+      "id": 25,
+      "ts": 1795024909888,
+      "nivel": "media",
+      "promedio": 5.5,
+      "detectores": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": 23,
+      "ts": 1795024696998,
+      "nivel": "media",
+      "promedio": 5.5,
+      "detectores": [
+        1,
+        2
+      ]
+    }
+  ]
+}
+
+$ curl -sS -m 5 http://127.0.0.1:8101/retencion | jq '{servidor, config: {activa: .config.activa, modo: .config.modo, dias: .config.dias, criticoNivel: .config.criticoNivel}}'
+{
+  "servidor": 1,
+  "config": {
+    "activa": false,
+    "modo": "archivar",
+    "dias": {
+      "muestras": 0,
+      "sucesos": 0,
+      "log": 0,
+      "acciones": 0,
+      "eventos": 0,
+      "alertas": 0
+    },
+    "criticoNivel": 6
+  }
+}
+

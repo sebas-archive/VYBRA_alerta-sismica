@@ -1,0 +1,34 @@
+== TST-06 Árbol y conteo de pruebas C++
+== fecha: 2026-11-18T11:20:08-05:00  commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c
+== comando: ls -l firmware/test/*.cpp firmware/test/bin/ ; wc -l ; grep -c 'PRUEBA(' firmware/test/test_*.cpp
+
+-rw-r--r-- 1 t1an t1an 11757 Nov 17 16:26 firmware/test/test_api.cpp
+-rw-r--r-- 1 t1an t1an  6297 Nov 17 16:26 firmware/test/test_huella.cpp
+-rw-r--r-- 1 t1an t1an  3845 Nov 17 16:26 firmware/test/test_mensajes.cpp
+-rw-r--r-- 1 t1an t1an 26265 Nov 17 16:26 firmware/test/test_raft.cpp
+-rw-r--r-- 1 t1an t1an  2742 Nov 17 16:26 firmware/test/test_sismo.cpp
+
+--- binarios ---
+total 1344
+-rwxr-xr-x 1 t1an t1an 317400 Nov 18 11:11 test_api
+-rwxr-xr-x 1 t1an t1an 238880 Nov 18 11:11 test_huella
+-rwxr-xr-x 1 t1an t1an 229680 Nov 18 11:11 test_mensajes
+-rwxr-xr-x 1 t1an t1an 348144 Nov 18 11:11 test_raft
+-rwxr-xr-x 1 t1an t1an 229736 Nov 18 11:12 test_sismo
+
+--- líneas por fuente ---
+  318 firmware/test/test_api.cpp
+  212 firmware/test/test_huella.cpp
+   90 firmware/test/test_mensajes.cpp
+  830 firmware/test/test_raft.cpp
+   79 firmware/test/test_sismo.cpp
+ 1529 total
+
+--- casos PRUEBA( por fuente ---
+firmware/test/test_api.cpp               9
+firmware/test/test_huella.cpp            17
+firmware/test/test_mensajes.cpp          9
+firmware/test/test_raft.cpp              32
+firmware/test/test_sismo.cpp             11
+
+TOTAL casos: 78

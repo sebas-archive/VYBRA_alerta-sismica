@@ -1,0 +1,34 @@
+COD-23 — Backend: stream() SSE con eventos estado/vivo y limpieza de listeners
+Fuente: web/server.js
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 117-144   (rango del inventario original: 117-152)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  117    function stream(req, res) {
+  118      res.writeHead(200, {
+  119        'Content-Type': 'text/event-stream',
+  120        'Cache-Control': 'no-cache',
+  121        Connection: 'keep-alive',
+  122      });
+  123      // Cliente detenido (socket a medias): si se acumula demasiado, se corta.
+  124      const escribir = (texto) => {
+  125        if (res.writableLength > maxPendienteSse) return res.destroy();
+  126        res.write(texto);
+  127      };
+  128      const enviar = (foto) => escribir(`event: estado\ndata: ${JSON.stringify(conUbicaciones(foto))}\n\n`);
+  129      // Las fotos solo salen cuando algo cambia: el latido "vivo" le confirma a la vista que los
+  130      // datos siguen al día aunque no cambien (y evita que proxies corten la conexión ociosa).
+  131      const ping = setInterval(() => escribir(`event: vivo\ndata: ${JSON.stringify({ t: Date.now() })}\n\n`), vivoMs);
+  132      poller.on('cambio', enviar);
+  133      let limpio = false;
+  134      const limpiar = () => {
+  135        if (limpio) return;
+  136        limpio = true;
+  137        clearInterval(ping);
+  138        poller.off('cambio', enviar);
+  139      };
+  140      req.on('close', limpiar);
+  141      res.on('close', limpiar);
+  142      res.on('error', limpiar);
+  143      enviar(poller.foto());
+  144    }

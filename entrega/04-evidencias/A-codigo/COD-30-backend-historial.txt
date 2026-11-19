@@ -1,0 +1,46 @@
+COD-30 — Backend: historialTodos() (consulta a las 3 bases, fusión sin duplicar lo replicado)
+Fuente: web/server.js
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 218-257   (rango del inventario original: 210-235)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  218    // Página `pagina` de `limite` registros de varias bases a la vez, sin cargar más de lo necesario:
+  219    // de cada servidor se piden solo los primeros pagina×limite registros ya ordenados, y se mezclan.
+  220    async function historialTodos({ tipo, pagina, limite, orden, consulta, ruta, replicado, tam = 200 }) {
+  221      const K = pagina * limite;
+  222      if (K > MAX_FUSION) { const e = new Error(`en el modo "todos" solo se puede llegar hasta el registro ${MAX_FUSION}; elige un servidor o afina los filtros`); e.status = 400; throw e; }
+  223      const resultados = await Promise.all(servidores.map(async (s) => {
+  224        try {
+  225          const filas = []; let total = 0;
+  226          for (let p = 1; filas.length < K; p++) {
+  227            const q = new URLSearchParams(consulta); q.set('pagina', String(p)); q.set('limite', String(tam));
+  228            const r = await pedirServidor(s, `${ruta}?${q}`);
+  229            total = r.total; filas.push(...r.registros);
+  230            if (r.registros.length < tam || p >= r.paginas) break;
+  231          }
+  232          return { n: s.n, ok: true, total, filas: filas.slice(0, K) };
+  233        } catch (e) { return { n: s.n, ok: false, error: e.message, status: e.status }; }
+  234      }));
+  235      const malos = resultados.filter((x) => !x.ok);
+  236      const err4 = malos.find((x) => x.status === 400);
+  237      if (err4) { const e = new Error(err4.error); e.status = 400; throw e; }
+  238      if (malos.length === resultados.length) { const e = new Error('ninguna base de datos responde'); e.status = 502; e.servidores = resultados.map((x) => ({ n: x.n, ok: false, total: 0, error: x.error })); throw e; }
+  239      const dir = orden === 'asc' ? 1 : -1;
+  240      let todas = resultados.filter((x) => x.ok).flatMap((x) => x.filas.map((r) => ({ servidor: x.n, ...r })));
+  241      todas.sort((a, b) => dir * ((a.ts ?? 0) - (b.ts ?? 0)) || a.servidor - b.servidor);
+  242      if (replicado) {
+  243        const vistos = new Map();
+  244        for (const r of todas) {
+  245          const k = claveReplicada(tipo, r);
+  246          if (vistos.has(k)) vistos.get(k).servidores.push(r.servidor); else vistos.set(k, { ...r, servidores: [r.servidor] });
+  247        }
+  248        todas = [...vistos.values()];
+  249      }
+  250      const oks = resultados.filter((x) => x.ok);
+  251      const total = replicado ? Math.max(...oks.map((x) => x.total)) : oks.reduce((a, x) => a + x.total, 0);
+  252      return {
+  253        tipo, pagina, limite, total, paginas: Math.max(1, Math.ceil(total / limite)),
+  254        servidores: resultados.map((x) => ({ n: x.n, ok: x.ok, total: x.ok ? x.total : 0, error: x.error })),
+  255        registros: todas.slice((pagina - 1) * limite, pagina * limite),
+  256      };
+  257    }

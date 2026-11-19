@@ -1,0 +1,49 @@
+== BE-09 Correlación SSE <-> DOM: la UI de ADMIN se alimenta del evento "estado" de /api/stream
+== fecha: 2026-11-18T11:39:56.733495-05:00
+== método: Playwright abre http://127.0.0.1:8095/admin/, se suscribe por su cuenta a /api/stream,
+   captura el primer evento "estado" y lo compara con el texto renderizado en el DOM en ese instante.
+
+--- evento SSE "estado" (campos relevantes) ---
+{
+  "t": 1795019991897,
+  "quorum": true,
+  "lider": 1,
+  "fuente": 1,
+  "nodos": [
+    {
+      "n": 1,
+      "rol": "lider",
+      "termino": 3,
+      "log_len": 9,
+      "commit": 9
+    },
+    {
+      "n": 2,
+      "rol": "seguidor",
+      "termino": 3,
+      "log_len": 9,
+      "commit": 9
+    },
+    {
+      "n": 3,
+      "rol": "seguidor",
+      "termino": 3,
+      "log_len": 9,
+      "commit": 9
+    }
+  ],
+  "entradas_log": 9,
+  "alertas": 4,
+  "ultima_entrada": 9
+}
+
+--- texto del DOM que coincide con la foto ---
+  "Todos los sistemas operativos" -> ['Todos los sistemas operativos']
+  "Servidor 1" (líder)             -> ['Servidor 1']
+  "Término 3", "Término 3 · log 9" -> ['Término', 'Término 3', 'Término 3 · log 9']
+  "Eventos recientes"              -> ['Eventos recientes']
+
+--- conclusión ---
+Los valores que muestra la interfaz (líder S1, término 3, log 9 de 9) son exactamente los del
+evento SSE capturado sobre el stack real de 11 servicios con Raft real. La UI no inventa datos:
+renderiza la foto del agregador que llega por /api/stream.

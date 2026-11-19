@@ -37,3 +37,20 @@ secretos/
 
 # Binario del nodo simulado (se compila con web/nodo-sim/compilar.sh)
 web/nodo-sim/nodo-sim
+
+# Artefactos temporales de construcción (manuales, scripts y documentos)
+__pycache__/
+*.pyc
+.~lock*
+*.tmp
+
+# Intermedios locales del video y de la campaña (no forman parte de la entrega)
+/tmp/
+/vybra-demo-*.mp4
+
+# Entrega solo Markdown/figuras: no se versionan formatos binarios de oficina ni video
+/videos/
+*.docx
+*.pdf
+*.pptx
+*.xlsx

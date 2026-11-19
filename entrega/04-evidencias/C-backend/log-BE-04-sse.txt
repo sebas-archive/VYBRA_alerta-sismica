@@ -1,0 +1,9 @@
+== BE-04 Flujo SSE real de /api/stream con marcas de tiempo
+== fecha: 2026-11-18T11:39:26.321365-05:00
+== comando: lectura de http://127.0.0.1:8095/api/stream durante 12 s (equivalente a "curl -sN")
+
+[  0.02 s] event: estado  data: {"t":1795019966342,"quorum":true,"lider":1,"fuente":1,"nodos":[{"n":1,"url":"http://nodo1:8080","alcanzable":t... | quorum=True lider=1 fuente=1 nodos=3 log=9 alertas=4
+[  5.02 s] event: vivo    data: {"t":1795019971343}... | t=1795019971343
+[ 10.02 s] event: vivo    data: {"t":1795019976345}... | t=1795019976345
+
+== fin de la lectura: 2026-11-18T11:39:41.346447-05:00

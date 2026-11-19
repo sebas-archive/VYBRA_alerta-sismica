@@ -1,0 +1,30 @@
+COD-07 — Raft: despacho de mensajes y adopción de término mayor
+Fuente: firmware/detector/src/nucleo/raft.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 114-137   (rango del inventario original: 114-137)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  114  void Raft::recibir(const Msg& m, uint64_t ahoraMs) {
+  115    if (caido_) return;
+  116    if (m.de < kPrimerNodo || m.de > kUltimoNodo || m.de == cfg_.yo) return;
+  117    if (!temporizadorListo_) reiniciarTemporizador(ahoraMs);
+  118    // Término mayor: se adopta y se vuelve a seguidor (sección 5.1).
+  119    if (m.termino > termino_) {
+  120      bool eraLider = rol_ == Rol::Lider;
+  121      subirTermino(m.termino);
+  122      if (eraLider) {
+  123        // Su plazo de elección venció hace rato: sin esto se postularía enseguida.
+  124        reiniciarTemporizador(ahoraMs);
+  125        suceso("perdio_lider", servidor() + " vio el término " + std::to_string(m.termino) +
+  126                                   " y dejó de ser líder");
+  127      }
+  128    }
+  129    switch (m.tipo) {
+  130      case Tipo::VoteReq: alVoteReq(m, ahoraMs); break;
+  131      case Tipo::VoteResp: alVoteResp(m, ahoraMs); break;
+  132      case Tipo::Append: alAppend(m, ahoraMs); break;
+  133      case Tipo::AppendResp: alAppendResp(m, ahoraMs); break;
+  134      case Tipo::Forward: alForward(m); break;
+  135      case Tipo::ForwardAck: alForwardAck(m); break;
+  136    }
+  137  }

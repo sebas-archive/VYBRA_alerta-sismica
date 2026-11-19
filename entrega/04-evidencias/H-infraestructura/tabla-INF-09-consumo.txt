@@ -1,10 +1,15 @@
-== INF-09 Consumo
-== fecha: 2026-11-17T16:24:46-05:00
+== INF-09 Consumo de los contenedores (docker stats --no-stream)
+== fecha: 2026-11-18T11:20:23-05:00  commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c  host: Linux 7.3.3-1-cachyos x86_64
 
-NAME                        CPU %     MEM USAGE / LIMIT
-sismo-panel                 0.17%     18.59MiB / 23.25GiB
-sismo-nodo-2                0.05%     14.97MiB / 23.25GiB
-sismo-nodo-1                0.06%     16.09MiB / 23.25GiB
-sismo-nodo-3                0.06%     14.78MiB / 23.25GiB
-inventario-bt-oracle-1      0.26%     58.65MiB / 23.25GiB
-inventario-bt-bluetooth-1   0.06%     73.05MiB / 23.25GiB
+NAME                CPU %     MEM USAGE / LIMIT     MEM %
+sismo-panel         0.19%     91.52MiB / 23.25GiB   0.38%
+sismo-servidor-1    0.16%     94.84MiB / 23.25GiB   0.40%
+sismo-servidor-2    0.22%     98.91MiB / 23.25GiB   0.42%
+sismo-servidor-3    21.57%    92.62MiB / 23.25GiB   0.39%
+sismo-db-2          0.01%     31.62MiB / 23.25GiB   0.13%
+sismo-db-3          0.04%     26.56MiB / 23.25GiB   0.11%
+sismo-db-1          0.00%     33.3MiB / 23.25GiB    0.14%
+sismo-controlador   0.00%     18.75MiB / 23.25GiB   0.08%
+sismo-nodo-3        0.16%     1.414MiB / 23.25GiB   0.01%
+sismo-nodo-1        0.17%     3.801MiB / 23.25GiB   0.02%
+sismo-nodo-2        2.67%     1.148MiB / 23.25GiB   0.00%

@@ -1,0 +1,34 @@
+== OP-10 Apagado real de dos servidores en el stack aislado vybraint (panel 18095)
+== fecha: 2026-11-18T11:33:48-05:00
+
+--- POST /api/infra/servidores/2/apagar ---
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-cache
+Content-Length: 1024
+Date: Wed, 18 Nov 2026 16:33:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"accion":"apagar","n":2,"modo":"simulado","eraLider":false,"mensaje":"Servidor 2 apagado: se detuvieron su ESP32 simulado y su servidor de datos. Su base de datos sigue encendida.","nodoLogico":null,"controlador":{"accion":"apagar","n":2,"detenidos":["nodo2","servidor2"],"estado":{"n":2,"modo":"simulado","nodo":{"existe":true,"contenedor":"vybraint-nodo-2","estado":"exited","corriendo":false,"salud":"unhealthy","desde":"2026-11-18T16:32:41.914272341Z","termino":"2026-11-18T16:33:48.211175349Z","codigoSalida":0,"volumenes":[]},"servidor":{"existe":true,"contenedor":"vybraint-servidor-2","estado":"exited","corriendo":false,"salud":"unhealthy","desde":"2026-11-18T16:32:46.056186586Z","termino":"2026-11-18T16:33:51.725854025Z","codigoSalida":137,"volumenes":[]},"bd":{"existe":true,"contenedor":"vybraint-db-2","estado":"running","corriendo":true,"salud":"healthy","desde":"2026-11-18T16:32:41.4315098Z","termino":"0001-01-01T00:00:00Z","codigoSalida":0,"volumenes":["vybraint_sismo-db2"]},"enCurso":true}}}
+--- POST /api/infra/servidores/3/apagar ---
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-cache
+Content-Length: 1022
+Date: Wed, 18 Nov 2026 16:33:52 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"accion":"apagar","n":3,"modo":"simulado","eraLider":true,"mensaje":"Servidor 3 apagado: se detuvieron su ESP32 simulado y su servidor de datos. Su base de datos sigue encendida.","nodoLogico":null,"controlador":{"accion":"apagar","n":3,"detenidos":["nodo3","servidor3"],"estado":{"n":3,"modo":"simulado","nodo":{"existe":true,"contenedor":"vybraint-nodo-3","estado":"exited","corriendo":false,"salud":"unhealthy","desde":"2026-11-18T16:32:41.784511406Z","termino":"2026-11-18T16:33:52.008785272Z","codigoSalida":0,"volumenes":[]},"servidor":{"existe":true,"contenedor":"vybraint-servidor-3","estado":"exited","corriendo":false,"salud":"unhealthy","desde":"2026-11-18T16:32:46.17935497Z","termino":"2026-11-18T16:33:52.448887089Z","codigoSalida":0,"volumenes":[]},"bd":{"existe":true,"contenedor":"vybraint-db-3","estado":"running","corriendo":true,"salud":"healthy","desde":"2026-11-18T16:32:41.549005189Z","termino":"0001-01-01T00:00:00Z","codigoSalida":0,"volumenes":["vybraint_sismo-db3"]},"enCurso":true}}}
+--- GET /api/infra (resumen) ---
+disponible True
+1 simulado nodo running servidor running bd running
+2 simulado nodo exited servidor exited bd running
+3 simulado nodo exited servidor exited bd running
+
+--- GET /api/estado (nodos y quórum) ---
+lider 3 quorum False
+1 alcanzable True caido False rol candidato
+2 alcanzable False caido False rol seguidor
+3 alcanzable True caido False rol lider

@@ -1,0 +1,98 @@
+COD-19 — Firmware: portal cautivo WiFi (escaneo, AP, formulario, guardado en NVS y reinicio)
+Fuente: firmware/detector/detector.ino
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 161-252   (rango del inventario original: 155-180 y 201-243)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  161  // Portal de configuración: crea la red SISMO-D<N>-config, lista las redes que ve y pide la
+  162  // contraseña. Guarda en NVS y reinicia. No vuelve: termina siempre en ESP.restart().
+  163  void portalWifi() {
+  164    Serial.println("Abriendo el portal de configuración WiFi");
+  165    char ap[24];
+  166    snprintf(ap, sizeof ap, "SISMO-D%d-config", NODO);
+  167    WiFi.disconnect(true, false);
+  168    WiFi.mode(WIFI_AP_STA);
+  169    // Se busca antes de que se conecte nadie: escanear con un cliente enganchado le corta la conexión.
+  170    int total = WiFi.scanNetworks();
+  171    struct Red { String ssid; int rssi; bool abierta; };
+  172    std::vector<Red> redes;
+  173    for (int i = 0; i < total; i++) {
+  174      String s = WiFi.SSID(i);
+  175      if (s.isEmpty()) continue;
+  176      bool repetida = false;
+  177      for (Red& r : redes) if (r.ssid == s) { repetida = true; if (WiFi.RSSI(i) > r.rssi) r.rssi = WiFi.RSSI(i); }
+  178      if (!repetida) redes.push_back({s, WiFi.RSSI(i), WiFi.encryptionType(i) == WIFI_AUTH_OPEN});
+  179    }
+  180    std::sort(redes.begin(), redes.end(), [](const Red& a, const Red& b) { return a.rssi > b.rssi; });
+  181    WiFi.scanDelete();
+  182  
+  183    WiFi.softAP(ap, PORTAL_CLAVE);
+  184    IPAddress ip = WiFi.softAPIP();
+  185    DNSServer dns;
+  186    dns.start(53, "*", ip);   // cualquier nombre apunta a la placa: el celular abre el portal solo
+  187    WebServer web(80);
+  188  
+  189    auto pagina = [&]() {
+  190      String h = PORTAL_CABECERA;
+  191      h += "<h1>Detector " + String(NODO) + "</h1><p>Elige la red WiFi a la que se conectará este detector.</p>";
+  192      h += "<form method=\"POST\" action=\"/guardar\">";
+  193      if (redes.empty()) h += "<p>No se vio ninguna red. Acerca la placa al celular y recarga la página.</p>";
+  194      int k = 0;
+  195      for (const Red& r : redes) {
+  196        h += "<label class=\"red\"><input type=\"radio\" name=\"red\" value=\"" + htmlEsc(r.ssid) + "\"" + (k++ == 0 ? " checked" : "") + ">";
+  197        h += "<b>" + htmlEsc(r.ssid) + "</b><small>" + (r.abierta ? "abierta · " : "") + String(r.rssi) + " dBm</small></label>";
+  198      }
+  199      h += "<label class=\"red\"><input type=\"radio\" name=\"red\" value=\"__otra__\"><b>Otra red (escribir el nombre)</b></label>";
+  200      h += "<input type=\"text\" name=\"otra\" placeholder=\"Nombre de la red\" autocapitalize=\"none\" autocomplete=\"off\">";
+  201      h += "<label class=\"campo\" for=\"clave\">Contraseña</label>";
+  202      h += "<input type=\"password\" id=\"clave\" name=\"clave\" autocomplete=\"off\" autocapitalize=\"none\">";
+  203      h += "<label class=\"ver\"><input type=\"checkbox\" onchange=\"document.getElementById('clave').type=this.checked?'text':'password'\"> Mostrar contraseña</label>";
+  204      h += "<button type=\"submit\">Guardar y conectar</button></form>";
+  205      h += "<p style=\"margin-top:16px\">Red guardada ahora: <b>" + htmlEsc(ssidWifi) + "</b></p>";
+  206      h += PORTAL_PIE;
+  207      return h;
+  208    };
+  209    web.on("/", HTTP_GET, [&]() { web.send(200, "text/html; charset=utf-8", pagina()); });
+  210    web.on("/guardar", HTTP_POST, [&]() {
+  211      String red = web.arg("red");
+  212      if (red == "__otra__") red = web.arg("otra");
+  213      red.trim();
+  214      String clave = web.arg("clave");
+  215      if (red.isEmpty() || red.length() > 32 || clave.length() > 63) {
+  216        String h = PORTAL_CABECERA;
+  217        h += "<h1>Faltan datos</h1><p>Elige una red (máx. 32 caracteres) y revisa la contraseña (máx. 63).</p><a href=\"/\">Volver</a>";
+  218        h += PORTAL_PIE;
+  219        web.send(400, "text/html; charset=utf-8", h);
+  220        return;
+  221      }
+  222      Preferences p;
+  223      p.begin("wifi", false);
+  224      p.putString("ssid", red);
+  225      p.putString("pass", clave);
+  226      p.end();
+  227      String h = PORTAL_CABECERA;
+  228      h += "<h1>Guardado</h1><p>El detector se reinicia y se conecta a <b>" + htmlEsc(red) + "</b>. Puedes cerrar esta página.</p>";
+  229      h += PORTAL_PIE;
+  230      web.send(200, "text/html; charset=utf-8", h);
+  231      delay(1500);
+  232      ESP.restart();
+  233    });
+  234    // Los celulares piden páginas de prueba (generate_204, hotspot-detect...): se les manda al portal.
+  235    web.onNotFound([&]() {
+  236      web.sendHeader("Location", String("http://") + ip.toString() + "/", true);
+  237      web.send(302, "text/plain", "");
+  238    });
+  239    web.begin();
+  240  
+  241    // La clave del AP vive en secretos.h (fuera de git) y NO se imprime por el puerto serie.
+  242    Serial.printf("Portal: conéctate a la red %s y abre http://%s\n", ap, ip.toString().c_str());
+  243    uint32_t t0 = millis();
+  244    while (millis() - t0 < PORTAL_MAX_MS) {
+  245      dns.processNextRequest();
+  246      web.handleClient();
+  247      digitalWrite(PIN_LED, (millis() / 150) % 2);   // parpadeo rápido: modo configuración
+  248      delay(2);
+  249    }
+  250    Serial.println("Portal sin usar, reiniciando...");
+  251    ESP.restart();
+  252  }

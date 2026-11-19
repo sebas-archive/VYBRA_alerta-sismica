@@ -1,0 +1,49 @@
+# FIG-TST-07 — Pruebas C++ · tres corridas consecutivas
+# fecha: 2026-11-18T13:02:05-05:00
+# fuente: Extracto literal de entrega/05-pruebas/logs/TST-09-tres-corridas.log (commit 0ee5ed4, 2026-11-18), renderizado con Chromium sobre HTML monoespaciado.
+
+$ cat entrega/05-pruebas/logs/TST-09-tres-corridas.log
+== TST-09 Tres corridas consecutivas de make test (estabilidad)
+== fecha: 2026-11-18T11:40:31-05:00
+== comando: cd /tmp/vybra-cpp/test && make JSON_DIR=... test (3 veces)
+== entorno: g++ 16.2.1, ArduinoJson 7.4.3, Linux 7.3.3-1-cachyos x86_64
+
+===== CORRIDA 1 =====
+== bin/test_api
+9 ok, 0 fallas
+== bin/test_huella
+17 ok, 0 fallas
+== bin/test_mensajes
+9 ok, 0 fallas
+== bin/test_raft
+32 ok, 0 fallas
+== bin/test_sismo
+11 ok, 0 fallas
+exit de la corrida: 0
+
+===== CORRIDA 2 =====
+== bin/test_api
+9 ok, 0 fallas
+== bin/test_huella
+17 ok, 0 fallas
+== bin/test_mensajes
+9 ok, 0 fallas
+== bin/test_raft
+32 ok, 0 fallas
+== bin/test_sismo
+11 ok, 0 fallas
+exit de la corrida: 0
+
+===== CORRIDA 3 =====
+== bin/test_api
+9 ok, 0 fallas
+== bin/test_huella
+17 ok, 0 fallas
+== bin/test_mensajes
+9 ok, 0 fallas
+== bin/test_raft
+32 ok, 0 fallas
+== bin/test_sismo
+11 ok, 0 fallas
+exit de la corrida: 0
+

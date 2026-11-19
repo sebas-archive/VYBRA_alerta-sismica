@@ -1,0 +1,26 @@
+COD-02 — Raft: concesión de voto (alVoteReq) y conteo de votos hasta mayoría (alVoteResp)
+Fuente: firmware/detector/src/nucleo/raft.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 139-158   (rango del inventario original: 139-158)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  139  void Raft::alVoteReq(const Msg& m, uint64_t ahoraMs) {
+  140    bool concedo = m.termino == termino_ && (votadoPor_ == 0 || votadoPor_ == m.de) &&
+  141                   logAlDia(m.last_idx, m.last_term);
+  142    if (concedo) {
+  143      bool nuevo = votadoPor_ != m.de;
+  144      votadoPor_ = m.de;
+  145      guardar();  // antes de responder
+  146      reiniciarTemporizador(ahoraMs);
+  147      if (nuevo) suceso("voto", servidor() + " votó por Servidor " + std::to_string(m.de));
+  148    }
+  149    Msg r(Tipo::VoteResp);
+  150    r.concedido = concedo;
+  151    enviar(m.de, r);
+  152  }
+  153  
+  154  void Raft::alVoteResp(const Msg& m, uint64_t ahoraMs) {
+  155    if (rol_ != Rol::Candidato || m.termino != termino_ || !m.concedido) return;
+  156    votos_.insert(m.de);
+  157    if ((int)votos_.size() >= mayoria()) ganar(ahoraMs);
+  158  }

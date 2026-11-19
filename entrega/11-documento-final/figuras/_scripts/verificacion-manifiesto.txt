@@ -1,0 +1,147 @@
+VERIFICACION DEL MANIFIESTO DE FIGURAS — entrega/11-documento-final/manifiesto-figuras.json
+Fecha: 2026-11-18 (America/Bogota). Commit del codigo: 0ee5ed4.
+Total de figuras: 122
+
+Recuento por grupo:
+  ARQ      14
+  UI-ADM   31
+  UI-CLI   46
+  SRV       6
+  NOD       3
+  INF       6
+  TST       7
+  FIS       3
+  PRE       4
+  RES       2
+
+Comprobaciones:
+  IDs unicos: OK
+  Existencia de archivos: OK
+  Peso maximo por archivo: 200 KB (maximo real 198.7 KB)
+  Ancho maximo: 1600 px (maximo real 1599 px)
+  sha256 recalculado: OK
+  Capturas byte-identicas con IDs distintos: 0
+
+Figuras por grupo y archivo:
+  FIG-ARQ-01         figuras/FIG-ARQ-01-arquitectura-fisica.png           1500x834  no aplica
+  FIG-ARQ-02         figuras/FIG-ARQ-02-despliegue-docker.png             1563x1365 no aplica
+  FIG-ARQ-03         figuras/FIG-ARQ-03-componentes-dependencias.png      1500x948  no aplica
+  FIG-ARQ-04         figuras/FIG-ARQ-04-clases-nucleo-raft.png            1599x718  no aplica
+  FIG-ARQ-05         figuras/FIG-ARQ-05-estados-nodo-raft.png             1256x511  no aplica
+  FIG-ARQ-06         figuras/FIG-ARQ-06-secuencia-eleccion.png             883x1482 no aplica
+  FIG-ARQ-07         figuras/FIG-ARQ-07-secuencia-latido-append.png        800x1528 no aplica
+  FIG-ARQ-08         figuras/FIG-ARQ-08-secuencia-failover-recuperacion.png  675x1484 no aplica
+  FIG-ARQ-09         figuras/FIG-ARQ-09-secuencia-evento-alerta.png       1555x2115 no aplica
+  FIG-ARQ-10         figuras/FIG-ARQ-10-secuencia-sin-quorum.png          1309x1762 no aplica
+  FIG-ARQ-11         figuras/FIG-ARQ-11-estados-maquina-sismica.png       1100x438  no aplica
+  FIG-ARQ-12         figuras/FIG-ARQ-12-secuencia-agregacion-sse.png      1246x1856 no aplica
+  FIG-ARQ-13         figuras/FIG-ARQ-13-flujo-servidores-datos.png        1400x1555 no aplica
+  FIG-ARQ-14         figuras/FIG-ARQ-14-modelo-er-postgresql.png          1495x1243 no aplica
+  FIG-UI-ADM-01      figuras/FIG-UI-ADM-01-panorama.png                   1400x900  claro
+  FIG-UI-ADM-01-D    figuras/FIG-UI-ADM-01-panorama-D.png                 1400x900  oscuro
+  FIG-UI-ADM-01-M    figuras/FIG-UI-ADM-01-panorama-M.jpg                  780x1688 claro
+  FIG-UI-ADM-01-M-D  figuras/FIG-UI-ADM-01-panorama-M-D.jpg                780x1688 oscuro
+  FIG-UI-ADM-02      figuras/FIG-UI-ADM-02-sismografos.png                1400x900  claro
+  FIG-UI-ADM-02-D    figuras/FIG-UI-ADM-02-sismografos-D.png              1400x900  oscuro
+  FIG-UI-ADM-02-M    figuras/FIG-UI-ADM-02-sismografos-M.png               780x1688 claro
+  FIG-UI-ADM-02-M-D  figuras/FIG-UI-ADM-02-sismografos-M-D.png             780x1688 oscuro
+  FIG-UI-ADM-03      figuras/FIG-UI-ADM-03-alertas.png                    1400x900  claro
+  FIG-UI-ADM-03-D    figuras/FIG-UI-ADM-03-alertas-D.png                  1400x900  oscuro
+  FIG-UI-ADM-03-M    figuras/FIG-UI-ADM-03-alertas-M.png                   780x1688 claro
+  FIG-UI-ADM-04      figuras/FIG-UI-ADM-04-historico.png                  1400x900  claro
+  FIG-UI-ADM-04-D    figuras/FIG-UI-ADM-04-historico-D.png                1400x900  oscuro
+  FIG-UI-ADM-04-M    figuras/FIG-UI-ADM-04-historico-M.png                 780x1688 claro
+  FIG-UI-ADM-05      figuras/FIG-UI-ADM-05-cluster-raft.png               1400x900  claro
+  FIG-UI-ADM-05-D    figuras/FIG-UI-ADM-05-cluster-raft-D.png             1400x900  oscuro
+  FIG-UI-ADM-05-M    figuras/FIG-UI-ADM-05-cluster-raft-M.png              780x1688 claro
+  FIG-UI-ADM-06      figuras/FIG-UI-ADM-06-servidores.png                 1400x1100 claro
+  FIG-UI-ADM-06-D    figuras/FIG-UI-ADM-06-servidores-D.png               1400x1100 oscuro
+  FIG-UI-ADM-06-M    figuras/FIG-UI-ADM-06-servidores-M.png                780x1688 claro
+  FIG-UI-ADM-06-M-D  figuras/FIG-UI-ADM-06-servidores-M-D.png              780x1688 oscuro
+  FIG-UI-ADM-07      figuras/FIG-UI-ADM-07-detectores.png                 1400x900  claro
+  FIG-UI-ADM-07-D    figuras/FIG-UI-ADM-07-detectores-D.png               1400x900  oscuro
+  FIG-UI-ADM-07-M    figuras/FIG-UI-ADM-07-detectores-M.png                780x1688 claro
+  FIG-UI-ADM-08      figuras/FIG-UI-ADM-08-registros.png                  1400x900  claro
+  FIG-UI-ADM-08-D    figuras/FIG-UI-ADM-08-registros-D.png                1400x900  oscuro
+  FIG-UI-ADM-08-M    figuras/FIG-UI-ADM-08-registros-M.png                 780x1688 claro
+  FIG-UI-ADM-09      figuras/FIG-UI-ADM-09-configuracion.png              1400x900  claro
+  FIG-UI-ADM-09-D    figuras/FIG-UI-ADM-09-configuracion-D.png            1400x900  oscuro
+  FIG-UI-ADM-09-M    figuras/FIG-UI-ADM-09-configuracion-M.png             780x1688 claro
+  FIG-UI-ADM-09-M-D  figuras/FIG-UI-ADM-09-configuracion-M-D.png           780x1688 oscuro
+  FIG-UI-CLI-01      figuras/FIG-UI-CLI-01-inicio.jpg                     1400x900  claro
+  FIG-UI-CLI-01-D    figuras/FIG-UI-CLI-01-inicio-D.png                   1400x900  oscuro
+  FIG-UI-CLI-01-M    figuras/FIG-UI-CLI-01-inicio-M.png                    780x1688 claro
+  FIG-UI-CLI-01-M-D  figuras/FIG-UI-CLI-01-inicio-M-D.png                  780x1688 oscuro
+  FIG-UI-CLI-02      figuras/FIG-UI-CLI-02-alerta-pantalla-completa.png   1400x900  claro
+  FIG-UI-CLI-02-D    figuras/FIG-UI-CLI-02-alerta-pantalla-completa-D.png 1400x900  oscuro
+  FIG-UI-CLI-02-M    figuras/FIG-UI-CLI-02-alerta-pantalla-completa-M.png  780x1688 claro
+  FIG-UI-CLI-03      figuras/FIG-UI-CLI-03-estado-post-alerta.jpg         1400x900  claro
+  FIG-UI-CLI-03-D    figuras/FIG-UI-CLI-03-estado-post-alerta-D.png       1400x900  oscuro
+  FIG-UI-CLI-03-M    figuras/FIG-UI-CLI-03-estado-post-alerta-M.jpg        780x1688 claro
+  FIG-UI-CLI-04      figuras/FIG-UI-CLI-04-avisos.png                     1400x900  claro
+  FIG-UI-CLI-04-D    figuras/FIG-UI-CLI-04-avisos-D.png                   1400x900  oscuro
+  FIG-UI-CLI-04-M    figuras/FIG-UI-CLI-04-avisos-M.jpg                    780x1688 claro
+  FIG-UI-CLI-04-M-D  figuras/FIG-UI-CLI-04-avisos-M-D.png                  780x1688 oscuro
+  FIG-UI-CLI-05      figuras/FIG-UI-CLI-05-historial-alertas.png          1400x900  claro
+  FIG-UI-CLI-05-D    figuras/FIG-UI-CLI-05-historial-alertas-D.png        1400x900  oscuro
+  FIG-UI-CLI-05-M    figuras/FIG-UI-CLI-05-historial-alertas-M.png         780x1688 claro
+  FIG-UI-CLI-06      figuras/FIG-UI-CLI-06-historial-lecturas.png         1400x900  claro
+  FIG-UI-CLI-06-D    figuras/FIG-UI-CLI-06-historial-lecturas-D.png       1400x900  oscuro
+  FIG-UI-CLI-06-M    figuras/FIG-UI-CLI-06-historial-lecturas-M.png        780x1688 claro
+  FIG-UI-CLI-07      figuras/FIG-UI-CLI-07-mapa.jpg                       1400x900  claro
+  FIG-UI-CLI-07-D    figuras/FIG-UI-CLI-07-mapa-D.jpg                     1400x900  oscuro
+  FIG-UI-CLI-07-M    figuras/FIG-UI-CLI-07-mapa-M.jpg                      780x1688 claro
+  FIG-UI-CLI-07-M-D  figuras/FIG-UI-CLI-07-mapa-M-D.jpg                    780x1688 oscuro
+  FIG-UI-CLI-08      figuras/FIG-UI-CLI-08-detalle-alerta.jpg             1400x900  claro
+  FIG-UI-CLI-08-D    figuras/FIG-UI-CLI-08-detalle-alerta-D.jpg           1400x900  oscuro
+  FIG-UI-CLI-08-M    figuras/FIG-UI-CLI-08-detalle-alerta-M.jpg            780x1688 claro
+  FIG-UI-CLI-09      figuras/FIG-UI-CLI-09-que-hacer-durante.png          1400x900  claro
+  FIG-UI-CLI-09-D    figuras/FIG-UI-CLI-09-que-hacer-durante-D.png        1400x900  oscuro
+  FIG-UI-CLI-09-M    figuras/FIG-UI-CLI-09-que-hacer-durante-M.png         780x1688 claro
+  FIG-UI-CLI-10      figuras/FIG-UI-CLI-10-que-hacer-antes.png            1400x900  claro
+  FIG-UI-CLI-10-D    figuras/FIG-UI-CLI-10-que-hacer-antes-D.png          1400x900  oscuro
+  FIG-UI-CLI-10-M    figuras/FIG-UI-CLI-10-que-hacer-antes-M.jpg           780x1688 claro
+  FIG-UI-CLI-11      figuras/FIG-UI-CLI-11-que-hacer-despues.png          1400x900  claro
+  FIG-UI-CLI-11-D    figuras/FIG-UI-CLI-11-que-hacer-despues-D.png        1400x900  oscuro
+  FIG-UI-CLI-11-M    figuras/FIG-UI-CLI-11-que-hacer-despues-M.png         780x1688 claro
+  FIG-UI-CLI-12      figuras/FIG-UI-CLI-12-proteccion.png                 1400x900  claro
+  FIG-UI-CLI-12-D    figuras/FIG-UI-CLI-12-proteccion-D.png               1400x900  oscuro
+  FIG-UI-CLI-12-M    figuras/FIG-UI-CLI-12-proteccion-M.png                780x1688 claro
+  FIG-UI-CLI-13      figuras/FIG-UI-CLI-13-sismografos.png                1400x900  claro
+  FIG-UI-CLI-13-D    figuras/FIG-UI-CLI-13-sismografos-D.png              1400x900  oscuro
+  FIG-UI-CLI-13-M    figuras/FIG-UI-CLI-13-sismografos-M.png               780x1688 claro
+  FIG-UI-CLI-14      figuras/FIG-UI-CLI-14-ajustes.png                    1400x900  claro
+  FIG-UI-CLI-14-D    figuras/FIG-UI-CLI-14-ajustes-D.png                  1400x900  oscuro
+  FIG-UI-CLI-14-M    figuras/FIG-UI-CLI-14-ajustes-M.png                   780x1688 claro
+  FIG-UI-CLI-14-M-D  figuras/FIG-UI-CLI-14-ajustes-M-D.png                 780x1688 oscuro
+  FIG-SRV-01         figuras/FIG-SRV-01-api-servidor-1.png                1400x1821 no aplica (render de terminal)
+  FIG-SRV-02         figuras/FIG-SRV-02-api-servidor-2.png                1400x1821 no aplica (render de terminal)
+  FIG-SRV-03         figuras/FIG-SRV-03-api-servidor-3.png                1400x1821 no aplica (render de terminal)
+  FIG-SRV-04         figuras/FIG-SRV-04-psql-postgresql-1.jpg             1200x1189 no aplica (render de terminal)
+  FIG-SRV-05         figuras/FIG-SRV-05-psql-postgresql-2.jpg             1200x1189 no aplica (render de terminal)
+  FIG-SRV-06         figuras/FIG-SRV-06-psql-postgresql-3.jpg             1200x1189 no aplica (render de terminal)
+  FIG-NOD-01         figuras/FIG-NOD-01-api-nodo-1.png                    1400x2400 no aplica (render de terminal)
+  FIG-NOD-02         figuras/FIG-NOD-02-api-nodo-2.png                    1400x2270 no aplica (render de terminal)
+  FIG-NOD-03         figuras/FIG-NOD-03-api-nodo-3.png                    1400x2270 no aplica (render de terminal)
+  FIG-INF-01         figuras/FIG-INF-01-docker-ps.png                     1400x561  no aplica (render de terminal)
+  FIG-INF-02         figuras/FIG-INF-02-docker-compose-ps.png             1400x745  no aplica (render de terminal)
+  FIG-INF-03         figuras/FIG-INF-03-docker-stats.png                  1400x475  no aplica (render de terminal)
+  FIG-INF-04         figuras/FIG-INF-04-healthchecks.png                  1400x701  no aplica (render de terminal)
+  FIG-INF-05         figuras/FIG-INF-05-tres-so.png                       1400x638  no aplica (render de terminal)
+  FIG-INF-06         figuras/FIG-INF-06-controlador.png                   1400x391  no aplica (render de terminal)
+  FIG-TST-01         figuras/FIG-TST-01-cpp-78.png                        1400x606  no aplica (render de terminal)
+  FIG-TST-02         figuras/FIG-TST-02-js-75.png                         1400x634  no aplica (render de terminal)
+  FIG-TST-03         figuras/FIG-TST-03-db-70.png                         1400x634  no aplica (render de terminal)
+  FIG-TST-04         figuras/FIG-TST-04-infra-5.png                       1400x422  no aplica (render de terminal)
+  FIG-TST-05         figuras/FIG-TST-05-firmware.png                      1400x653  no aplica (render de terminal)
+  FIG-TST-06         figuras/FIG-TST-06-raft-32.png                       1400x1040 no aplica (render de terminal)
+  FIG-TST-07         figuras/FIG-TST-07-tres-corridas.png                 1400x1047 no aplica (render de terminal)
+  FIG-FIS-01         figuras/FIG-FIS-01-prototipo-montado-a.jpg            900x1600 no aplica
+  FIG-FIS-02         figuras/FIG-FIS-02-prototipo-montado-b.jpg           1200x1600 no aplica
+  FIG-FIS-03         figuras/FIG-FIS-03-prototipo-montado-c.jpg           1200x1600 no aplica
+  FIG-PRE-01         figuras/FIG-PRE-01-comprobante-compra.png             530x686  no aplica
+  FIG-PRE-02         figuras/FIG-PRE-02-componentes-recibidos-1.jpg        900x1600 no aplica
+  FIG-PRE-03         figuras/FIG-PRE-03-componentes-recibidos-2.jpg        900x1600 no aplica
+  FIG-PRE-04         figuras/FIG-PRE-04-componentes-recibidos-3.jpg        900x1600 no aplica
+  FIG-RES-01         figuras/FIG-RES-01-grafica-latencia.png              1200x620  no aplica
+  FIG-RES-02         figuras/FIG-RES-02-grafica-consumo.png               1400x1120 no aplica

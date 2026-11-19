@@ -1,0 +1,39 @@
+COD-14 — API del nodo: jsonLog() paginado a 50 entradas
+Fuente: firmware/detector/src/nucleo/api.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 57-89   (rango del inventario original: 57-89)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   57  std::string jsonLog(const Raft& r, uint32_t desde) {
+   58    if (desde < 1) desde = 1;
+   59    const std::vector<Entrada>& log = r.log();
+   60    const Sismo& sismo = r.sismo();
+   61    JsonDocument doc;
+   62    doc["desde"] = desde;
+   63    doc["log_len"] = r.logLen();
+   64    doc["commit_index"] = r.commitIndex();
+   65    JsonArray arr = doc["entradas"].to<JsonArray>();
+   66    for (uint32_t i = desde; i <= log.size() && i < desde + kPaginaLog; i++) {
+   67      const Entrada& e = log[i - 1];
+   68      JsonObject o = arr.add<JsonObject>();
+   69      o["i"] = e.indice;
+   70      o["T"] = e.termino;
+   71      if (e.clase == Clase::InicioTermino) {
+   72        o["clase"] = "inicio_termino";
+   73        o["lider"] = e.lider;
+   74        continue;
+   75      }
+   76      o["clase"] = "evento";
+   77      JsonObject ev = o["ev"].to<JsonObject>();
+   78      ev["id"] = e.ev.id;
+   79      ev["nodo"] = e.ev.nodo;
+   80      ev["nivel"] = e.ev.nivel;
+   81      ev["pga"] = tresDecimales(e.ev.pga);
+   82      ev["duracion_ms"] = e.ev.duracion_ms;
+   83      ev["t"] = e.ev.t;
+   84      ev["t_lider"] = e.ev.t_lider;
+   85      ev["recibido_por"] = e.ev.recibido_por;
+   86      o["en_alerta"] = sismo.enAlerta(e.ev.id);
+   87    }
+   88    return texto(doc);
+   89  }

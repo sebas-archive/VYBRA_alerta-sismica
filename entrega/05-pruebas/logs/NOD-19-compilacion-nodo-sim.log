@@ -1,0 +1,4 @@
+# nodo-sim compile 2026-11-18T11:11:34-05:00 g++=g++ (GCC) 16.2.1 20260810
+compilado: /home/t1an/detector de sismos en red distribuida/web/nodo-sim/nodo-sim
+[exit=0]
+-rwxr-xr-x 1 t1an t1an 275392 Nov 18 11:11 web/nodo-sim/nodo-sim

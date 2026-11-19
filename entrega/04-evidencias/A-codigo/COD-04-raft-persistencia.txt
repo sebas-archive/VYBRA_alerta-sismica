@@ -1,0 +1,21 @@
+COD-04 — Raft: guardar término/voto en NVS y adoptar término mayor
+Fuente: firmware/detector/src/nucleo/raft.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 36-50   (rango del inventario original: 36-50)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   36  void Raft::guardar() { pers_.guardar(termino_, votadoPor_); }
+   37  
+   38  void Raft::subirTermino(uint32_t t) {
+   39    termino_ = t;
+   40    votadoPor_ = 0;
+   41    guardar();
+   42    pasarASeguidor();
+   43    lider_ = 0;
+   44    commitLider_ = 0;
+   45  }
+   46  
+   47  void Raft::pasarASeguidor() {
+   48    rol_ = Rol::Seguidor;
+   49    votos_.clear();
+   50  }

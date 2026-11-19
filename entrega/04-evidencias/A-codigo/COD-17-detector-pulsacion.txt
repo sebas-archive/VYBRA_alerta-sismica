@@ -1,0 +1,43 @@
+COD-17 — Firmware: proponerPulso() y leerBoton() (antirrebote 20 ms, mínimo 80 ms)
+Fuente: firmware/detector/detector.ino
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 508-544   (rango del inventario original: 498-534)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  508  Propuesta proponerPulso(uint32_t ms, std::string& id, int& nivel) {
+  509    char buf[32];   // "nodo-N-xxxxxxxx-<contador>" (≤ 24 caracteres hasta 8 dígitos)
+  510    snprintf(buf, sizeof buf, "nodo-%d-%08lx-%lu", NODO, (unsigned long)arranque, (unsigned long)++contador);
+  511    nucleo::Evento ev;
+  512    ev.id = buf;
+  513    ev.nodo = NODO;
+  514    ev.nivel = nucleo::Sismo::nivelPorTiempo(ms);
+  515    ev.pga = 0.028f * ev.nivel + 0.015f;   // misma escala que el panel
+  516    ev.duracion_ms = ms;
+  517    ev.t = ahoraEpochMs();
+  518    ev.recibido_por = NODO;
+  519    id = ev.id;
+  520    nivel = ev.nivel;
+  521    Propuesta p = raft->proponer(ev, ahoraMs());
+  522    Serial.printf("pulso %lu ms -> %s nivel %d: %s\n", (unsigned long)ms, id.c_str(), nivel, nombrePropuesta(p));
+  523    return p;
+  524  }
+  525  
+  526  void leerBoton(uint64_t ahora) {
+  527    bool crudo = digitalRead(PIN_BOTON) == LOW;
+  528    if (crudo != crudoAnterior) {
+  529      crudoAnterior = crudo;
+  530      cambioCrudo = ahora;
+  531    }
+  532    if (ahora - cambioCrudo < ANTIRREBOTE_MS || crudo == pulsando) return;   // aún rebota o sin cambio
+  533    if (crudo) {
+  534      pulsando = true;
+  535      tPulso = cambioCrudo;
+  536      return;
+  537    }
+  538    pulsando = false;
+  539    uint32_t ms = (uint32_t)(cambioCrudo - tPulso);
+  540    if (ms < PULSO_MIN_MS) return;
+  541    std::string id;
+  542    int nivel;
+  543    proponerPulso(ms, id, nivel);
+  544  }

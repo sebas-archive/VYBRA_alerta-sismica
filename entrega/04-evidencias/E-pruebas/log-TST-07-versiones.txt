@@ -1,0 +1,16 @@
+== TST-07 Versiones exactas del entorno de pruebas
+== fecha: 2026-11-18T11:20:02-05:00  commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c
+
+g++ (GCC) 16.2.1 20260810
+GNU Make 4.4.1
+v26.13.0
+12.2.2
+arduino-cli  Version: 1.5.1 Commit: 01f3d4f2ba7c2eaafb5dc710c8a1903af7762fea Date: 
+esp32:esp32 3.3.12    3.3.12 esp32
+ArduinoJson 7.4.3         -                 user     -
+Docker version 29.9.3, build 5457199aa5
+Docker Compose version 5.7.0
+7.3.3-1-cachyos
+Google Chrome 157.0.8103.38 
+
+ArduinoJson: #define ARDUINOJSON_VERSION "7.4.3"

@@ -1,0 +1,57 @@
+COD-11 — Máquina sísmica: regla de coincidencia de 2 detectores en ventana de 10 s y emisión de alerta
+Fuente: firmware/detector/src/nucleo/sismo.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 30-80   (rango del inventario original: 30-80)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   30  void Sismo::aplicar(const Entrada& e) {
+   31    if (e.clase != Clase::Evento) return;  // InicioTermino no cambia el estado sísmico
+   32  
+   33    eventos_.push_back(e.ev);
+   34    regs_.push_back({e.indice, true});
+   35    if (eventos_.size() > kTope) { eventos_.pop_front(); regs_.pop_front(); }
+   36  
+   37    const uint64_t hE = horaDe(e.ev);
+   38    if (hE == 0) return;
+   39    const size_t pos = eventos_.size() - 1;  // posición del evento recién agregado
+   40  
+   41    // grupo: posiciones en eventos_/regs_, el evento disparador primero
+   42    std::vector<size_t> grupo{pos};
+   43    for (int d = 1; d <= 3; d++) {
+   44      if (d == e.ev.nodo) continue;
+   45      bool hay = false;
+   46      size_t mejor = 0;
+   47      uint64_t mejorDist = 0;
+   48      for (size_t i = 0; i < pos; i++) {
+   49        const Evento& c = eventos_[i];
+   50        if (c.nodo != d || !regs_[i].libre) continue;
+   51        uint64_t h = horaDe(c);
+   52        if (h == 0) continue;
+   53        uint64_t dd = dist(h, hE);
+   54        if (dd > kVentana) continue;
+   55        if (!hay || dd < mejorDist || (dd == mejorDist && regs_[i].indice < regs_[mejor].indice)) {
+   56          hay = true; mejor = i; mejorDist = dd;
+   57        }
+   58      }
+   59      if (hay) grupo.push_back(mejor);
+   60    }
+   61    if (grupo.size() < 2) return;
+   62  
+   63    uint64_t inicio = hE;
+   64    for (size_t i : grupo) inicio = std::min(inicio, horaDe(eventos_[i]));
+   65    grupo.erase(std::remove_if(grupo.begin(), grupo.end(),
+   66                  [&](size_t i) { return horaDe(eventos_[i]) > inicio + kVentana; }),
+   67                grupo.end());
+   68    if (grupo.size() < 2) return;
+   69  
+   70    Alerta a;
+   71    a.id = e.indice; a.termino = e.termino; a.lider = e.lider;
+   72    float suma = 0;
+   73    for (size_t i : grupo) {
+   74      suma += (float)eventos_[i].nivel;
+   75      a.eventos.push_back(eventos_[i].id);
+   76      regs_[i].libre = false;
+   77    }
+   78    a.promedio = suma / (float)grupo.size();
+   79    alertas_.push_back(a);
+   80  }

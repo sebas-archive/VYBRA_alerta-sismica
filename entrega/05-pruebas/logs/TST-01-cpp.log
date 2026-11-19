@@ -1,24 +1,12 @@
-== fecha: 2026-11-17T16:07:39-05:00
-== host: Linux 7.3.3-1-cachyos x86_64
-== commit: 3e3072957b9d4d2683dc4e348d5211ea9e2f90d9
-== git status:
- M docker-compose.yml
- M firmware/detector/config.h
- M firmware/detector/detector.ino
- M firmware/detector/secretos.ejemplo.h
- M firmware/detector/src/nucleo/raft.cpp
- M firmware/detector/src/nucleo/raft.h
- M mockup/cliente.html
- M web/Dockerfile
- M web/docker/Dockerfile.fedora
- M web/docker/Dockerfile.suse
- M web/public/cliente.html
-?? entrega/
-?? preview/
-== g++: g++ (GCC) 16.2.1 20260810
-== make: GNU Make 4.4.1
-== ArduinoJson: version=7.4.3
-
+# commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4) — 2026-11-18
+# host: Linux 7.3.3-1-cachyos x86_64
+# git status: árbol limpio salvo docs/ARQUITECTURA-ACTUAL.md no versionado (documentación en curso)
+# C++ test run 2026-11-18T11:11:31-05:00 host=Linux 7.3.3-1-cachyos x86_64 g++=g++ (GCC) 16.2.1 20260810
+g++ -std=c++17 -Wall -Wextra -O1 -DPRUEBA_MAIN -I../detector/src -I/home/t1an/Arduino/libraries/ArduinoJson/src test_api.cpp ../detector/src/nucleo/api.cpp ../detector/src/nucleo/huella.cpp ../detector/src/nucleo/mensajes.cpp ../detector/src/nucleo/raft.cpp ../detector/src/nucleo/sismo.cpp -o bin/test_api
+g++ -std=c++17 -Wall -Wextra -O1 -DPRUEBA_MAIN -I../detector/src -I/home/t1an/Arduino/libraries/ArduinoJson/src test_huella.cpp ../detector/src/nucleo/api.cpp ../detector/src/nucleo/huella.cpp ../detector/src/nucleo/mensajes.cpp ../detector/src/nucleo/raft.cpp ../detector/src/nucleo/sismo.cpp -o bin/test_huella
+g++ -std=c++17 -Wall -Wextra -O1 -DPRUEBA_MAIN -I../detector/src -I/home/t1an/Arduino/libraries/ArduinoJson/src test_mensajes.cpp ../detector/src/nucleo/api.cpp ../detector/src/nucleo/huella.cpp ../detector/src/nucleo/mensajes.cpp ../detector/src/nucleo/raft.cpp ../detector/src/nucleo/sismo.cpp -o bin/test_mensajes
+g++ -std=c++17 -Wall -Wextra -O1 -DPRUEBA_MAIN -I../detector/src -I/home/t1an/Arduino/libraries/ArduinoJson/src test_raft.cpp ../detector/src/nucleo/api.cpp ../detector/src/nucleo/huella.cpp ../detector/src/nucleo/mensajes.cpp ../detector/src/nucleo/raft.cpp ../detector/src/nucleo/sismo.cpp -o bin/test_raft
+g++ -std=c++17 -Wall -Wextra -O1 -DPRUEBA_MAIN -I../detector/src -I/home/t1an/Arduino/libraries/ArduinoJson/src test_sismo.cpp ../detector/src/nucleo/api.cpp ../detector/src/nucleo/huella.cpp ../detector/src/nucleo/mensajes.cpp ../detector/src/nucleo/raft.cpp ../detector/src/nucleo/sismo.cpp -o bin/test_sismo
 == bin/test_api
 [ok] estado_menos_de_1kb
 [ok] log_paginado_de_a_50
@@ -107,4 +95,4 @@
 [ok] inicio_termino_se_ignora
 [ok] tope_de_100_eventos
 11 ok, 0 fallas
-EXIT=0
+[exit=0]

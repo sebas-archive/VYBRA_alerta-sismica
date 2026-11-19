@@ -1,0 +1,123 @@
+COD-09 — Códec UDP: claves JSON, evAJson/evDeJson y codificar/decodificar de los 7 tipos de mensaje
+Fuente: firmware/detector/src/nucleo/mensajes.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 9-125   (rango del inventario original: 9-125)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+    9  // Claves: k tipo, d de, T término, li/lt último idx/term, g concedido,
+   10  // pi/pt prev idx/term, c commit, e entradas, o ok, m match, v evento, i id.
+   11  // Evento: i id, n nodo, l nivel, g pga, u duración, t hora, L hora líder, r recibido_por.
+   12  // Entrada: x índice, T término, c clase, l líder, v evento.
+   13  
+   14  static void evAJson(JsonObject o, const Evento& e) {
+   15    o["i"] = e.id;
+   16    o["n"] = e.nodo;
+   17    o["l"] = e.nivel;
+   18    o["g"] = e.pga;
+   19    o["u"] = e.duracion_ms;
+   20    o["t"] = e.t;
+   21    o["L"] = e.t_lider;
+   22    o["r"] = e.recibido_por;
+   23  }
+   24  
+   25  static void evDeJson(JsonObjectConst o, Evento& e) {
+   26    e.id = o["i"] | "";
+   27    e.nodo = o["n"] | 0;
+   28    e.nivel = o["l"] | 0;
+   29    e.pga = o["g"] | 0.0f;
+   30    e.duracion_ms = o["u"] | 0u;
+   31    e.t = o["t"] | (uint64_t)0;
+   32    e.t_lider = o["L"] | (uint64_t)0;
+   33    e.recibido_por = o["r"] | 0;
+   34  }
+   35  
+   36  std::string codificar(const Msg& m) {
+   37    JsonDocument doc;
+   38    doc["k"] = (int)m.tipo;
+   39    doc["d"] = m.de;
+   40    doc["T"] = m.termino;
+   41    switch (m.tipo) {
+   42      case Tipo::VoteReq:
+   43        doc["li"] = m.last_idx;
+   44        doc["lt"] = m.last_term;
+   45        break;
+   46      case Tipo::VoteResp:
+   47        doc["g"] = m.concedido;
+   48        break;
+   49      case Tipo::Append: {
+   50        doc["pi"] = m.prev_idx;
+   51        doc["pt"] = m.prev_term;
+   52        doc["c"] = m.commit;
+   53        JsonArray arr = doc["e"].to<JsonArray>();
+   54        for (const Entrada& en : m.entradas) {
+   55          JsonObject o = arr.add<JsonObject>();
+   56          o["x"] = en.indice;
+   57          o["T"] = en.termino;
+   58          o["c"] = (int)en.clase;
+   59          o["l"] = en.lider;
+   60          evAJson(o["v"].to<JsonObject>(), en.ev);
+   61        }
+   62        break;
+   63      }
+   64      case Tipo::AppendResp:
+   65        doc["o"] = m.ok;
+   66        doc["m"] = m.match_idx;
+   67        break;
+   68      case Tipo::Forward:
+   69        evAJson(doc["v"].to<JsonObject>(), m.ev);
+   70        break;
+   71      case Tipo::ForwardAck:
+   72        doc["i"] = m.id;
+   73        break;
+   74    }
+   75    std::string s;
+   76    serializeJson(doc, s);
+   77    return s;
+   78  }
+   79  
+   80  bool decodificar(const char* datos, size_t len, Msg& out) {
+   81    JsonDocument doc;
+   82    if (deserializeJson(doc, datos, len)) return false;
+   83    if (!doc.is<JsonObject>() || doc["k"].isNull()) return false;
+   84    int k = doc["k"] | -1;
+   85    if (k < 0 || k > (int)Tipo::ForwardAck) return false;
+   86    Msg m;
+   87    m.tipo = (Tipo)k;
+   88    m.de = doc["d"] | 0;
+   89    m.termino = doc["T"] | 0u;
+   90    switch (m.tipo) {
+   91      case Tipo::VoteReq:
+   92        m.last_idx = doc["li"] | 0u;
+   93        m.last_term = doc["lt"] | 0u;
+   94        break;
+   95      case Tipo::VoteResp:
+   96        m.concedido = doc["g"] | false;
+   97        break;
+   98      case Tipo::Append:
+   99        m.prev_idx = doc["pi"] | 0u;
+  100        m.prev_term = doc["pt"] | 0u;
+  101        m.commit = doc["c"] | 0u;
+  102        for (JsonObjectConst o : doc["e"].as<JsonArrayConst>()) {
+  103          Entrada en;
+  104          en.indice = o["x"] | 0u;
+  105          en.termino = o["T"] | 0u;
+  106          en.clase = (o["c"] | 1) == 0 ? Clase::InicioTermino : Clase::Evento;
+  107          en.lider = o["l"] | 0;
+  108          evDeJson(o["v"].as<JsonObjectConst>(), en.ev);
+  109          m.entradas.push_back(en);
+  110        }
+  111        break;
+  112      case Tipo::AppendResp:
+  113        m.ok = doc["o"] | false;
+  114        m.match_idx = doc["m"] | 0u;
+  115        break;
+  116      case Tipo::Forward:
+  117        evDeJson(doc["v"].as<JsonObjectConst>(), m.ev);
+  118        break;
+  119      case Tipo::ForwardAck:
+  120        m.id = doc["i"] | "";
+  121        break;
+  122    }
+  123    out = m;
+  124    return true;
+  125  }

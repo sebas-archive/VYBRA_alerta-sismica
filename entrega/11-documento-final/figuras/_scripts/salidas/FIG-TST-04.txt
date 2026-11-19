@@ -1,0 +1,15 @@
+# FIG-TST-04 — Pruebas de infraestructura · 5/5 (apagado, failover y quórum)
+# fecha: 2026-11-18T13:02:04-05:00
+# fuente: Extracto literal de entrega/05-pruebas/logs/TST-05-test-infra.log (commit 0ee5ed4, 2026-11-18), renderizado con Chromium sobre HTML monoespaciado.
+
+$ grep -E '^(# test:infra|✔ [0-9]\.|ℹ (tests|pass|fail))' entrega/05-pruebas/logs/TST-05-test-infra.log
+# test:infra 2026-11-18T11:11:31-05:00 node=v26.13.0 docker=Docker version 29.9.3, build 5457199aa5
+✔ 0. El stack aislado está encendido, con Raft real, quórum y sin exponer Docker (577.383221ms)
+✔ 1. Apagar y encender el Servidor 1: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (15866.886928ms)
+✔ 2. Apagar y encender el Servidor 2: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (15653.240762ms)
+✔ 3. Apagar y encender el Servidor 3: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (14912.322801ms)
+✔ 4. Pérdida de quórum: con 1 de 3 no se confirma nada; al volver la mayoría se confirma y todo se recupera (32063.336627ms)
+ℹ tests 5
+ℹ pass 5
+ℹ fail 0
+

@@ -1,0 +1,117 @@
+COD-29 — Interfaz clásica: zoom, desplazamiento y botones del mapa SVG
+Fuente: web/public/mapa.js
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 29-137   (rango del inventario original: 29-137)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+Nota: web/public/mapa.js es el mapa SVG propio del panel clásico; la SPA ADMIN vigente tiene su propio mapa.
+----------------------------------------------------------------------------------------------------
+   29  // ---------- Zoom y desplazamiento ----------
+   30  // Cada <svg> guarda su vista (zoom z y desplazamiento ox/oy en unidades del viewBox) entre redibujos.
+   31  const ANCHO_MIN_M = 3;          // lo más cerca: unos 3 m de ancho visible
+   32  const vistas = new WeakMap();
+   33  const limitar = (v, a, b) => Math.min(b, Math.max(a, v));
+   34  
+   35  function vistaDe(svg) {
+   36    let v = vistas.get(svg);
+   37    if (!v) {
+   38      v = { z: 1, ox: 0, oy: 0, zMax: 1, args: null, punteros: new Map(), pellizco: null, pendiente: false };
+   39      vistas.set(svg, v);
+   40      instalarInteraccion(svg, v);
+   41    }
+   42    return v;
+   43  }
+   44  
+   45  function redibujar(svg, v) {
+   46    if (v.pendiente) return;
+   47    v.pendiente = true;
+   48    requestAnimationFrame(() => { v.pendiente = false; if (v.args) dibujarMapa(svg, v.args); });
+   49  }
+   50  
+   51  // Acerca o aleja manteniendo fijo el punto (cx, cy) del viewBox.
+   52  function zoomEn(svg, v, factor, cx = ANCHO / 2, cy = ALTO / 2) {
+   53    const z = limitar(v.z * factor, 1, v.zMax);
+   54    if (z === v.z) return;
+   55    const wx = (cx - ANCHO / 2 - v.ox) / v.z, wy = (cy - ALTO / 2 - v.oy) / v.z;
+   56    v.z = z;
+   57    v.ox = z === 1 ? 0 : cx - ANCHO / 2 - wx * z;
+   58    v.oy = z === 1 ? 0 : cy - ALTO / 2 - wy * z;
+   59    acotar(v);
+   60    redibujar(svg, v);
+   61  }
+   62  
+   63  function acotar(v) {
+   64    const mx = (ANCHO / 2) * v.z, my = (ALTO / 2) * v.z;
+   65    v.ox = limitar(v.ox, -mx, mx);
+   66    v.oy = limitar(v.oy, -my, my);
+   67  }
+   68  
+   69  function aViewBox(svg, ev) {
+   70    const r = svg.getBoundingClientRect();
+   71    return { x: ((ev.clientX - r.left) * ANCHO) / r.width, y: ((ev.clientY - r.top) * ALTO) / r.height };
+   72  }
+   73  
+   74  function instalarInteraccion(svg, v) {
+   75    // Rueda: zoom alrededor del cursor.
+   76    svg.addEventListener('wheel', (ev) => {
+   77      if (!v.args) return;
+   78      ev.preventDefault();
+   79      const p = aViewBox(svg, ev);
+   80      zoomEn(svg, v, ev.deltaY < 0 ? 1.25 : 0.8, p.x, p.y);
+   81    }, { passive: false });
+   82  
+   83    // Punteros: un dedo/mouse arrastra; dos dedos pellizcan.
+   84    svg.addEventListener('pointerdown', (ev) => {
+   85      if (!v.args) return;
+   86      v.punteros.set(ev.pointerId, aViewBox(svg, ev));
+   87      svg.setPointerCapture?.(ev.pointerId);
+   88      if (v.punteros.size === 2) {
+   89        const [a, b] = [...v.punteros.values()];
+   90        v.pellizco = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+   91      }
+   92    });
+   93    svg.addEventListener('pointermove', (ev) => {
+   94      if (!v.punteros.has(ev.pointerId)) return;
+   95      const antes = v.punteros.get(ev.pointerId);
+   96      const ahora = aViewBox(svg, ev);
+   97      v.punteros.set(ev.pointerId, ahora);
+   98      if (v.punteros.size === 2 && v.pellizco) {
+   99        const [a, b] = [...v.punteros.values()];
+  100        const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+  101        zoomEn(svg, v, d / v.pellizco.d, (a.x + b.x) / 2, (a.y + b.y) / 2);
+  102        v.pellizco.d = d;
+  103      } else if (v.punteros.size === 1 && v.z > 1) {
+  104        v.ox += ahora.x - antes.x; v.oy += ahora.y - antes.y;
+  105        acotar(v);
+  106        redibujar(svg, v);
+  107      }
+  108    });
+  109    const soltar = (ev) => {
+  110      v.punteros.delete(ev.pointerId);
+  111      if (v.punteros.size < 2) v.pellizco = null;
+  112    };
+  113    svg.addEventListener('pointerup', soltar);
+  114    svg.addEventListener('pointercancel', soltar);
+  115  
+  116    // Botones + / − / Ver todo, debajo del mapa (HTML para que el toque sea cómodo en celular).
+  117    const barra = document.createElement('div');
+  118    barra.className = 'mapa-zoom';
+  119    barra.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:8px;flex-wrap:wrap';
+  120    const ayuda = document.createElement('span');
+  121    ayuda.textContent = 'Pellizca el mapa o usa + / − para acercar';
+  122    ayuda.style.cssText = 'font-size:12px;color:var(--text-3);flex-basis:100%;text-align:right;order:2';
+  123    const boton = (texto, etiqueta, accion) => {
+  124      const b = document.createElement('button');
+  125      b.type = 'button'; b.textContent = texto; b.setAttribute('aria-label', etiqueta);
+  126      b.style.cssText = 'min-width:44px;min-height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font:600 15px var(--font);cursor:pointer';
+  127      b.addEventListener('click', accion);
+  128      barra.appendChild(b);
+  129      return b;
+  130    };
+  131    v.btnMas = boton('+', 'Acercar el mapa', () => zoomEn(svg, v, 1.6));
+  132    v.btnMenos = boton('−', 'Alejar el mapa', () => zoomEn(svg, v, 1 / 1.6));
+  133    v.btnTodo = boton('Ver todo', 'Ver todos los puntos', () => { v.z = 1; v.ox = 0; v.oy = 0; redibujar(svg, v); });
+  134    barra.appendChild(ayuda);
+  135    svg.after(barra);
+  136    v.barra = barra;
+  137  }

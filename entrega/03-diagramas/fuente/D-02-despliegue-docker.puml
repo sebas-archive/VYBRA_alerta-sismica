@@ -1,0 +1,92 @@
+@startuml D-02-despliegue-docker
+title D-02 · Despliegue Docker: 11 servicios y perfiles\n(docker-compose.yml · perfil https opcional)
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam nodeBorderColor #244B5A
+skinparam databaseBorderColor #244B5A
+skinparam nodesep 24
+skinparam ranksep 40
+
+node "Host Linux con Docker Engine" as HOST {
+  node "Proyecto de compose (nombre por defecto: sismo)" as PROY {
+    node "Nodos ESP32 simulados\nDebian 12 · núcleo Raft real" as NODOS {
+      node "nodo1\nsismo-nodo-1\nHTTP 8080 · UDP 4210" as N1
+      node "nodo2\nsismo-nodo-2\nHTTP 8080 · UDP 4210" as N2
+      node "nodo3\nsismo-nodo-3\nHTTP 8080 · UDP 4210" as N3
+      N1 <--> N2 : "Raft UDP 4210"
+      N2 <--> N3 : "Raft UDP 4210"
+      N1 <--> N3 : "Raft UDP 4210"
+    }
+    node "Servidores de datos\nNode.js :8100" as SERV {
+      node "servidor1\nFedora 42\nhost :8101" as S1
+      node "servidor2\nopenSUSE Leap 15.6\nhost :8102" as S2
+      node "servidor3\nUbuntu 24.04\nhost :8103" as S3
+    }
+    database "Bases PostgreSQL\npostgres:16-alpine" as DBS {
+      database "db1\nvolumen sismo-db1" as DB1
+      database "db2\nvolumen sismo-db2" as DB2
+      database "db3\nvolumen sismo-db3" as DB3
+    }
+    node "panel\nnode:22-alpine\n:8090 → host :8095" as PANEL
+    node "controlador\nnode:22-alpine · :8200\nsin puerto publicado\nread_only · cap_drop ALL" as CTRL
+    node "https (perfil https)\ncaddy:2-alpine · :8443\ntls internal · reverse_proxy" as CADDY
+  }
+  node "Docker Engine\n/var/run/docker.sock" as DOCKER
+}
+
+S1 --> DB1 : "depends_on healthy"
+S2 --> DB2 : "depends_on healthy"
+S3 --> DB3 : "depends_on healthy"
+S1 --> N1 : "HTTP :8080 · 1 Hz"
+S2 --> N2 : "HTTP :8080 · 1 Hz"
+S3 --> N3 : "HTTP :8080 · 1 Hz"
+PANEL --> NODOS : "GET /estado /log\n/sucesos /alertas"
+PANEL --> SERV : "GET /info /api/historial\nPOST /acciones"
+PANEL --> CTRL : "Bearer CONTROL_TOKEN\nGET /estado · POST /servidores/{n}/{acción}"
+CTRL --> DOCKER : "Engine API /v1.43\nsolo stop/start de nodoN y servidorN"
+CTRL -[dashed]-> NODOS : "docker stop/start"
+CTRL -[dashed]-> SERV : "docker stop/start"
+CADDY --> PANEL : "reverse_proxy :8090"
+
+note right of PROY
+  Perfil por defecto (11 servicios):
+  nodo1..3 + db1..3 + servidor1..3 + panel + controlador.
+  El servicio https (Caddy) solo se crea con:
+  docker compose --profile https up -d
+  Las bases de datos no publican puerto.
+end note
+
+note bottom of CTRL
+  Único servicio con el socket de Docker.
+  Solo entiende GET /estado, GET /salud y
+  POST /servidores/{1|2|3}/{apagar|encender};
+  nunca para ni arranca dbN y no publica puerto.
+end note
+
+note top of CADDY
+  ADMIN:   https://host:8443/admin/
+  CLIENTE: https://host:8443/cliente/
+  Certificado local (tls internal): /ca.crt.
+end note
+
+note bottom of PROY
+  docker-compose.prod.yml (overlay de producción):
+  - nodo1..3 pasan al perfil "simulados" (no arrancan);
+  - servidores y bases usan secretos y no publican puertos;
+  - controlador y panel usan CONTROL_TOKEN_FILE;
+  - VYBRA_ENTORNO=produccion rechaza la clave de desarrollo.
+end note
+
+note bottom of PANEL
+  URLs por defecto del stack:
+  ADMIN   http://localhost:8095/admin/
+  CLIENTE http://localhost:8095/publico
+end note
+
+@enduml

@@ -1,0 +1,440 @@
+# commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4) — 2026-11-18
+# host: Linux 7.3.3-1-cachyos x86_64
+# git status: árbol limpio salvo docs/ARQUITECTURA-ACTUAL.md no versionado (documentación en curso)
+# test:infra 2026-11-18T11:11:31-05:00 node=v26.13.0 docker=Docker version 29.9.3, build 5457199aa5
+npm notice run test:infra
+npm notice run bash scripts/test-infra.sh
+ Image vybraint-nodo1 Building 
+ Image vybraint-nodo3 Building 
+ Image vybraint-panel Building 
+ Image vybraint-servidor1 Building 
+ Image vybraint-servidor2 Building 
+ Image vybraint-servidor3 Building 
+ Image vybraint-nodo2 Building 
+ Image vybraint-controlador Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 4.36kB done
+#1 DONE 0.0s
+
+#2 [nodo1 internal] load build definition from Dockerfile.nodo-sim
+#2 transferring dockerfile: 1.15kB done
+#2 DONE 0.0s
+
+#3 [servidor2 internal] load build definition from Dockerfile.suse
+#3 transferring dockerfile: 516B done
+#3 DONE 0.0s
+
+#4 [controlador internal] load build definition from Dockerfile.controlador
+#4 transferring dockerfile: 389B done
+#4 DONE 0.0s
+
+#5 [servidor3 internal] load build definition from Dockerfile.ubuntu
+#5 transferring dockerfile: 540B done
+#5 DONE 0.1s
+
+#6 [nodo3 context nucleo] load .dockerignore
+#6 transferring nucleo: 2B done
+#6 DONE 0.0s
+
+#7 [servidor1 internal] load build definition from Dockerfile.fedora
+#7 transferring dockerfile: 494B done
+#7 DONE 0.1s
+
+#8 [panel internal] load build definition from Dockerfile
+#8 transferring dockerfile: 417B done
+#8 DONE 0.1s
+
+#9 [servidor1 internal] load metadata for docker.io/library/node:22-alpine
+#9 ...
+
+#10 [nodo2 internal] load metadata for docker.io/library/debian:bookworm-slim
+#10 DONE 1.0s
+
+#11 [servidor1 internal] load metadata for docker.io/library/fedora:42
+#11 DONE 0.9s
+
+#12 [nodo2 internal] load .dockerignore
+#12 transferring context: 75B done
+#12 DONE 0.0s
+
+#13 [nodo1 compilar 1/7] FROM docker.io/library/debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+#13 resolve docker.io/library/debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc 0.0s done
+#13 DONE 0.0s
+
+#14 [nodo1 internal] load build context
+#14 transferring context: 15.28kB done
+#14 DONE 0.0s
+
+#15 [nodo1 context nucleo] load from client
+#15 transferring nucleo: 415B done
+#15 DONE 0.0s
+
+#16 [nodo2 stage-1 2/3] RUN mkdir -p /var/lib/nodo && chown 65534:65534 /var/lib/nodo
+#16 CACHED
+
+#17 [nodo2 compilar 7/7] RUN g++ -std=c++17 -O2 -pthread -static-libstdc++ -static-libgcc -Isrc -Ijson nodo_sim.cpp src/nucleo/*.cpp -o nodo-sim
+#17 CACHED
+
+#18 [nodo2 compilar 5/7] COPY --from=nucleo . ./src
+#18 CACHED
+
+#19 [nodo2 compilar 6/7] COPY nodo-sim/nodo_sim.cpp .
+#19 CACHED
+
+#20 [nodo2 compilar 2/7] RUN apt-get update && apt-get install -y --no-install-recommends g++ curl ca-certificates && rm -rf /var/lib/apt/lists/*
+#20 CACHED
+
+#21 [nodo2 compilar 3/7] WORKDIR /src
+#21 CACHED
+
+#22 [nodo2 compilar 4/7] RUN mkdir -p json && curl -fsSL -o json/ArduinoJson.h https://github.com/bblanchon/ArduinoJson/releases/download/v7.4.3/ArduinoJson-v7.4.3.h
+#22 CACHED
+
+#23 [nodo2 stage-1 3/3] COPY --from=compilar /src/nodo-sim /usr/local/bin/nodo-sim
+#23 CACHED
+
+#24 [nodo2] exporting to image
+#24 exporting layers done
+#24 exporting manifest sha256:130debc7d08695c0facc46aa5d3136a49a921b888e1a74b6397e88ef38738be2 0.0s done
+#24 exporting config sha256:ba31da2febdf63db7a424228258b349f5a00be7aed851d663bc27c1bf47f4eee 0.0s done
+#24 exporting attestation manifest sha256:9ad4f1b337efc949c16bbafef6fb344b193fb44ad1fadfe9a6e54b7b1abfd40c
+#24 ...
+
+#12 [servidor2 internal] load .dockerignore
+#12 transferring context: 75B done
+#12 DONE 0.0s
+
+#9 [servidor2 internal] load metadata for docker.io/library/node:22-alpine
+#9 DONE 1.2s
+
+#25 [servidor3 internal] load metadata for docker.io/library/ubuntu:24.04
+#25 DONE 1.2s
+
+#26 [servidor2 internal] load metadata for docker.io/opensuse/leap:15.6
+#26 DONE 1.2s
+
+#24 [nodo2] exporting to image
+#24 exporting attestation manifest sha256:9ad4f1b337efc949c16bbafef6fb344b193fb44ad1fadfe9a6e54b7b1abfd40c 0.1s done
+#24 exporting manifest list sha256:b8085f1794ece199669820ea93e83c1bdf03f6f1b7bc6b7fb651e682d4434126
+#24 ...
+
+#12 [controlador internal] load .dockerignore
+#12 transferring context: 75B done
+#12 DONE 0.0s
+
+#27 [controlador internal] load metadata for docker.io/library/node:22.22-alpine
+#27 DONE 1.3s
+
+#28 [servidor1 internal] load build context
+#28 transferring context: 45.16kB 0.0s done
+#28 DONE 0.0s
+
+#29 [controlador internal] load build context
+#29 transferring context: 10.22kB done
+#29 DONE 0.0s
+
+#24 [nodo2] exporting to image
+#24 exporting manifest list sha256:b8085f1794ece199669820ea93e83c1bdf03f6f1b7bc6b7fb651e682d4434126 0.1s done
+#24 naming to docker.io/library/vybraint-nodo2:latest
+#24 ...
+
+#30 [panel internal] load build context
+#30 transferring context: 9.51MB 0.1s done
+#30 DONE 0.1s
+
+#31 [servidor2 deps 1/4] FROM docker.io/library/node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a
+#31 resolve docker.io/library/node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a 0.2s done
+#31 DONE 0.2s
+
+#32 [servidor1 stage-1 1/6] FROM docker.io/library/fedora:42@sha256:99e203b80b1c3d8f7e161ec10a68fd02b081ef83a3963553e513c82846b97814
+#32 resolve docker.io/library/fedora:42@sha256:99e203b80b1c3d8f7e161ec10a68fd02b081ef83a3963553e513c82846b97814 0.2s done
+#32 DONE 0.2s
+
+#33 [servidor3 stage-1 1/6] FROM docker.io/library/ubuntu:24.04@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
+#33 resolve docker.io/library/ubuntu:24.04@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8 0.2s done
+#33 DONE 0.2s
+
+#34 [servidor2 stage-1 1/6] FROM docker.io/opensuse/leap:15.6@sha256:79be7751205ea84559990fb76b1bec71e38d6fad41c70a4f6c921b803b58f421
+#34 resolve docker.io/opensuse/leap:15.6@sha256:79be7751205ea84559990fb76b1bec71e38d6fad41c70a4f6c921b803b58f421 0.2s done
+#34 DONE 0.2s
+
+#24 [nodo2] exporting to image
+#24 naming to docker.io/library/vybraint-nodo2:latest 0.0s done
+#24 unpacking to docker.io/library/vybraint-nodo2:latest 0.0s done
+#24 DONE 0.4s
+
+#35 [panel 1/6] FROM docker.io/library/node:22.22-alpine@sha256:e58326d0d441090181ac150dc2078d3e2cf6a0d42e809aebba3ef5880935ffdd
+#35 resolve docker.io/library/node:22.22-alpine@sha256:e58326d0d441090181ac150dc2078d3e2cf6a0d42e809aebba3ef5880935ffdd 0.2s done
+#35 DONE 0.2s
+
+#36 [servidor1 stage-1 2/6] RUN dnf install -y --setopt=install_weak_deps=False nodejs && dnf clean all
+#36 CACHED
+
+#37 [servidor1 stage-1 5/6] COPY --from=deps /d/node_modules ./node_modules
+#37 CACHED
+
+#38 [servidor1 stage-1 3/6] WORKDIR /app
+#38 CACHED
+
+#39 [servidor1 stage-1 4/6] COPY package.json ./
+#39 CACHED
+
+#40 [servidor1 stage-1 6/6] COPY servidor ./servidor
+#40 CACHED
+
+#41 [controlador 3/3] COPY controlador ./controlador
+#41 CACHED
+
+#42 [servidor3 stage-1 3/6] WORKDIR /app
+#42 CACHED
+
+#43 [servidor3 stage-1 4/6] COPY package.json ./
+#43 CACHED
+
+#44 [servidor3 stage-1 5/6] COPY --from=deps /d/node_modules ./node_modules
+#44 CACHED
+
+#45 [servidor3 stage-1 2/6] RUN apt-get update && apt-get install -y --no-install-recommends nodejs ca-certificates && rm -rf /var/lib/apt/lists/*
+#45 CACHED
+
+#46 [servidor2 stage-1 4/6] COPY package.json ./
+#46 CACHED
+
+#47 [servidor2 deps 3/4] COPY package.json package-lock.json ./
+#47 CACHED
+
+#48 [servidor2 stage-1 5/6] COPY --from=deps /d/node_modules ./node_modules
+#48 CACHED
+
+#49 [servidor2 deps 2/4] WORKDIR /d
+#49 CACHED
+
+#50 [servidor2 deps 4/4] RUN npm ci --omit=dev
+#50 CACHED
+
+#51 [servidor2 stage-1 3/6] WORKDIR /app
+#51 CACHED
+
+#52 [servidor2 stage-1 2/6] RUN zypper --non-interactive install --no-recommends nodejs22 && zypper clean --all
+#52 CACHED
+
+#53 [servidor2 stage-1 6/6] COPY servidor ./servidor
+#53 CACHED
+
+#54 [servidor3 stage-1 6/6] COPY servidor ./servidor
+#54 CACHED
+
+#55 [nodo1] exporting to image
+#55 exporting layers done
+#55 exporting manifest sha256:1484a99380699b586302ed1758ea080868bab07d54367c4cd312d18b7afc3584 0.0s done
+#55 exporting config sha256:073bda4460ea457fe1f5a2b988fc9ff24a4fc07ba45b1558f42f9a976467fab3 0.0s done
+#55 exporting attestation manifest sha256:62a3ac123208ffbf6b9baf7df0f4f61c81459e9135979f9c1064b55b779be092 0.1s done
+#55 exporting manifest list sha256:c604b44ce45cfc91946d41f3ef3280d938efc535d061135bea9a1cadad098d75 0.1s done
+#55 naming to docker.io/library/vybraint-nodo1:latest 0.0s done
+#55 unpacking to docker.io/library/vybraint-nodo1:latest 0.0s done
+#55 DONE 0.4s
+
+#56 [nodo3] exporting to image
+#56 exporting layers done
+#56 exporting manifest sha256:73b3a706803852e6f056b0196bb06ecc528452a584e5219d2f3663cabbfa832f 0.0s done
+#56 exporting config sha256:fe840877eead17049d789c19c092e3e5f7a924d952aafc98f03773f7e50470eb 0.0s done
+#56 exporting attestation manifest sha256:0da23cd2a6438bf30c6887f990211f997591abc7be8510bb415e376928a7faff 0.1s done
+#56 exporting manifest list sha256:0a68ad4eac228cc2c6bc5d8e73f35a4a4e98fb77b4a845c91498d98a1547d492 0.1s done
+#56 naming to docker.io/library/vybraint-nodo3:latest 0.0s done
+#56 unpacking to docker.io/library/vybraint-nodo3:latest 0.1s done
+#56 DONE 0.4s
+
+#57 [panel 4/6] COPY *.js ./
+#57 CACHED
+
+#58 [panel 2/6] WORKDIR /app
+#58 CACHED
+
+#59 [panel 5/6] COPY public ./public
+#59 CACHED
+
+#60 [panel 3/6] COPY package.json ./
+#60 CACHED
+
+#61 [panel 6/6] COPY fake ./fake
+#61 CACHED
+
+#62 [panel] exporting to image
+#62 exporting layers done
+#62 exporting manifest sha256:fcfc5fcc261ba99762f8f9bbdca1a0421e9ea4a3edd7424e741dc94c7b1cd5c5
+#62 exporting manifest sha256:fcfc5fcc261ba99762f8f9bbdca1a0421e9ea4a3edd7424e741dc94c7b1cd5c5 0.1s done
+#62 exporting config sha256:89a496ee57607bcbce94606d9b088551c06a49b4712e8fc05d168f138dfda636 0.1s done
+#62 exporting attestation manifest sha256:d9e0383fe12c575c803e26fdc1d54694a42bd98375806353c963703141aa7cc0
+#62 exporting attestation manifest sha256:d9e0383fe12c575c803e26fdc1d54694a42bd98375806353c963703141aa7cc0 0.1s done
+#62 exporting manifest list sha256:a48ef0bd699752450ac43ae186cb8938dba7571793b3f8ab5e227b073fcecad0 0.0s done
+#62 naming to docker.io/library/vybraint-panel:latest
+#62 naming to docker.io/library/vybraint-panel:latest 0.0s done
+#62 unpacking to docker.io/library/vybraint-panel:latest 0.0s done
+#62 DONE 0.5s
+
+#63 [servidor1] exporting to image
+#63 exporting layers done
+#63 exporting manifest sha256:b08da437e6315559c9b95e5e3422c98a670bfb36859186f5143c6446d5559ce0 0.1s done
+#63 exporting config sha256:07b6cf930ed180a512a60ab59682417eee52cdad3344dcdcd92a83a093fcca1e 0.1s done
+#63 exporting attestation manifest sha256:0f240f05fd3397b76314e2329786f22e9fcfe8df588f78be54dd6c8274556481 0.1s done
+#63 exporting manifest list sha256:a32246369b2cef4c435124559a994f57c800842e95b636124ec337fa708cd042 0.1s done
+#63 naming to docker.io/library/vybraint-servidor1:latest 0.0s done
+#63 unpacking to docker.io/library/vybraint-servidor1:latest 0.0s done
+#63 DONE 0.5s
+
+#64 [servidor2] exporting to image
+#64 exporting layers done
+#64 exporting manifest sha256:b7e6b40a0b6ba25c216e9ff353c798fdafacf46f5ab97dfedc35385cbbf50dd2 0.1s done
+#64 exporting config sha256:59202a2291db6dedd7ff07663640139901cdccca1b2780b590fce16f59fa0bc1 0.1s done
+#64 exporting attestation manifest sha256:f424975463d6968197ffb6509e68e4d4804e113cf22bbcd8cbba2d184f1190da 0.1s done
+#64 exporting manifest list sha256:6b305c8d879679140cdc712b00e35c515aa9f01dc4baaf47047f1e32b2916cdb 0.1s done
+#64 naming to docker.io/library/vybraint-servidor2:latest 0.0s done
+#64 unpacking to docker.io/library/vybraint-servidor2:latest 0.0s done
+#64 DONE 0.5s
+
+#65 [servidor3] exporting to image
+#65 exporting layers done
+#65 exporting manifest sha256:0633b24883ea5d7b04c2f6d992780a8d92b1ce127725edb7878931ea989f2ff9 0.1s done
+#65 exporting config sha256:24a155687e41a9eff89198ebea03e0fb0a30d29d6fa06c82f987da2a63fd95e9 0.1s done
+#65 exporting attestation manifest sha256:2036fd612e36b7d8379460000a002bab685b6221f943c9182784f6a4aa2c0c20 0.1s done
+#65 exporting manifest list sha256:e807038c58bbd5d48f0a749ab4563fa60f59c8eb2a01f520546186c795b748ef 0.1s done
+#65 naming to docker.io/library/vybraint-servidor3:latest 0.0s done
+#65 unpacking to docker.io/library/vybraint-servidor3:latest 0.0s done
+#65 DONE 0.5s
+
+#66 [controlador] exporting to image
+#66 exporting layers done
+#66 exporting manifest sha256:0270802c54c555aeb5dadc6f8b25f67d257aa332b3af761a04cd52655679c5dc 0.1s done
+#66 exporting config sha256:0356d297e73ab06dce04eb80b664af73ad70e1979176092eb6faec14f3e6fa2b 0.1s done
+#66 exporting attestation manifest sha256:a5e1029fbca51230021dfe33f96942614cc5f1ac88e807d41b6a3619ad43b86a 0.1s done
+#66 exporting manifest list sha256:d2574073cb1039545fdbd1aab937f0e3e60b37f86479c669c444a163ca47d2be 0.1s done
+#66 naming to docker.io/library/vybraint-controlador:latest 0.0s done
+#66 unpacking to docker.io/library/vybraint-controlador:latest 0.1s done
+#66 DONE 0.5s
+
+#67 [nodo2] resolving provenance for metadata file
+#67 ...
+
+#68 [panel] resolving provenance for metadata file
+#68 DONE 0.1s
+
+#69 [servidor1] resolving provenance for metadata file
+#69 DONE 0.2s
+
+#70 [nodo1] resolving provenance for metadata file
+#70 DONE 0.4s
+
+#71 [nodo3] resolving provenance for metadata file
+#71 DONE 0.2s
+
+#72 [servidor2] resolving provenance for metadata file
+#72 DONE 0.0s
+
+#73 [servidor3] resolving provenance for metadata file
+#73 DONE 0.3s
+
+#67 [nodo2] resolving provenance for metadata file
+#67 DONE 0.4s
+
+#74 [controlador] resolving provenance for metadata file
+#74 DONE 0.0s
+ Image vybraint-nodo1 Built 
+ Image vybraint-nodo2 Built 
+ Image vybraint-nodo3 Built 
+ Image vybraint-panel Built 
+ Image vybraint-controlador Built 
+ Image vybraint-servidor1 Built 
+ Image vybraint-servidor2 Built 
+ Image vybraint-servidor3 Built 
+ Volume vybraint_sismo-db3 Creating 
+ Volume vybraint_sismo-db3 Creating 
+ Network vybraint_default Creating 
+ Volume vybraint_sismo-db2 Creating 
+ Volume vybraint_sismo-db2 Creating 
+ Network vybraint_default Creating 
+ Volume vybraint_sismo-db1 Creating 
+ Volume vybraint_sismo-db1 Creating 
+ Volume vybraint_sismo-db3 Created 
+ Volume vybraint_sismo-db3 Created 
+ Volume vybraint_sismo-db1 Created 
+ Volume vybraint_sismo-db1 Created 
+ Volume vybraint_sismo-db2 Created 
+ Volume vybraint_sismo-db2 Created 
+ Network vybraint_default Created 
+ Network vybraint_default Created 
+ Container vybraint-db-2 Creating 
+ Container vybraint-db-3 Creating 
+ Container vybraint-nodo-2 Creating 
+ Container vybraint-nodo-3 Creating 
+ Container vybraint-nodo-1 Creating 
+ Container vybraint-db-1 Creating 
+ Container vybraint-controlador Creating 
+ Container vybraint-nodo-2 Created 
+ Container vybraint-controlador Created 
+ Container vybraint-nodo-3 Created 
+ Container vybraint-nodo-1 Created 
+ Container vybraint-db-3 Created 
+ Container vybraint-servidor-3 Creating 
+ Container vybraint-db-1 Created 
+ Container vybraint-servidor-1 Creating 
+ Container vybraint-db-2 Created 
+ Container vybraint-servidor-2 Creating 
+ Container vybraint-servidor-3 Created 
+ Container vybraint-servidor-1 Created 
+ Container vybraint-servidor-2 Created 
+ Container vybraint-panel Creating 
+ Container vybraint-panel Created 
+ Container vybraint-controlador Starting 
+ Container vybraint-nodo-2 Starting 
+ Container vybraint-nodo-3 Starting 
+ Container vybraint-nodo-1 Starting 
+ Container vybraint-db-1 Starting 
+ Container vybraint-db-2 Starting 
+ Container vybraint-db-3 Starting 
+ Container vybraint-controlador Started 
+ Container vybraint-nodo-2 Started 
+ Container vybraint-nodo-2 Waiting 
+ Container vybraint-nodo-3 Started 
+ Container vybraint-nodo-3 Waiting 
+ Container vybraint-nodo-1 Started 
+ Container vybraint-nodo-1 Waiting 
+ Container vybraint-db-1 Started 
+ Container vybraint-db-1 Waiting 
+ Container vybraint-db-2 Started 
+ Container vybraint-db-2 Waiting 
+ Container vybraint-db-3 Started 
+ Container vybraint-db-3 Waiting 
+ Container vybraint-db-1 Healthy 
+ Container vybraint-servidor-1 Starting 
+ Container vybraint-db-2 Healthy 
+ Container vybraint-servidor-2 Starting 
+ Container vybraint-nodo-2 Healthy 
+ Container vybraint-servidor-1 Started 
+ Container vybraint-servidor-1 Waiting 
+ Container vybraint-db-3 Healthy 
+ Container vybraint-servidor-3 Starting 
+ Container vybraint-nodo-3 Healthy 
+ Container vybraint-servidor-2 Started 
+ Container vybraint-servidor-2 Waiting 
+ Container vybraint-nodo-1 Healthy 
+ Container vybraint-servidor-3 Started 
+ Container vybraint-servidor-3 Waiting 
+ Container vybraint-servidor-1 Healthy 
+ Container vybraint-servidor-2 Healthy 
+ Container vybraint-servidor-3 Healthy 
+ Container vybraint-panel Starting 
+ Container vybraint-panel Started 
+✔ 0. El stack aislado está encendido, con Raft real, quórum y sin exponer Docker (577.383221ms)
+✔ 1. Apagar y encender el Servidor 1: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (15866.886928ms)
+✔ 2. Apagar y encender el Servidor 2: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (15653.240762ms)
+✔ 3. Apagar y encender el Servidor 3: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (14912.322801ms)
+✔ 4. Pérdida de quórum: con 1 de 3 no se confirma nada; al volver la mayoría se confirma y todo se recupera (32063.336627ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79165.959483
+[exit=0]

@@ -1,0 +1,1415 @@
+{
+  "generado_en": "2026-11-18T12:31:37-05:00",
+  "script": "generar-hojas.py",
+  "fuente": {
+    "manifiestos": [
+      "/tmp/hojas-ui/capturas/admin.json",
+      "/tmp/hojas-ui/capturas/cliente.json"
+    ],
+    "capturas_dir": "/tmp/hojas-ui/capturas"
+  },
+  "hojas": [
+    {
+      "archivo": "hoja-01-ADMIN-escritorio-y-movil.png",
+      "rol": "ADMIN",
+      "base_url": "http://127.0.0.1:8095/admin/",
+      "dimensiones": [
+        5844,
+        4952
+      ],
+      "apaisada": true,
+      "vistas": 9,
+      "capturas": 18,
+      "dimensiones_escritorio": [
+        1400,
+        900
+      ],
+      "recuadros": [
+        {
+          "vista": "Panorama",
+          "orden": 1,
+          "dispositivo": "escritorio",
+          "etiqueta": "01 · Panorama — escritorio",
+          "caja": [
+            380,
+            450,
+            2052,
+            1425
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "admin/ADM-01-panorama-escritorio.png",
+          "archivo_fuente": "admin/ADM-01-panorama-escritorio.png",
+          "sha256": "d218143acede91a74235c7a8b386cda930d54c1f793ae65fd0b7453f306fe384",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:28:56-05:00"
+        },
+        {
+          "vista": "Sismógrafos",
+          "orden": 2,
+          "dispositivo": "escritorio",
+          "etiqueta": "02 · Sismógrafos — escritorio",
+          "caja": [
+            2086,
+            450,
+            3758,
+            1425
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "admin/ADM-02-sismografos-escritorio.png",
+          "archivo_fuente": "admin/ADM-02-sismografos-escritorio.png",
+          "sha256": "ab956f5a7c956ed1a55f18874513470467abfc7b9e7ea7a68f5e38e84554025b",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:28:59-05:00"
+        },
+        {
+          "vista": "Alertas",
+          "orden": 3,
+          "dispositivo": "escritorio",
+          "etiqueta": "03 · Alertas — escritorio",
+          "caja": [
+            3792,
+            450,
+            5464,
+            1425
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "admin/ADM-03-alertas-escritorio.png",
+          "archivo_fuente": "admin/ADM-03-alertas-escritorio.png",
+          "sha256": "5a08b3b3ca9528a0122a0948796252b69805abaa930c0ec67db9d1489c06f5a8",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:29:01-05:00"
+        },
+        {
+          "vista": "Histórico",
+          "orden": 4,
+          "dispositivo": "escritorio",
+          "etiqueta": "04 · Histórico — escritorio",
+          "caja": [
+            380,
+            1469,
+            2052,
+            2444
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "admin/ADM-04-historico-escritorio.png",
+          "archivo_fuente": "admin/ADM-04-historico-escritorio.png",
+          "sha256": "b2054982e3f3b2b798b03f01457d92cb879eea90d8bb1ac3974ac1dc77da85fe",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:29:03-05:00"
+        },
+        {
+          "vista": "Clúster Raft",
+          "orden": 5,
+          "dispositivo": "escritorio",
+          "etiqueta": "05 · Clúster Raft — escritorio",
+          "caja": [
+            2086,
+            1469,
+            3758,
+            2444
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "admin/ADM-05-cluster-raft-escritorio.png",
+          "archivo_fuente": "admin/ADM-05-cluster-raft-escritorio.png",
+          "sha256": "507dcf331661960d1ac56d86bd16f4509664defe33d935dba946b4935b1036fe",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:29:04-05:00"
+        },
+        {
+          "vista": "Servidores",
+          "orden": 6,
+          "dispositivo": "escritorio",
+          "etiqueta": "06 · Servidores — escritorio",
+          "caja": [
+            3792,
+            1469,
+            5464,
+            2444
+          ],
+          "imagen_mostrada": [
+            1050,
+            900
+          ],
+          "archivo": "admin/ADM-06-servidores-escritorio.png",
+          "archivo_fuente": "admin/ADM-06-servidores-escritorio.png",
+          "sha256": "cae59d63da4d0a25a55d92c4ab2c8cf7e8efbacfb0eb8b0718ad921efa7a1b4f",
+          "tamano_nativo": [
+            1400,
+            1200
+          ],
+          "tamano_logico": [
+            1400,
+            1200
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:29:07-05:00"
+        },
+        {
+          "vista": "Detectores",
+          "orden": 7,
+          "dispositivo": "escritorio",
+          "etiqueta": "07 · Detectores — escritorio",
+          "caja": [
+            380,
+            2488,
+            2052,
+            3463
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "admin/ADM-07-detectores-escritorio.png",
+          "archivo_fuente": "admin/ADM-07-detectores-escritorio.png",
+          "sha256": "9985be6988a6d95f8c822854ef683a46bcffabcab6ece3adb1c02554645897c2",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:29:09-05:00"
+        },
+        {
+          "vista": "Registros",
+          "orden": 8,
+          "dispositivo": "escritorio",
+          "etiqueta": "08 · Registros — escritorio",
+          "caja": [
+            2086,
+            2488,
+            3758,
+            3463
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "admin/ADM-08-registros-escritorio.png",
+          "archivo_fuente": "admin/ADM-08-registros-escritorio.png",
+          "sha256": "8f38343f231a85913aa945cd53ef713cd80f7e94243f372778f45d183a311bf4",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:29:11-05:00"
+        },
+        {
+          "vista": "Configuración",
+          "orden": 9,
+          "dispositivo": "escritorio",
+          "etiqueta": "09 · Configuración — escritorio",
+          "caja": [
+            3792,
+            2488,
+            5464,
+            3463
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "admin/ADM-09-configuracion-escritorio.png",
+          "archivo_fuente": "admin/ADM-09-configuracion-escritorio.png",
+          "sha256": "255dee812055be63e6c6b28cf67d4025d2b0ceb95fcdc914c0a8e48efde5462e",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "2026-11-18T12:29:13-05:00"
+        },
+        {
+          "vista": "Panorama",
+          "orden": 1,
+          "dispositivo": "movil",
+          "etiqueta": "01 · Panorama — móvil",
+          "caja": [
+            383,
+            3603,
+            924,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-01-panorama-movil.png",
+          "archivo_fuente": "admin/ADM-01-panorama-movil.png",
+          "sha256": "33072fad8c45f81e5ae4903f31012d180cfeb4efd50b425247ba47285ef49cb7",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:17-05:00"
+        },
+        {
+          "vista": "Sismógrafos",
+          "orden": 2,
+          "dispositivo": "movil",
+          "etiqueta": "02 · Sismógrafos — móvil",
+          "caja": [
+            950,
+            3603,
+            1491,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-02-sismografos-movil.png",
+          "archivo_fuente": "admin/ADM-02-sismografos-movil.png",
+          "sha256": "883f3a1361c5caf7930bf8fab37d8fc93d8a95acb8de8ba0e204af0dadf5e8b0",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:20-05:00"
+        },
+        {
+          "vista": "Alertas",
+          "orden": 3,
+          "dispositivo": "movil",
+          "etiqueta": "03 · Alertas — móvil",
+          "caja": [
+            1517,
+            3603,
+            2058,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-03-alertas-movil.png",
+          "archivo_fuente": "admin/ADM-03-alertas-movil.png",
+          "sha256": "bd2add90b8f0f9ed086e0883c6803a77a979476de63c5936d6b96b276523b23f",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:23-05:00"
+        },
+        {
+          "vista": "Histórico",
+          "orden": 4,
+          "dispositivo": "movil",
+          "etiqueta": "04 · Histórico — móvil",
+          "caja": [
+            2084,
+            3603,
+            2625,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-04-historico-movil.png",
+          "archivo_fuente": "admin/ADM-04-historico-movil.png",
+          "sha256": "a9086e2b8eb7b9de29a06af7a7210cd4f33fc2eb5acc1e4679f8e26e94bad750",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:25-05:00"
+        },
+        {
+          "vista": "Clúster Raft",
+          "orden": 5,
+          "dispositivo": "movil",
+          "etiqueta": "05 · Clúster Raft — móvil",
+          "caja": [
+            2651,
+            3603,
+            3192,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-05-cluster-raft-movil.png",
+          "archivo_fuente": "admin/ADM-05-cluster-raft-movil.png",
+          "sha256": "daa7f6f7fb49b32833caa57aa240499d0f9998a76ea7f6e24074dc924a79ebb2",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:27-05:00"
+        },
+        {
+          "vista": "Servidores",
+          "orden": 6,
+          "dispositivo": "movil",
+          "etiqueta": "06 · Servidores — móvil",
+          "caja": [
+            3218,
+            3603,
+            3759,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-06-servidores-movil.png",
+          "archivo_fuente": "admin/ADM-06-servidores-movil.png",
+          "sha256": "57c85047f4c1f69473ae2fc43b56c519dafa87aa63e86769c5d01a89bb810ddb",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:30-05:00"
+        },
+        {
+          "vista": "Detectores",
+          "orden": 7,
+          "dispositivo": "movil",
+          "etiqueta": "07 · Detectores — móvil",
+          "caja": [
+            3785,
+            3603,
+            4326,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-07-detectores-movil.png",
+          "archivo_fuente": "admin/ADM-07-detectores-movil.png",
+          "sha256": "bd1fb7e56d0c8f51f4fe930adb526547edc9e8b3185c6a94e92f3a63cea4eacb",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:32-05:00"
+        },
+        {
+          "vista": "Registros",
+          "orden": 8,
+          "dispositivo": "movil",
+          "etiqueta": "08 · Registros — móvil",
+          "caja": [
+            4352,
+            3603,
+            4893,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-08-registros-movil.png",
+          "archivo_fuente": "admin/ADM-08-registros-movil.png",
+          "sha256": "b5492e2294a31f8da5f4aa134ad1fc01de36fad8366464f082a13a960deb596b",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:34-05:00"
+        },
+        {
+          "vista": "Configuración",
+          "orden": 9,
+          "dispositivo": "movil",
+          "etiqueta": "09 · Configuración — móvil",
+          "caja": [
+            4919,
+            3603,
+            5460,
+            4697
+          ],
+          "imagen_mostrada": [
+            462,
+            1000
+          ],
+          "archivo": "admin/ADM-09-configuracion-movil.png",
+          "archivo_fuente": "admin/ADM-09-configuracion-movil.png",
+          "sha256": "be5743023530750d5d0fa16bfbe4cdb3ac04a465f22ba156f89d042aac53eb00",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "2026-11-18T12:29:37-05:00"
+        }
+      ],
+      "manifiesto_fecha": "2026-11-18T12:29:37-05:00",
+      "origen": "Stack Docker real en ejecución en http://127.0.0.1:8095 (11 servicios); datos reales del clúster Raft y de las 3 bases PostgreSQL (alertas de demostración del 2026-11-18). Sin recarga posterior ni edición de las imágenes.",
+      "notas": [
+        "Sismógrafos: se seleccionó la ventana de 5 min con el control real de la UI (por defecto 30 s) para que se vieran los eventos reales recientes, igual que la referencia cap-REF-OP-02-sismografos.png; no se alteró ningún dato.",
+        "Servidores (escritorio): única captura a 1400x1200 en lugar de 1400x900, para que se vean completas las tres tarjetas (contenedores, SO, PostgreSQL y botones \"Apagar servidor\"), mismo criterio que cap-REF-OP-06-servidores.png.",
+        "Servidores y Configuración desplazan su contenido dentro de <main> (scroll interno): las capturas de viewport muestran la primera pantalla completa con el encabezado y los controles principales; en Configuración queda por debajo de la primera pantalla parte de las opciones secundarias (igual que la referencia).",
+        "Móvil, Configuración: la barra de navegación inferior real solo tiene 8 secciones (no incluye Configuración); se abrió con el botón de engranaje real de la barra superior (.mobile-gear), que es el acceso previsto en la propia SPA.",
+        "La SPA ADMIN no usa rutas por URL (cambio de vista por estado React): location.href es /admin/ en las 18 capturas y la vista queda identificada por el campo \"vista\" y por el <h1> real del toolbar.",
+        "El stack real recibió pulsaciones de demostración en paralelo durante la sesión (el log Raft y las alertas crecían), de modo que los recuentos (eventos, alertas, entradas del log) son los reales del instante de cada captura. Antes de cada screenshot se comprobó modo EN VIVO + \"Conectado,\" + datos de la vista sin esqueletos de carga y sin \"Sin conexión\"; si aparecía la pantalla de alerta de la SPA se cerraba y se repetía la captura.",
+        "Cápsula de la última alerta (isla de notificaciones): visible solo en la captura de Panorama, como cap-REF-OP-01-panorama.png; en el resto de vistas se cerró con su botón real (.isl-x) para no tapar encabezados ni pestañas, igual que en el resto de cap-REF-OP-*. En móvil tampoco aparece, como en cap-REF-OP-18-movil.png.",
+        "Para que las vistas con actividad mostraran eventos reales recientes, se generó una alerta de demostración con POST /api/nodos/1/pulsar (2475 ms) y POST /api/nodos/2/pulsar (2025 ms), el mismo método documentado en NOTA-capturas-REF.md; los eventos y la alerta quedaron persistidos en las 3 bases PostgreSQL y son datos de demostración del software, no mediciones sísmicas.",
+        "No se modificó ningún archivo del repositorio; todo el trabajo está en /tmp/hojas-ui/."
+      ],
+      "captura_desde": "2026-11-18 12:28:56",
+      "captura_hasta": "2026-11-18 12:29:37"
+    },
+    {
+      "archivo": "hoja-02-CLIENTE-escritorio-y-movil.png",
+      "rol": "CLIENTE",
+      "base_url": "http://127.0.0.1:8095/cliente/",
+      "dimensiones": [
+        6990,
+        5923
+      ],
+      "apaisada": true,
+      "vistas": 14,
+      "capturas": 28,
+      "dimensiones_escritorio": [
+        1400,
+        900
+      ],
+      "recuadros": [
+        {
+          "vista": "Inicio / estado de la red",
+          "orden": 1,
+          "dispositivo": "escritorio",
+          "etiqueta": "01 · Inicio / estado de la red — escritorio",
+          "caja": [
+            100,
+            450,
+            1772,
+            1425
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-01-inicio-escritorio.png",
+          "archivo_fuente": "cliente/CLI-01-inicio-escritorio.png",
+          "sha256": "69a88a4db5ce27e251df3d8de275aec5753517e8735abebad5e6c4d303b29960",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:16:57"
+        },
+        {
+          "vista": "Alerta a pantalla completa",
+          "orden": 2,
+          "dispositivo": "escritorio",
+          "etiqueta": "02 · Alerta a pantalla completa — escritorio",
+          "caja": [
+            1806,
+            450,
+            3478,
+            1425
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-02-alerta-pantalla-completa-escritorio.png",
+          "archivo_fuente": "cliente/CLI-02-alerta-pantalla-completa-escritorio.png",
+          "sha256": "36834836e6048cecf35b44090da8a5312381a49b5fa5f9214754aaa0923b2a5b",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:00"
+        },
+        {
+          "vista": "Estado posterior a \"Estoy a salvo\"",
+          "orden": 3,
+          "dispositivo": "escritorio",
+          "etiqueta": "03 · Estado posterior a \"Estoy a salvo\" — escritorio",
+          "caja": [
+            3512,
+            450,
+            5184,
+            1425
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-03-estado-post-alerta-escritorio.png",
+          "archivo_fuente": "cliente/CLI-03-estado-post-alerta-escritorio.png",
+          "sha256": "6dec6e73523bddffafed257bf457801f5ffb000da84c369e520798164f32da74",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:03"
+        },
+        {
+          "vista": "Avisos",
+          "orden": 4,
+          "dispositivo": "escritorio",
+          "etiqueta": "04 · Avisos — escritorio",
+          "caja": [
+            5218,
+            450,
+            6890,
+            1425
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-04-avisos-escritorio.png",
+          "archivo_fuente": "cliente/CLI-04-avisos-escritorio.png",
+          "sha256": "3ebbc4565752bc9a771d83e6f51dd3dd254347539d1e102757e0f8ff77575f4b",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:06"
+        },
+        {
+          "vista": "Avisos → Historial de alertas confirmadas",
+          "orden": 5,
+          "dispositivo": "escritorio",
+          "etiqueta": "05 · Avisos → Historial de alertas confirmadas — escritorio",
+          "caja": [
+            100,
+            1469,
+            1772,
+            2444
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-05-historial-alertas-escritorio.png",
+          "archivo_fuente": "cliente/CLI-05-historial-alertas-escritorio.png",
+          "sha256": "7d2b700b201f9df5a6171e2f385143ec7d397bee77c50cbd2cba5697996335b3",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:09"
+        },
+        {
+          "vista": "Avisos → Historial de lecturas",
+          "orden": 6,
+          "dispositivo": "escritorio",
+          "etiqueta": "06 · Avisos → Historial de lecturas — escritorio",
+          "caja": [
+            1806,
+            1469,
+            3478,
+            2444
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-06-historial-lecturas-escritorio.png",
+          "archivo_fuente": "cliente/CLI-06-historial-lecturas-escritorio.png",
+          "sha256": "e99aa92e56e8860f8d10a84a9426882a328ad4e89fe34f9dac609abd0fb2863a",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:12"
+        },
+        {
+          "vista": "Mapa",
+          "orden": 7,
+          "dispositivo": "escritorio",
+          "etiqueta": "07 · Mapa — escritorio",
+          "caja": [
+            3512,
+            1469,
+            5184,
+            2444
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-07-mapa-escritorio.png",
+          "archivo_fuente": "cliente/CLI-07-mapa-escritorio.png",
+          "sha256": "c7375649af923d1c7f2eef2c73514c07fb145947cb7d22777da93919c434a8bc",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:16"
+        },
+        {
+          "vista": "Detalle de una alerta",
+          "orden": 8,
+          "dispositivo": "escritorio",
+          "etiqueta": "08 · Detalle de una alerta — escritorio",
+          "caja": [
+            5218,
+            1469,
+            6890,
+            2444
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-08-detalle-alerta-escritorio.png",
+          "archivo_fuente": "cliente/CLI-08-detalle-alerta-escritorio.png",
+          "sha256": "28707ab231637ba0ee1321ed1ab95dd0f8a550ce4c8a54bb92a7b1ca2e16481a",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:21"
+        },
+        {
+          "vista": "Prevención / Qué hacer — Durante",
+          "orden": 9,
+          "dispositivo": "escritorio",
+          "etiqueta": "09 · Prevención / Qué hacer — Durante — escritorio",
+          "caja": [
+            100,
+            2488,
+            1772,
+            3463
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-09-que-hacer-durante-escritorio.png",
+          "archivo_fuente": "cliente/CLI-09-que-hacer-durante-escritorio.png",
+          "sha256": "05c6a09f980e1595b211cd8ff49adfad9bbbc56d29b79750c6680375c72a900d",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:27"
+        },
+        {
+          "vista": "Prevención / Qué hacer — Antes",
+          "orden": 10,
+          "dispositivo": "escritorio",
+          "etiqueta": "10 · Prevención / Qué hacer — Antes — escritorio",
+          "caja": [
+            1806,
+            2488,
+            3478,
+            3463
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-10-que-hacer-antes-escritorio.png",
+          "archivo_fuente": "cliente/CLI-10-que-hacer-antes-escritorio.png",
+          "sha256": "8586c989fe7af45c8c67e551a02bc5bc737d0901d4fc657aabdd96da52239fbc",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:28"
+        },
+        {
+          "vista": "Prevención / Qué hacer — Después",
+          "orden": 11,
+          "dispositivo": "escritorio",
+          "etiqueta": "11 · Prevención / Qué hacer — Después — escritorio",
+          "caja": [
+            3512,
+            2488,
+            5184,
+            3463
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-11-que-hacer-despues-escritorio.png",
+          "archivo_fuente": "cliente/CLI-11-que-hacer-despues-escritorio.png",
+          "sha256": "42d51db8e492c4a65973d58b899391c2ab6e67e47bd3ac07fc727af051f9f336",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:30"
+        },
+        {
+          "vista": "Protección (centro de protección)",
+          "orden": 12,
+          "dispositivo": "escritorio",
+          "etiqueta": "12 · Protección (centro de protección) — escritorio",
+          "caja": [
+            5218,
+            2488,
+            6890,
+            3463
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-12-proteccion-escritorio.png",
+          "archivo_fuente": "cliente/CLI-12-proteccion-escritorio.png",
+          "sha256": "bfec2dcd031bbfe714cddbdb05507bf271cf90781bfa3371ad2e0e1cfea130f7",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:33"
+        },
+        {
+          "vista": "Sismógrafos (telemetría)",
+          "orden": 13,
+          "dispositivo": "escritorio",
+          "etiqueta": "13 · Sismógrafos (telemetría) — escritorio",
+          "caja": [
+            1806,
+            3507,
+            3478,
+            4482
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-13-sismografos-escritorio.png",
+          "archivo_fuente": "cliente/CLI-13-sismografos-escritorio.png",
+          "sha256": "d3d47bdc4f07d8040165eddafc512de7a7a586af6c8ee4e4bc65976ff43dbcef",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:38"
+        },
+        {
+          "vista": "Configuración / Ajustes",
+          "orden": 14,
+          "dispositivo": "escritorio",
+          "etiqueta": "14 · Configuración / Ajustes — escritorio",
+          "caja": [
+            3512,
+            3507,
+            5184,
+            4482
+          ],
+          "imagen_mostrada": [
+            1400,
+            900
+          ],
+          "archivo": "cliente/CLI-14-ajustes-escritorio.png",
+          "archivo_fuente": "cliente/CLI-14-ajustes-escritorio.png",
+          "sha256": "60f4df2d62caaef07478a9cfb15bd13e66a655d672b83631a4d2c31cdb28edd4",
+          "tamano_nativo": [
+            1400,
+            900
+          ],
+          "tamano_logico": [
+            1400,
+            900
+          ],
+          "dpr": 1,
+          "capturado_en": "18/11/2026 12:17:41"
+        },
+        {
+          "vista": "Inicio / estado de la red",
+          "orden": 1,
+          "dispositivo": "movil",
+          "etiqueta": "01 · Inicio / estado de la red — móvil",
+          "caja": [
+            106,
+            4622,
+            566,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-01-inicio-movil.png",
+          "archivo_fuente": "cliente/CLI-01-inicio-movil.png",
+          "sha256": "5ef78205695456cd287c29cd43fe4fc762e1c4491429ee601c6dcfd76e171e44",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:17:43"
+        },
+        {
+          "vista": "Alerta a pantalla completa",
+          "orden": 2,
+          "dispositivo": "movil",
+          "etiqueta": "02 · Alerta a pantalla completa — móvil",
+          "caja": [
+            592,
+            4622,
+            1052,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-02-alerta-pantalla-completa-movil.png",
+          "archivo_fuente": "cliente/CLI-02-alerta-pantalla-completa-movil.png",
+          "sha256": "1adbc906a24d1c83fe207c7c9a79bf7a556a7b3341a30523489b6e4758e549a6",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:17:46"
+        },
+        {
+          "vista": "Estado posterior a \"Estoy a salvo\"",
+          "orden": 3,
+          "dispositivo": "movil",
+          "etiqueta": "03 · Estado posterior a \"Estoy a salvo\" — móvil",
+          "caja": [
+            1078,
+            4622,
+            1538,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-03-estado-post-alerta-movil.png",
+          "archivo_fuente": "cliente/CLI-03-estado-post-alerta-movil.png",
+          "sha256": "3bc990571ed6150f7a2a3f806a60d46f15d00bd9c2d0d6e44bd2fc0882764e5d",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:17:49"
+        },
+        {
+          "vista": "Avisos",
+          "orden": 4,
+          "dispositivo": "movil",
+          "etiqueta": "04 · Avisos — móvil",
+          "caja": [
+            1564,
+            4622,
+            2024,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-04-avisos-movil.png",
+          "archivo_fuente": "cliente/CLI-04-avisos-movil.png",
+          "sha256": "97eeee6a16571ca8baae2659efc9ef2b00d95478dbbcbacd32edeb8016c934a2",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:17:52"
+        },
+        {
+          "vista": "Avisos → Historial de alertas confirmadas",
+          "orden": 5,
+          "dispositivo": "movil",
+          "etiqueta": "05 · Avisos → Historial de alertas confirmadas — móvil",
+          "caja": [
+            2050,
+            4622,
+            2510,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-05-historial-alertas-movil.png",
+          "archivo_fuente": "cliente/CLI-05-historial-alertas-movil.png",
+          "sha256": "d61a7341011922c8e6d510535b8bea880fc409c3ad24b0087f12ffd8dd10c849",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:17:55"
+        },
+        {
+          "vista": "Avisos → Historial de lecturas",
+          "orden": 6,
+          "dispositivo": "movil",
+          "etiqueta": "06 · Avisos → Historial de lecturas — móvil",
+          "caja": [
+            2536,
+            4622,
+            2996,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-06-historial-lecturas-movil.png",
+          "archivo_fuente": "cliente/CLI-06-historial-lecturas-movil.png",
+          "sha256": "2be91573fc6046c80fce910541d5a128d9e92e2864a06beaac4a16e9a2857ced",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:17:58"
+        },
+        {
+          "vista": "Mapa",
+          "orden": 7,
+          "dispositivo": "movil",
+          "etiqueta": "07 · Mapa — móvil",
+          "caja": [
+            3022,
+            4622,
+            3482,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-07-mapa-movil.png",
+          "archivo_fuente": "cliente/CLI-07-mapa-movil.png",
+          "sha256": "3ddc8b86772508f70ec1b7930edb5fce493a30159e1cb7e23549ae3c0b1a497b",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:18:03"
+        },
+        {
+          "vista": "Detalle de una alerta",
+          "orden": 8,
+          "dispositivo": "movil",
+          "etiqueta": "08 · Detalle de una alerta — móvil",
+          "caja": [
+            3508,
+            4622,
+            3968,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-08-detalle-alerta-movil.png",
+          "archivo_fuente": "cliente/CLI-08-detalle-alerta-movil.png",
+          "sha256": "b93f36b58512f338da8a75f25b713b2cea4c45b184de8da17eb44351ece60b5c",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:18:07"
+        },
+        {
+          "vista": "Prevención / Qué hacer — Durante",
+          "orden": 9,
+          "dispositivo": "movil",
+          "etiqueta": "09 · Prevención / Qué hacer — Durante — móvil",
+          "caja": [
+            3994,
+            4622,
+            4454,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-09-que-hacer-durante-movil.png",
+          "archivo_fuente": "cliente/CLI-09-que-hacer-durante-movil.png",
+          "sha256": "65f14421b35f706d2a3a9c036cdd1d16b999ab5aa6867a9bf09a1d532b8d42a2",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:18:13"
+        },
+        {
+          "vista": "Prevención / Qué hacer — Antes",
+          "orden": 10,
+          "dispositivo": "movil",
+          "etiqueta": "10 · Prevención / Qué hacer — Antes — móvil",
+          "caja": [
+            4480,
+            4622,
+            4940,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-10-que-hacer-antes-movil.png",
+          "archivo_fuente": "cliente/CLI-10-que-hacer-antes-movil.png",
+          "sha256": "0a3d9cd4c8916e84094a146ce42f2b549c2cee6ccfa33bd3f65829cfdaec4d00",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:18:15"
+        },
+        {
+          "vista": "Prevención / Qué hacer — Después",
+          "orden": 11,
+          "dispositivo": "movil",
+          "etiqueta": "11 · Prevención / Qué hacer — Después — móvil",
+          "caja": [
+            4966,
+            4622,
+            5426,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-11-que-hacer-despues-movil.png",
+          "archivo_fuente": "cliente/CLI-11-que-hacer-despues-movil.png",
+          "sha256": "e4a6f141740685bf617a1b9209d1a980f1bcad908a80a1f626f23cdbbba8bcf4",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:18:17"
+        },
+        {
+          "vista": "Protección (centro de protección)",
+          "orden": 12,
+          "dispositivo": "movil",
+          "etiqueta": "12 · Protección (centro de protección) — móvil",
+          "caja": [
+            5452,
+            4622,
+            5912,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-12-proteccion-movil.png",
+          "archivo_fuente": "cliente/CLI-12-proteccion-movil.png",
+          "sha256": "d8f3cf79adc69b118de45c08b9ab659307f9d480e11a1982142c1a0c7ea62d1d",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:18:20"
+        },
+        {
+          "vista": "Sismógrafos (telemetría)",
+          "orden": 13,
+          "dispositivo": "movil",
+          "etiqueta": "13 · Sismógrafos (telemetría) — móvil",
+          "caja": [
+            5938,
+            4622,
+            6398,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-13-sismografos-movil.png",
+          "archivo_fuente": "cliente/CLI-13-sismografos-movil.png",
+          "sha256": "018ed56be8fa031ac8f14747e411879acfd598bd618c2936e13771126c2a576a",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:19:23"
+        },
+        {
+          "vista": "Configuración / Ajustes",
+          "orden": 14,
+          "dispositivo": "movil",
+          "etiqueta": "14 · Configuración / Ajustes — móvil",
+          "caja": [
+            6424,
+            4622,
+            6884,
+            5668
+          ],
+          "imagen_mostrada": [
+            428,
+            926
+          ],
+          "archivo": "cliente/CLI-14-ajustes-movil.png",
+          "archivo_fuente": "cliente/CLI-14-ajustes-movil.png",
+          "sha256": "16fe39eb3ab6e4345b323b7ba57be83890404ded6a3011815ade9b24f8f018b2",
+          "tamano_nativo": [
+            780,
+            1688
+          ],
+          "tamano_logico": [
+            390,
+            844
+          ],
+          "dpr": 2,
+          "capturado_en": "18/11/2026 12:18:33"
+        }
+      ],
+      "manifiesto_fecha": "18/11/2026 12:19:18",
+      "origen": null,
+      "notas": [
+        "Capturas frescas del 2026-11-18 (12:16–12:20, America/Bogota) contra el stack Docker real ya en ejecución en http://127.0.0.1:8095/cliente/ (la ruta /publico redirige aquí). SPA propia con rutas hash. Escritorio 1400×900 DPR1 y móvil 390×844 DPR2 (isMobile, hasTouch), Chromium 1248 de Playwright, locale es-CO y zona America/Bogota. No se modificó ningún archivo del repositorio.",
+        "Vistas reales de la SPA confirmadas en web/public/cliente/js/cliente-app.js: ahora, mapa, detalle/<id>, avisos, historial, proteccion, sismografos, prevencion y ajustes (alias sensores→sismografos, notificaciones→avisos). Se cubren las 9 vistas pedidas más Avisos, Protección y Sismógrafos como vistas adicionales navegables; Prevención se captura en sus tres pestañas Antes/Durante/Después (09–11). La navegación móvil usó la barra inferior real (Inicio, Mapa, Avisos, Protección, Configuración) y enlaces reales (Historial, Qué hacer si tiembla, Ver todo de Sismógrafos).",
+        "Comprobación de datos reales en ambos contextos: document.documentElement.dataset.vivo=\"1\" y window.VybraVivo.modo=\"real\"; las capturas muestran datos del stack (sin esqueletos ni banner \"Sin conexión\"). El mapa carga teselas reales de OpenStreetMap.",
+        "Alerta REAL generada para escritorio el 18/11/2026 12:16:57: POST /api/nodos/1/pulsar {\"ms\":2475} y POST /api/nodos/2/pulsar {\"ms\":2025}, respuestas [{\"ok\":true,\"id\":\"nodo-1-7f5258bd-5\",\"nivel\":6,\"resultado\":\"aceptada\"},{\"ok\":true,\"id\":\"nodo-2-9ef7b678-5\",\"nivel\":5,\"resultado\":\"pendiente\"}]; alerta id 11 (promedio 5.5/10, media), confirmada por consenso Raft; eventos: nodo-2-9ef7b678-5 (nodo 2, nivel 5, 2025 ms, 18/11/2026 12:16:58); nodo-1-7f5258bd-5 (nodo 1, nivel 6, 2475 ms, 18/11/2026 12:16:57). La SPA abrió la pantalla completa por SSE (apertura=sse) y el diálogo mostró: «Simulacro · Alerta sísmica · Actúa ahora · Intensidad VI · Fuerte · S1 y S2 · El aviso se cierra en 59 s».",
+        "Alerta REAL generada para movil el 18/11/2026 12:17:43: POST /api/nodos/1/pulsar {\"ms\":2475} y POST /api/nodos/2/pulsar {\"ms\":2025}, respuestas [{\"ok\":true,\"id\":\"nodo-1-7f5258bd-6\",\"nivel\":6,\"resultado\":\"aceptada\"},{\"ok\":true,\"id\":\"nodo-2-9ef7b678-6\",\"nivel\":5,\"resultado\":\"pendiente\"}]; alerta id 13 (promedio 5.5/10, media), confirmada por consenso Raft; eventos: nodo-2-9ef7b678-6 (nodo 2, nivel 5, 2025 ms, 18/11/2026 12:17:45); nodo-1-7f5258bd-6 (nodo 1, nivel 6, 2475 ms, 18/11/2026 12:17:43). La SPA abrió la pantalla completa por SSE (apertura=sse) y el diálogo mostró: «Simulacro · Alerta sísmica · Actúa ahora · Intensidad VI · Fuerte · S1 y S2 · El aviso se cierra en 59 s».",
+        "Estado posterior a \"Estoy a salvo\": se pulsó el botón real del diálogo y se capturó el Inicio con la cápsula crítica \"Alerta confirmada · S1 y S2 coincidieron · Intensidad VI · Fuerte\" y el hero \"Dos sismógrafos coincidieron\" con el enlace \"Ver la alerta\".",
+        "El texto de la pantalla de alerta rotula siempre SIMULACRO; la SPA vigente no tiene franja \"PRUEBA\" (coincide con lo anotado en entrega/04-evidencias/B-interfaz/NOTA-capturas-REF.md, que se consultó en sólo lectura).",
+        "El CLIENTE usa Leaflet + teselas de OpenStreetMap, mientras README.md §7 (línea 197) afirma \"mapa SVG propio (sin Leaflet ni teselas externas)\": discrepancia documental ya anotada en NOTA-capturas-REF.md.",
+        "No existe en la SPA vigente el diálogo \"Ayuda y atajos\" del inventario original; no se inventó ninguna captura. En móvil, el botón de escritorio \"Ver telemetría\" está oculto: se llegó a Sismógrafos desde el enlace visible \"Ver todo\" de la sección, que usa la misma acción real (data-action=\"open-sensors\").",
+        "Todas las capturas se tomaron sin errores de página; el histórico y las listas muestran la alerta nueva de hoy además de las alertas de demostración persistidas de la mañana."
+      ],
+      "captura_desde": "2026-11-18 12:16:57",
+      "captura_hasta": "2026-11-18 12:19:23"
+    }
+  ],
+  "discrepancias": []
+}

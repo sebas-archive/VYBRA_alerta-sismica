@@ -1,0 +1,91 @@
+@startuml D-12-secuencia-agregacion-sse
+title D-12 · Secuencia de agregación y SSE hasta ADMIN/CLIENTE\npoller 1 Hz · foto agregada · latido cada 5 s
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam sequenceLifeLineBorderColor #244B5A
+
+participant "ADMIN\n(public/admin)" as ADM
+participant "CLIENTE\n(public/cliente)" as CLI
+participant "server.js\nHTTP :8090" as SRV
+participant "poller.js\nciclo 1 Hz" as POL
+participant "Nodo 1\nHTTP :80" as N1
+participant "Nodo 2\nHTTP :80" as N2
+participant "Nodo 3\nHTTP :80" as N3
+participant "Servidores de datos\n:8100" as SD
+
+== Apertura de la vista ==
+ADM -> SRV : GET /admin/ (estáticos)
+ADM -> SRV : GET /api/estado
+SRV -> ADM : foto actual (con ubicaciones)
+ADM -> SRV : GET /api/stream (EventSource)
+CLI -> SRV : GET /publico → redirección /cliente/
+CLI -> SRV : GET /api/stream (EventSource)
+SRV -> ADM : event: estado · data: foto
+SRV -> CLI : event: estado · data: foto
+note over SRV
+  La foto inicial se envía al abrir el stream.
+  (server.js:117-144)
+end note
+
+== Ciclo del poller (cada 1000 ms) ==
+loop cada intervaloMs = 1000 ms
+  POL -> N1 : GET /estado
+  POL -> N2 : GET /estado
+  POL -> N3 : GET /estado
+  note right of POL
+    timeout 3000 ms; 3 fallos consecutivos
+    → alcanzable = false.
+    (server.js:459-460 · poller.js:53-67)
+  end note
+  N1 --> POL : rol, termino, log_len, commit_index,\npendientes, lider_conocido, caido, sucesos_seq
+  N2 --> POL
+  N3 --> POL
+  POL -> POL : calcularLiderYFuente():\n- líder = nodo disponible con rol "lider"\n  y mayor término;\n- quorum = >= 2 disponibles que\n  reconocen al mismo líder;\n- fuente = líder, o el de mayor commit
+  POL -> N1 : GET /sucesos?desde=ultimaSeq\n(solo si cambió sucesos_seq)
+  POL -> N1 : GET /log?desde=N (páginas de 50)\n(solo si falta log)
+  POL -> N1 : GET /alertas\n(si cambió log_len o commit_index)
+  N1 --> POL : entradas, alertas
+  POL -> POL : construirFoto():\n{t, quorum, lider, fuente, nodos[],\nlog[], alertas[], sucesos[]}
+  POL -> SRV : evento "cambio" (solo si la foto cambió)
+  SRV -> ADM : event: estado
+  SRV -> CLI : event: estado
+end
+
+== Latido SSE ==
+SRV -> ADM : event: vivo cada 5000 ms
+SRV -> CLI : event: vivo cada 5000 ms
+note over SRV
+  Las fotos solo se envían cuando algo cambia;
+  "vivo" confirma que el panel sigue al día y
+  evita que un proxy corte la conexión ociosa.
+  Si el cliente acumula > 1 MB pendiente, se corta.
+  (server.js:14, 124-131)
+end note
+
+== Acciones desde ADMIN ==
+ADM -> SRV : POST /api/nodos/:n/control\n{"accion":"caer"|"recuperar"} · JSON
+SRV -> N1 : POST /control (proxy, timeout 1000 ms)
+N1 --> SRV : {"ok":true,"caido":bool}
+SRV --> ADM : misma respuesta
+ADM -> SRV : POST /api/nodos/:n/pulsar {"ms":N}
+SRV -> N1 : POST /pulsar (proxy)
+SRV -> SD : POST /acciones (registra la orden, ref única)
+
+== Histórico e infraestructura ==
+ADM -> SRV : GET /api/servidores
+SRV -> SD : GET /info (los 3)
+ADM -> SRV : GET /api/historial?...&servidor=N|todos
+SRV -> SD : GET /api/historial (paginado en PostgreSQL)
+SRV -> ADM : {tipo, pagina, total, servidores[], registros[]}
+ADM -> SRV : GET /api/infra
+SRV -> SRV : estadoInfra() → controlador (Bearer token)
+CLI -> SRV : GET /api/publico/historial
+SRV -> SD : GET /api/publico (solo alertas/lecturas confirmadas)
+
+@enduml

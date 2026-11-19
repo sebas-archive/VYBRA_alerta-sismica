@@ -376,13 +376,27 @@ tiempos por consulta, capturas verificadas y captura pasiva del serial por `usbm
 ├── entrega/                  Entregables académicos y evidencias
 │   ├── 04-evidencias/        Capturas, logs y tablas por categoría (saneadas)
 │   ├── 05-pruebas/           Datos, registros y scripts de campaña
-│   └── 10-informes-fase3/    Informes técnicos y diagnósticos
+│   ├── 10-informes-fase3/    Informes técnicos y diagnósticos
+│   ├── 11-documento-final/   Fuente y figuras del documento técnico final
+│   └── 12-manual-instalacion/ Manual final de instalación y ejecución (Markdown y figuras)
 ├── docker-compose.yml        Demo completa: 11 servicios con Raft real, PostgreSQL y controlador
 ├── LICENSE                   MIT
 ├── THIRD-PARTY.md            Licencias de dependencias
 └── README.md
 ```
 
+El **manual final de instalación y ejecución** está en
+[`entrega/12-manual-instalacion/`](entrega/12-manual-instalacion/): un `README.md` con el índice y
+diez capítulos en Markdown, 17 figuras (PNG con fuente SVG, PY o PUML) y 45 tablas. Cubre requisitos,
+montaje físico de los tres detectores, arquitectura y comunicación, evidencias de pruebas, firmware
+explicado parte por parte, instalación y ejecución del software, operación y solución de problemas, y
+anexos. El inventario está en
+[`INVENTARIO-ENTREGABLES.md`](entrega/12-manual-instalacion/INVENTARIO-ENTREGABLES.md).
+
+El repositorio se entrega **solo en Markdown y figuras**: no hay Word, PDF, PowerPoint, Excel, video
+ni ZIP. El código, los datos de evidencia y los diagramas PlantUML se conservan en sus carpetas.
+
+**Video de sustentación:** https://youtu.be/YlzKwWkXzaw
 ---
 
 ## 15. Estado actual del proyecto

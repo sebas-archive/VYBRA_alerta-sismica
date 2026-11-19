@@ -1,8 +1,13 @@
-== RES-06 Resumen de pruebas automatizadas
-== fecha: 2026-11-17T16:17:27-05:00
-== commit: 3e3072957b9d4d2683dc4e348d5211ea9e2f90d9
+== RES-06 Resumen de pruebas automatizadas (re-ejecutadas el 2026-11-18)
+== fecha: 2026-11-18T11:20:32-05:00  commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c
+== entorno: g++ 16.2.1, Node v26.13.0, arduino-cli 1.5.1, Docker 29.9.3
 
-C++ : 78 casos, 78 ok, 0 fallas, exit 0 (5 binarios; ver log-TST-01-cpp.txt)
-A'  : 5 casos, 5 ok, 0 fallas, exit 0 (config desplegada 500/5000-9000; ver log-TST-11)
-JS  : 41 tests, 41 pass, 0 fail, exit 0, 3454 ms (ver log-TST-03-js.txt)
-Firmware: 3/3 nodos compilados, exit 0 (ver log-NOD-11-build.txt)
+C++    : 78 casos, 78 ok, 0 fallas, exit 0 (5 binarios: test_api 9, test_huella 17, test_mensajes 9, test_raft 32, test_sismo 11)
+JS     : npm test 75 casos, 60 pasan, 15 omitidas, 0 fallan, exit 0 (16.598 ms)
+JS+DB  : npm run test:db 75 casos, 70 pasan, 5 omitidas, 0 fallan, exit 0 (13.779 ms; 3 PostgreSQL efímeros)
+Infra  : npm run test:infra 5/5 pasan, 0 fallan, exit 0 (79,2 s; proyecto aislado vybraint)
+Firmware: 3/3 nodos compilados, exit 0
+Nodo sim: binario de 275.392 B, exit 0
+A'     : 5/5, 0 fallas — HISTÓRICO del 2026-11-17, arnés ya no está en el repo; no re-ejecutado
+
+Evidencias: E-pruebas/log-TST-01-cpp.txt, E-pruebas/log-TST-03-js.txt, I-resultados/log-TST-04-test-db.txt, I-resultados/log-TST-05-test-infra.txt, E-pruebas/log-TST-11-arnes-A-prime.txt (histórico)

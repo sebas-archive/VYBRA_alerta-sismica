@@ -1,0 +1,28 @@
+COD-08 — Raft: caída y recuperación simuladas (POST /control)
+Fuente: firmware/detector/src/nucleo/raft.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 463-484   (rango del inventario original: 462-484)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  463  // ---------------------------------------------------------------- caída simulada
+  464  
+  465  void Raft::caer(uint64_t) {
+  466    if (caido_) return;
+  467    caido_ = true;
+  468    pasarASeguidor();
+  469    lider_ = 0;
+  470    commitLider_ = 0;
+  471    salidas_.clear();
+  472    temporizadorListo_ = false;
+  473    suceso("cayo", servidor() + " simuló una caída");
+  474  }
+  475  
+  476  void Raft::recuperar(uint64_t ahoraMs) {
+  477    if (!caido_) return;
+  478    caido_ = false;
+  479    pasarASeguidor();
+  480    lider_ = 0;
+  481    commitLider_ = 0;
+  482    reiniciarTemporizador(ahoraMs);
+  483    suceso("recupero", servidor() + " se recuperó");
+  484  }

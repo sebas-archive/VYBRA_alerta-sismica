@@ -1,0 +1,84 @@
+@startuml D-06-secuencia-eleccion
+title D-06 · Secuencia de elección de líder\ntimeout 5000-9000 ms · mayoría 2 de 3
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam sequenceLifeLineBorderColor #244B5A
+skinparam sequenceGroupBorderColor #244B5A
+
+participant "Nodo 1\nseguidor" as N1
+participant "Nodo 2\nseguidor" as N2
+participant "Nodo 3\nseguidor" as N3
+participant "NVS\n(término + voto)" as NVS
+
+note over N1, N3
+  Estado de partida: los tres se consideran seguidores,
+  sin líder conocido (lider_ = 0) y con un plazo de
+  elección aleatorio de 5000-9000 ms.
+  (raft.cpp:14-18, 20-32)
+end note
+
+== Vence el plazo de Nodo 1 ==
+N1 -> N1 : postularse()\ntermino++ · votadoPor = 1
+N1 -> NVS : guardar(termino, votadoPor)
+Note right of NVS : se persiste antes de pedir votos\n(raft.cpp:52-56)
+N1 -> N1 : rol = Candidato\nvotos = {1}\nreiniciar temporizador
+N1 -> N2 : VoteReq(k=0, d=1, T, li, lt)
+N1 -> N3 : VoteReq(k=0, d=1, T, li, lt)
+note right of N1
+  li = último índice del log;
+  lt = término de ese índice.
+  El voto propio ya cuenta: 1 de 3.
+end note
+
+== Comprobaciones del seguidor ==
+N2 -> N2 : ¿T == mi término?\n¿votadoPor vacío o igual a 1?\n¿logAlDia(li, lt)?
+N2 -> N1 : VoteResp(k=1, d=2, T, g=true)
+N2 -> NVS : guardar voto por 1\nsi concede
+N3 -> N3 : mismas comprobaciones
+N3 -> N1 : VoteResp(k=1, d=3, T, g=true)
+
+== Mayoría alcanzada: 2 de 3 ==
+N1 -> N1 : alVoteResp(): votos {1,2,3}\n(2 >= mayoria()) → ganar()
+note over N1
+  mayoria() = (3 - 1 + 1)/2 + 1 = 2.
+  Con el voto propio basta un VoteResp.
+  (raft.h:95 · raft.cpp:154-158)
+end note
+N1 -> N1 : rol = Lider · lider_ = 1
+N1 -> N1 : agrega Entrada InicioTermino\n(clase 0, término T nuevo)
+N1 -> N2 : Append (heartbeat + InicioTermino)
+N1 -> N3 : Append (heartbeat + InicioTermino)
+N1 -> N1 : proximoLatido = ahora + 500 ms
+
+== Caso sin mayoría ==
+note over N1, N3
+  Si no llega la mayoría antes del nuevo plazo:
+  el candidato se repostula (término +1) y se
+  reinicia el temporizador aleatorio.
+  Si recibe Append de un líder legítimo o un
+  término mayor, vuelve a Seguidor.
+  (raft.cpp:114-137)
+end note
+
+== Caso de voto denegado ==
+note over N2
+  Se deniega si el candidato está atrasado
+  (regla "log al día": último término mayor,
+  o igual con índice >=) o si ya votó por otro
+  en ese término. (raft.cpp:105-110, 139-152)
+end note
+
+note over N1, N3
+  Firmware real: RAFT_LATIDO_MS = 500,
+  RAFT_ELECCION_MIN_MS = 5000,
+  RAFT_ELECCION_MAX_MS = 9000 (config.h:16-18).
+  nodo-sim sin variables usa 300 y 1500-3000 ms.
+end note
+
+@enduml

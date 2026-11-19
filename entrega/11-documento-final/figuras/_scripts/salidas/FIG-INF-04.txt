@@ -1,0 +1,27 @@
+# FIG-INF-04 — Infraestructura · healthchecks y sondas HTTP
+# fecha: 2026-11-18T13:02:02-05:00
+# fuente: Salida real de `docker inspect` y `curl` contra el stack, renderizada con Chromium sobre HTML monoespaciado.
+
+$ docker inspect --format '{{.Name}} -> {{if .State.Health}}{{.State.Health.Status}}{{else}}sin healthcheck{{end}}' $(docker compose ps -q) | sort
+/sismo-controlador -> healthy
+/sismo-db-1 -> healthy
+/sismo-db-2 -> healthy
+/sismo-db-3 -> healthy
+/sismo-nodo-1 -> healthy
+/sismo-nodo-2 -> healthy
+/sismo-nodo-3 -> healthy
+/sismo-panel -> sin healthcheck
+/sismo-servidor-1 -> healthy
+/sismo-servidor-2 -> healthy
+/sismo-servidor-3 -> healthy
+
+$ for u in http://127.0.0.1:8101/salud http://127.0.0.1:8102/salud http://127.0.0.1:8103/salud http://127.0.0.1:9001/estado http://127.0.0.1:9002/estado http://127.0.0.1:9003/estado http://127.0.0.1:8095/api/estado http://127.0.0.1:8095/admin/; do printf '%-46s -> ' "$u"; curl -sS -m 5 -o /dev/null -w '%{http_code}\n' "$u"; done
+http://127.0.0.1:8101/salud                    -> 200
+http://127.0.0.1:8102/salud                    -> 200
+http://127.0.0.1:8103/salud                    -> 200
+http://127.0.0.1:9001/estado                   -> 200
+http://127.0.0.1:9002/estado                   -> 200
+http://127.0.0.1:9003/estado                   -> 200
+http://127.0.0.1:8095/api/estado               -> 200
+http://127.0.0.1:8095/admin/                   -> 200
+

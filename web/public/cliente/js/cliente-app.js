@@ -14,6 +14,8 @@
     2: { lat: 4.648176, lon: -74.056661 },
     3: { lat: 4.648177, lon: -74.056703 }
   };
+  // Posiciones de fábrica: base para restaurar la red si el servidor aún no envió una foto.
+  const INSTRUMENTS_FIJOS = JSON.parse(JSON.stringify(INSTRUMENTS));
 
   const NETWORKS = {
     ok: { id: 'ok', connected: [1, 2, 3], quorum: true },
@@ -252,7 +254,17 @@
     liveNet = { id: 'live', connected: fresco ? vivos : [], quorum: fresco && !!f.quorum };
     avisarEstado(fresco, vivos);
     if (capsulaAlerta && now() - capsulaAlerta.t > 600 && window.VybraIsland) { islOff(capsulaAlerta.id); capsulaAlerta = null; }
-    if (f.ubicaciones) [1, 2, 3].forEach((n) => { if (f.ubicaciones[n]) INSTRUMENTS[n] = f.ubicaciones[n]; });
+    if (f.ubicaciones) {
+      // Las posiciones del servidor siempre se cachean: son la base para "Restablecer red original".
+      redBase = {};
+      [1, 2, 3].forEach((n) => { if (f.ubicaciones[n]) redBase[n] = { lat: f.ubicaciones[n].lat, lon: f.ubicaciones[n].lon }; });
+      // Si la persona reubicó la red, una foto nueva no la devuelve a su sitio.
+      if (!redUsuario) {
+        const cambia = [1, 2, 3].some((n) => f.ubicaciones[n] && (INSTRUMENTS[n].lat !== f.ubicaciones[n].lat || INSTRUMENTS[n].lon !== f.ubicaciones[n].lon));
+        [1, 2, 3].forEach((n) => { if (f.ubicaciones[n]) INSTRUMENTS[n] = f.ubicaciones[n]; });
+        if (cambia && map) actualizarRedEnMapa();
+      }
+    }
 
     // Eventos del log (los confirma la mayoría) y alertas de la fuente
     const fuente = nodos.find((x) => x.n === f.fuente);
@@ -331,8 +343,11 @@
     const clave = (q) => q.clave || (q.id + '@' + q.t); // identidad por eventos: el id puede recalcularse
     const sinVer = quakes.filter((q) => q.confirmado && q.id.startsWith('a-') && !alertasVistas.has(clave(q)));
     sinVer.forEach((q) => alertasVistas.add(clave(q)));
-    const recientes = sinVer.filter((q) => now() - q.t < ALERTA_RECIENTE_S && now() - q.t > -10);
-    if (!primeraFoto && recientes.length && Date.now() - ultimaAlarma > 20000) {
+    // En la primera foto no se repite una alerta vieja al abrir la página, pero sí se muestra
+    // una que acaba de ocurrir (p. ej. si el iPhone recargó la página al volver de segundo plano).
+    const ventanaAlerta = primeraFoto ? 20 : ALERTA_RECIENTE_S;
+    const recientes = sinVer.filter((q) => now() - q.t < ventanaAlerta && now() - q.t > -10);
+    if (recientes.length && Date.now() - ultimaAlarma > 20000) {
       ultimaAlarma = Date.now();
       const q = recientes[0];
       if (settings.notifEnabled && settings.notifyAlerts && meetsThreshold(q)) {
@@ -380,6 +395,22 @@
   let lastLive = '';
   let waveStarted = false;
   let matchState = null;
+
+  // ---------- Red reubicada en la ubicación de la persona ----------
+  // Es una demo: los tres aparatos se dibujan alrededor del punto de la persona, no marcan un epicentro.
+  const RED_KEY = 'vybra_red_usuario';
+  const RED_RADIO_M = 30;              // radio del triángulo alrededor del punto
+  const RED_RUMBOS = [-90, 30, 150];   // S, NE, NO: triángulo equilátero de ~52 m de lado
+  let redUsuario = leerRedUsuario();            // { lat, lon, precision, ts } | null
+  let redBase = clonarRed(INSTRUMENTS_FIJOS);   // últimas posiciones del servidor (o las de fábrica)
+  let mapGroupLabel = null;
+  const detailMarkers = {};
+  let marcarLugar = false;   // modo "toca el mapa para marcar tu posición"
+  let buscando = false;      // hay una búsqueda de ubicación en curso
+  if (redUsuario) {
+    userPoint = { lat: redUsuario.lat, lon: redUsuario.lon };
+    Object.assign(INSTRUMENTS, redAlrededor(redUsuario));
+  }
 
   function t(key) {
     return (I18N[lang] && I18N[lang][key]) || (I18N.es && I18N.es[key]) || key;
@@ -1319,13 +1350,14 @@
         <p class="muted">${state}</p>
         <p class="source-line">${tf('sensorPart', { n: sensors[n].drills })}</p>
         <p class="map-note">${tf('separationLine', { n: spanMeters() })}</p>
+        ${bloqueRedSheet()}
         <button type="button" class="btn" data-action="open-sensors">${t('viewAll')}</button>`;
       liftMapChrome();
       return;
     }
     const q = selectedQuake();
     if (!q) {
-      sheet.innerHTML = `<div class="sheet-handle"></div><p>${t('emptyQuakes')}</p>`;
+      sheet.innerHTML = `<div class="sheet-handle"></div><p>${t('emptyQuakes')}</p>${bloqueRedSheet()}`;
       liftMapChrome();
       return;
     }
@@ -1347,7 +1379,8 @@
         </div>
       </div>
       <button type="button" class="btn" data-action="sheet-detail">${ICONS.globe} ${t('viewDetails')}</button>
-      <p class="map-note">${t('mapNote')}</p>`;
+      <p class="map-note">${t('mapNote')}</p>
+      ${bloqueRedSheet()}`;
     liftMapChrome();
   }
 
@@ -1601,6 +1634,32 @@
     if (el && el.getAttribute('src') !== src) { el.setAttribute('src', src); el.load(); }
     return el;
   }
+  let sonidoBloqueado = false;
+  // iOS solo deja sonar audio programático después de un gesto del usuario: se "desbloquea"
+  // el elemento en el primer toque (reproducción a volumen 0) y, si aun así un aviso queda
+  // bloqueado, se ofrece un botón para activarlo con un toque.
+  function desbloquearAudio() {
+    const audio = audioEl();
+    if (!audio || audio.dataset.desbloqueado === '1') return;
+    try {
+      const vol = audio.volume;
+      audio.volume = 0;
+      const listo = () => {
+        try { audio.pause(); audio.currentTime = 0; } catch (e) {}
+        audio.volume = vol;
+        audio.dataset.desbloqueado = '1';
+      };
+      const p = audio.play();
+      if (p && typeof p.then === 'function') p.then(listo).catch(() => { audio.volume = vol; });
+      else listo();
+    } catch (e) {}
+  }
+  function avisoSonidoBloqueado() {
+    isl({ id: 'sonido', place: 'bar', kind: 'warn', icon: 'warn', sticky: true, dismissible: true, ttl: 25000,
+      title: L('El iPhone bloqueó el sonido', 'The iPhone blocked the sound'),
+      text: L('Toca “Activar sonido” para que suene la alarma.', 'Tap “Enable sound” so the alarm can play.'),
+      actions: [{ label: L('Activar sonido', 'Enable sound'), primary: true, onClick: () => { sonidoBloqueado = false; startSound(); } }] });
+  }
   function startSound() {
     if (!settings.soundEnabled) return;
     const audio = audioEl();
@@ -1611,11 +1670,16 @@
       const ir = () => { try { audio.currentTime = inicio; } catch (e) {} };
       if (audio.readyState >= 1) ir(); else audio.addEventListener('loadedmetadata', ir, { once: true });
       const p = audio.play();
-      if (p) p.catch(() => {});
-    } catch (e) {}
+      if (p && typeof p.then === 'function') {
+        p.then(() => { sonidoBloqueado = false; islOff('sonido'); })
+         .catch(() => { sonidoBloqueado = true; avisoSonidoBloqueado(); });
+      }
+    } catch (e) { sonidoBloqueado = true; avisoSonidoBloqueado(); }
   }
   function stopSound() {
     const audio = audioEl();
+    islOff('sonido');
+    sonidoBloqueado = false;
     if (!audio) return;
     audio.pause();
     audio.currentTime = 0;
@@ -1780,6 +1844,285 @@
     });
   }
 
+  // ---------- Ubicación: mover la red de demostración alrededor de la persona ----------
+  function clonarRed(red) {
+    const copia = {};
+    [1, 2, 3].forEach((n) => { if (red && red[n]) copia[n] = { lat: red[n].lat, lon: red[n].lon }; });
+    return copia;
+  }
+
+  function leerRedUsuario() {
+    try {
+      const v = JSON.parse(localStorage.getItem(RED_KEY) || 'null');
+      if (!v || !Number.isFinite(v.lat) || !Number.isFinite(v.lon)) return null;
+      const precision = v.precision === 'ip' || v.precision === 'manual' ? v.precision : 'gps';
+      return { lat: v.lat, lon: v.lon, precision, ts: Number.isFinite(v.ts) ? v.ts : Date.now() };
+    } catch (e) { return null; }
+  }
+
+  function guardarRedUsuario() {
+    try {
+      if (redUsuario) localStorage.setItem(RED_KEY, JSON.stringify(redUsuario));
+      else localStorage.removeItem(RED_KEY);
+    } catch (e) {}
+  }
+
+  // Punto de destino a "metros" del punto dado, con rumbo en grados desde el norte.
+  function destino(p, metros, rumbo) {
+    const R = 6371000;
+    const rad = (d) => d * Math.PI / 180;
+    const lat1 = rad(p.lat);
+    const lon1 = rad(p.lon);
+    const ang = rad(rumbo);
+    const d = metros / R;
+    const lat2 = Math.asin(Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(ang));
+    const lon2 = lon1 + Math.atan2(Math.sin(ang) * Math.sin(d) * Math.cos(lat1), Math.cos(d) - Math.sin(lat1) * Math.sin(lat2));
+    return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
+  }
+
+  // Los tres aparatos forman un triángulo de ~30 m de radio (unos 52 m de lado) alrededor del punto.
+  function redAlrededor(punto) {
+    const red = {};
+    [1, 2, 3].forEach((n, i) => { red[n] = destino(punto, RED_RADIO_M, RED_RUMBOS[i]); });
+    return red;
+  }
+
+  function notaRedUsuario() {
+    const p = redUsuario && redUsuario.precision;
+    return p === 'ip' ? t('redUserIpNote') : p === 'manual' ? t('redUserManualNote') : t('redUserGpsNote');
+  }
+
+  // Nota + botón de restauración que se añaden a la hoja del mapa.
+  function bloqueRedSheet() {
+    if (!redUsuario) return '';
+    return `<p class="map-note red-note">${notaRedUsuario()}</p>
+      <button type="button" class="btn slim red-restore" data-action="restore-network">${t('restoreNetwork')}</button>`;
+  }
+
+  // Mueve markers, etiqueta del grupo y markers del mapa de detalle sin tocar el encuadre.
+  function actualizarRedEnMapa() {
+    if (!window.L) return;
+    const c = centroid();
+    [1, 2, 3].forEach((n) => {
+      if (markers[n]) markers[n].setLatLng([INSTRUMENTS[n].lat, INSTRUMENTS[n].lon]);
+      if (detailMarkers[n]) detailMarkers[n].setLatLng([INSTRUMENTS[n].lat, INSTRUMENTS[n].lon]);
+    });
+    if (mapGroupLabel) mapGroupLabel.setLatLng([c.lat, c.lon]);
+    if (map) {
+      if (userPoint) {
+        if (!userMarker) userMarker = LF.circleMarker([userPoint.lat, userPoint.lon], {
+          radius: 7, color: '#24558a', weight: 2, fillColor: '#24558a', fillOpacity: 0.9
+        }).addTo(map);
+        else userMarker.setLatLng([userPoint.lat, userPoint.lon]);
+      } else if (userMarker) {
+        map.removeLayer(userMarker);
+        userMarker = null;
+      }
+    }
+    if (detailMap) {
+      const bounds = Object.values(INSTRUMENTS).map((p) => [p.lat, p.lon]);
+      detailMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 18, animate: !settings.reduceMotion });
+    }
+  }
+
+  function aplicarRedAMapa({ enfocar = false } = {}) {
+    actualizarRedEnMapa();
+    refreshMarkers();
+    if (enfocar && map) {
+      const pts = Object.values(INSTRUMENTS).map((p) => [p.lat, p.lon]);
+      if (userPoint) pts.push([userPoint.lat, userPoint.lon]);
+      map.fitBounds(pts, { padding: [60, 60], maxZoom: 18, animate: !settings.reduceMotion });
+    }
+    renderHome();
+    renderSheet();
+  }
+
+  function fijarRedUsuario(punto, precision) {
+    if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return false;
+    redUsuario = {
+      lat: punto.lat,
+      lon: punto.lon,
+      precision: precision === 'ip' || precision === 'manual' ? precision : 'gps',
+      ts: Date.now()
+    };
+    userPoint = { lat: punto.lat, lon: punto.lon };
+    Object.assign(INSTRUMENTS, redAlrededor(redUsuario));
+    guardarRedUsuario();
+    aplicarRedAMapa({ enfocar: true });
+    return true;
+  }
+
+  function restaurarRed() {
+    if (!redUsuario) return;
+    [1, 2, 3].forEach((n) => {
+      const p = (redBase && redBase[n]) || INSTRUMENTS_FIJOS[n];
+      INSTRUMENTS[n] = { lat: p.lat, lon: p.lon };
+    });
+    // Solo se deshace el cambio de la RED: la ubicación de la persona sigue siendo válida,
+    // así que se conservan userPoint y el marcador azul (y la distancia de "Ahora").
+    redUsuario = null;
+    guardarRedUsuario();
+    pararMarcar();
+    actualizarRedEnMapa();
+    refreshMarkers();
+    if (map) {
+      const bounds = Object.values(INSTRUMENTS).map((p) => [p.lat, p.lon]);
+      map.fitBounds(bounds, { padding: [80, 80], maxZoom: 18, animate: !settings.reduceMotion });
+    }
+    renderHome();
+    renderSheet();
+    islOff('ubic');
+    isl({ id: 'red', kind: 'success', title: t('restoreDoneTitle'), text: t('restoreDoneText'), ttl: 6000 });
+  }
+
+  // ---------- Modo "marcar en el mapa" ----------
+  function pararMarcar() {
+    marcarLugar = false;
+    const vista = $('#view-mapa');
+    if (vista) vista.classList.remove('is-marking');
+  }
+
+  function cancelarMarcar() {
+    if (!marcarLugar) return;
+    pararMarcar();
+    // Se actualiza la misma isla en su sitio: cerrarla antes de mostrarla la dejaría a medias.
+    isl({ id: 'ubic', kind: 'info', icon: 'info', title: t('locateCanceled'), ttl: 3000 });
+  }
+
+  function iniciarMarcar() {
+    if (!window.L || !map) {
+      if (!window.L) {
+        isl({ id: 'ubic', kind: 'warn', title: t('locateMe'), text: t('mapFallback'), ttl: 8000 });
+        return;
+      }
+      navigate('mapa');
+    }
+    marcarLugar = true;
+    const vista = $('#view-mapa');
+    if (vista) vista.classList.add('is-marking');
+    requestAnimationFrame(() => { if (map) map.invalidateSize(); });
+    isl({
+      id: 'ubic', kind: 'warn', icon: 'info', sticky: true, dismissible: false, pri: 8,
+      title: t('locateMarkTitle'), text: t('locateMarkText'),
+      actions: [
+        { label: t('locateMarkAction'), primary: true, onClick: () => armarMarcar() },
+        { label: t('cancel'), onClick: () => cancelarMarcar() }
+      ]
+    });
+  }
+
+  function armarMarcar() {
+    if (!marcarLugar) return;
+    if (map) map.invalidateSize();
+    isl({
+      id: 'ubic', kind: 'info', icon: 'info', sticky: true, dismissible: false, pri: 8,
+      title: t('locateMarkTitle'), text: t('locateMarkArmed'),
+      actions: [{ label: t('cancel'), onClick: () => cancelarMarcar() }]
+    });
+  }
+
+  function marcarPunto(latlng) {
+    if (!latlng) return;
+    pararMarcar();
+    if (!fijarRedUsuario({ lat: latlng.lat, lon: latlng.lng }, 'manual')) return;
+    // fijarRedUsuario deja la isla "ubic" en su sitio; avisoRedListo la transforma en el aviso de éxito.
+    avisoRedListo();
+  }
+
+  function avisoRedListo() {
+    const precision = redUsuario && redUsuario.precision;
+    const aproximada = precision === 'ip';
+    const manual = precision === 'manual';
+    const title = aproximada ? t('locateIpTitle') : manual ? t('locateManualTitle') : t('locateGpsTitle');
+    const text = aproximada ? t('locateIpText') : manual ? t('locateManualText') : t('locateGpsText');
+    const actions = [{ label: t('restoreNetwork'), primary: true, onClick: () => restaurarRed() }];
+    if (precision !== 'gps') actions.push({ label: t('locateAdjust'), onClick: () => iniciarMarcar() });
+    isl({
+      id: 'ubic', kind: aproximada ? 'warn' : 'success', icon: aproximada ? 'warn' : 'success',
+      title, text, actions, ttl: 12000, dismissible: true
+    });
+  }
+
+  // ---------- Cadena de ubicación: GPS → red/IP → marcar en el mapa ----------
+  function botonUbicacion(ocupado) {
+    const boton = $('[data-action="locate"]');
+    if (!boton) return;
+    boton.setAttribute('aria-busy', ocupado ? 'true' : 'false');
+    boton.classList.toggle('busy', ocupado);
+  }
+
+  function gpsPoint() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) { reject(new Error('unsupported')); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          if (Number.isFinite(lat) && Number.isFinite(lon)) resolve({ lat, lon });
+          else reject(new Error('invalid'));
+        },
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+      );
+    });
+  }
+
+  function ipPoint() {
+    return new Promise((resolve, reject) => {
+      if (!window.fetch) { reject(new Error('unsupported')); return; }
+      const control = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      let cerrado = false;
+      const limite = setTimeout(() => {
+        cerrado = true;
+        if (control) control.abort();
+        reject(new Error('timeout'));
+      }, 9000);
+      fetch('https://ipwho.is/', { cache: 'no-store', signal: control ? control.signal : undefined })
+        .then((r) => { if (!r.ok) throw new Error('http'); return r.json(); })
+        .then((d) => {
+          if (cerrado) return;
+          cerrado = true;
+          clearTimeout(limite);
+          if (d && d.success !== false && Number.isFinite(d.latitude) && Number.isFinite(d.longitude)) {
+            resolve({ lat: d.latitude, lon: d.longitude, ciudad: d.city || '', region: d.region || '', pais: d.country || '' });
+          } else reject(new Error('invalid'));
+        })
+        .catch((err) => {
+          if (cerrado) return;
+          cerrado = true;
+          clearTimeout(limite);
+          reject(err);
+        });
+    });
+  }
+
+  function buscarUbicacion() {
+    if (buscando) return;
+    buscando = true;
+    botonUbicacion(true);
+    if (currentView !== 'mapa') navigate('mapa');
+    isl({
+      id: 'ubic', kind: 'info', icon: 'info', spin: true, sticky: true, dismissible: false, pri: 8,
+      title: t('locateSearching'), text: t('locateSearchingText')
+    });
+    const terminar = () => {
+      buscando = false;
+      botonUbicacion(false);
+    };
+    gpsPoint()
+      .then((punto) => fijarRedUsuario(punto, 'gps'))
+      .catch(() => ipPoint().then((punto) => fijarRedUsuario(punto, 'ip')))
+      .then((hecho) => {
+        terminar();
+        if (!hecho) { iniciarMarcar(); return; }
+        avisoRedListo();
+      })
+      .catch(() => {
+        terminar();
+        iniciarMarcar();
+      });
+  }
+
   function ensureMap() {
     const fallback = $('#mapFallback');
     if (!window.L) {
@@ -1797,20 +2140,20 @@
       attribution: '&copy; OpenStreetMap',
       maxZoom: 19
     }).addTo(map);
-    const bounds = [];
     [1, 2, 3].forEach((n) => {
       const p = INSTRUMENTS[n];
-      bounds.push([p.lat, p.lon]);
       markers[n] = LF.circleMarker([p.lat, p.lon], markerStyle(n)).addTo(map);
       markers[n].on('click', (ev) => {
         LF.DomEvent.stopPropagation(ev);
+        if (marcarLugar) { marcarPunto(ev.latlng); return; }
         selectedSensor = n;
         sheetMode = 'sensor';
         renderSheet();
         refreshMarkers();
       });
     });
-    map.on('click', () => {
+    map.on('click', (ev) => {
+      if (marcarLugar) { marcarPunto(ev.latlng); return; }
       if (sheetMode === 'sensor') {
         sheetMode = 'event';
         selectedSensor = null;
@@ -1818,11 +2161,15 @@
       }
     });
     const c = centroid();
-    LF.marker([c.lat, c.lon], {
+    mapGroupLabel = LF.marker([c.lat, c.lon], {
       interactive: false,
       keyboard: false,
       icon: LF.divIcon({ className: 'group-label', html: '<span>S1 · S2 · S3</span>', iconSize: [108, 24], iconAnchor: [54, 34] })
     }).addTo(map);
+    // Si ya hay una red reubicada guardada, el mapa nace en ese punto.
+    actualizarRedEnMapa();
+    const bounds = Object.values(INSTRUMENTS).map((p) => [p.lat, p.lon]);
+    if (redUsuario && userPoint) bounds.push([userPoint.lat, userPoint.lon]);
     map.fitBounds(bounds, { padding: [80, 80], maxZoom: 18 });
     refreshMarkers();
     setTimeout(() => map.invalidateSize(), 60);
@@ -1841,9 +2188,10 @@
       }).addTo(detailMap);
       [1, 2, 3].forEach((n) => {
         const p = INSTRUMENTS[n];
-        LF.circleMarker([p.lat, p.lon], { radius: 7, color: '#0b6b57', weight: 2, fillColor: '#fff', fillOpacity: 1 })
+        detailMarkers[n] = LF.circleMarker([p.lat, p.lon], { radius: 7, color: '#0b6b57', weight: 2, fillColor: '#fff', fillOpacity: 1 })
           .addTo(detailMap);
       });
+      detailMap.on('click', (ev) => { if (marcarLugar) marcarPunto(ev.latlng); });
       const bounds = Object.values(INSTRUMENTS).map((p) => [p.lat, p.lon]);
       detailMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 18 });
     }
@@ -1851,23 +2199,9 @@
   }
 
   function locate() {
-    if (!navigator.geolocation) {
-      openHelp(t('locateMe'), t('locateUnsupported'));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition((pos) => {
-      userPoint = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-      if (map && window.L) {
-        if (userMarker) map.removeLayer(userMarker);
-        userMarker = LF.circleMarker([userPoint.lat, userPoint.lon], {
-          radius: 7, color: '#24558a', weight: 2, fillColor: '#24558a', fillOpacity: 0.9
-        }).addTo(map);
-        const bounds = [...Object.values(INSTRUMENTS).map((p) => [p.lat, p.lon]), [userPoint.lat, userPoint.lon]];
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
-      }
-      renderHome();
-      renderSheet();
-    }, () => openHelp(t('locateMe'), t('locateDenied')), { enableHighAccuracy: true, timeout: 8000 });
+    if (buscando) return;                       // sin dobles clics mientras se busca
+    if (marcarLugar) { cancelarMarcar(); return; } // segundo clic: cancela el modo marcar
+    buscarUbicacion();
   }
 
   function openHelp(title, body) {
@@ -2158,6 +2492,7 @@
     } else if (action === 'zoom-in') map && map.zoomIn();
     else if (action === 'zoom-out') map && map.zoomOut();
     else if (action === 'locate') locate();
+    else if (action === 'restore-network') restaurarRed();
     else if (action === 'open-historial') navigate('historial');
     else if (action === 'hist-tipo') { hist.tipo = el.dataset.tipo === 'eventos' ? 'eventos' : 'alertas'; hist.pagina = 1; syncHistChips(); cargarHistorial(); }
     else if (action === 'hist-rango') { hist.rango = el.dataset.rango; hist.pagina = 1; syncHistChips(); cargarHistorial(); }
@@ -2282,6 +2617,15 @@
   }
 
   function boot() {
+    // Precarga el tono elegido y lo "desbloquea" en el primer toque: en iOS el audio
+    // programático no suena hasta que la página recibe un gesto del usuario.
+    audioEl();
+    const primerGestoTactil = () => {
+      desbloquearAudio();
+      if (sonidoBloqueado && alarmQuake) { sonidoBloqueado = false; startSound(); }
+    };
+    document.addEventListener('touchstart', primerGestoTactil, { passive: true });
+    document.addEventListener('pointerdown', primerGestoTactil);
     document.body.addEventListener('click', onClick);
     document.body.addEventListener('change', onChange);
     document.body.addEventListener('input', (e) => {
@@ -2298,6 +2642,12 @@
       $('#rangeMax').style.zIndex = e.target.id === 'rangeMax' ? '4' : '2';
     });
     $('#alarm').addEventListener('cancel', (e) => { e.preventDefault(); closeAlarm(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && marcarLugar) {
+        e.preventDefault();
+        cancelarMarcar();
+      }
+    });
     window.addEventListener('hashchange', () => {
       if (syncReview()) return;
       const raw = location.hash.slice(1);
@@ -2307,7 +2657,15 @@
     window.addEventListener('online', () => { renderHome(); renderProtection(); });
     window.addEventListener('offline', () => { renderHome(); renderProtection(); });
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) { renderHome(); renderProtection(); }
+      if (document.hidden) return;
+      renderHome(); renderProtection();
+      // iOS suspende la página en segundo plano: al volver se pide la foto de inmediato
+      // para no esperar a que reconecte el SSE y para que una alerta recién ocurrida aparezca ya.
+      if (!LIVE) return;
+      fetch('/api/estado', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((f) => { if (f && Array.isArray(f.nodos)) aplicarFoto(f); })
+        .catch(() => {});
     });
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (settings.theme === 'system') applyTheme('system');

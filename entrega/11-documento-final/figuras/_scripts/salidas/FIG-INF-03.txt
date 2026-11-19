@@ -1,0 +1,18 @@
+# FIG-INF-03 — Infraestructura · docker stats --no-stream
+# fecha: 2026-11-18T13:02:01-05:00
+# fuente: Salida real de `docker stats --no-stream` en el host de despliegue, renderizada con Chromium sobre HTML monoespaciado.
+
+$ docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}"
+NAME                CPU %     MEM USAGE / LIMIT     MEM %     NET I/O           BLOCK I/O
+sismo-panel         0.26%     28.88MiB / 23.25GiB   0.12%     23MB / 177MB      597MB / 30.9MB
+sismo-servidor-1    0.19%     38.09MiB / 23.25GiB   0.16%     7.51MB / 5.48MB   1.12GB / 38.1MB
+sismo-servidor-2    9.91%     33.52MiB / 23.25GiB   0.14%     7.55MB / 5.52MB   983MB / 45.7MB
+sismo-servidor-3    22.41%    35.18MiB / 23.25GiB   0.15%     7.52MB / 5.48MB   1.19GB / 57.5MB
+sismo-db-2          0.01%     9.941MiB / 23.25GiB   0.04%     1.08MB / 636kB    105MB / 116MB
+sismo-db-3          0.01%     13.21MiB / 23.25GiB   0.06%     1.05MB / 625kB    94.8MB / 104MB
+sismo-db-1          0.01%     13.46MiB / 23.25GiB   0.06%     1.04MB / 632kB    132MB / 117MB
+sismo-controlador   0.10%     11.02MiB / 23.25GiB   0.05%     318kB / 943kB     395MB / 14.6MB
+sismo-nodo-3        2.60%     1.098MiB / 23.25GiB   0.00%     11.2MB / 15.3MB   9.76MB / 0B
+sismo-nodo-1        2.98%     1.051MiB / 23.25GiB   0.00%     13MB / 18.1MB     27.1MB / 77.8kB
+sismo-nodo-2        0.16%     952KiB / 23.25GiB     0.00%     11.2MB / 15.3MB   14.5MB / 28.7kB
+

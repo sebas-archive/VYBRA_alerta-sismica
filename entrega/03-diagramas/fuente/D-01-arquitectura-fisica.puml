@@ -1,0 +1,87 @@
+@startuml D-01-arquitectura-fisica
+title D-01 · Arquitectura física del sistema\nVYBRA · Alerta Sísmica · v1.0.0-rc1
+scale max 1500 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam nodeBorderColor #244B5A
+skinparam databaseBorderColor #244B5A
+skinparam nodesep 28
+skinparam ranksep 45
+
+actor "Operador\n(ADMIN)" as OP
+actor "Público\n(CLIENTE)" as PUB
+node "Caddy opcional\nperfil https · :8443\ntls internal" as CADDY
+
+node "PC del laboratorio\nAgregador Node.js · HTTP :8090" as PC {
+  artifact "server.js\nestáticos · /api/estado · SSE /api/stream\nproxy de control y de pulsación" as SRV
+  artifact "poller.js\nsondeo 1 Hz de los 3 detectores" as POL
+  artifact "public/\nADMIN en /admin/ · CLIENTE en /publico" as UI
+  SRV --> POL
+}
+
+node "Red WiFi 2,4 GHz\nDHCP · broadcast permitido · sin aislamiento" as WIFI {
+  node "ESP32 DevKit V1 · Detector 1\nhost sismo-nodo-1\nHTTP :80 · UDP 4210/4211\nNVS: término + voto" as N1
+  node "ESP32 DevKit V1 · Detector 2\nhost sismo-nodo-2\nHTTP :80 · UDP 4210/4211\nNVS: término + voto" as N2
+  node "ESP32 DevKit V1 · Detector 3\nhost sismo-nodo-3\nHTTP :80 · UDP 4210/4211\nNVS: término + voto" as N3
+  N1 <--> N2 : "Raft UDP 4210\n6 tipos de mensaje JSON"
+  N2 <--> N3 : "Raft UDP 4210"
+  N1 <--> N3 : "Raft UDP 4210"
+  N1 -[dashed]-> WIFI : "SISMO-HOLA:1\nbroadcast 4211 cada 2000 ms"
+  N2 -[dashed]-> WIFI : "SISMO-HOLA:2"
+  N3 -[dashed]-> WIFI : "SISMO-HOLA:3"
+}
+
+node "Servidores de datos\n(uno por detector, mismo número)" as DATOS {
+  node "Servidor 1\nNode.js :8100" as S1
+  node "Servidor 2\nNode.js :8100" as S2
+  node "Servidor 3\nNode.js :8100" as S3
+  database "PostgreSQL 16\ndb1" as DB1
+  database "PostgreSQL 16\ndb2" as DB2
+  database "PostgreSQL 16\ndb3" as DB3
+  S1 --> DB1 : "SQL"
+  S2 --> DB2 : "SQL"
+  S3 --> DB3 : "SQL"
+}
+
+cloud "Internet\nNTP: pool.ntp.org" as NTP
+
+OP --> SRV : "HTTP :8090"
+PUB --> SRV : "HTTP :8090"
+OP --> CADDY : "HTTPS (opcional)"
+PUB --> CADDY : "HTTPS (opcional)"
+CADDY --> SRV : "reverse_proxy :8090"
+SRV --> UI : "sirve ADMIN y CLIENTE"
+POL --> WIFI : "GET /estado /log /sucesos /alertas · 1 Hz"
+SRV --> WIFI : "POST /control · POST /pulsar (proxy)"
+WIFI --> DATOS : "cada ESP32 → su servidor · HTTP 1 Hz\n(el ESP32 no guarda datos)"
+SRV --> DATOS : "GET /info · /api/historial\nPOST /acciones"
+PC -[dashed]-> WIFI : "flasheo USB · OTA UDP 3232\n(el PC escucha en 32323/tcp)"
+WIFI -[dashed]-> NTP : "NTP cada 10 min"
+
+note bottom of WIFI
+  El log de Raft vive en RAM de cada placa;
+  solo currentTerm y votedFor se persisten en NVS.
+  No hay base de datos en el clúster.
+end note
+
+note bottom of PC
+  El controlador de infraestructura (socket de Docker)
+  solo existe en la demo con contenedores: ver D-02.
+  Con ESP32 reales no hay contenedor nodoN: «apagar»
+  detiene el servidor de datos y desconecta la placa
+  lógicamente de Raft (sigue con corriente).
+end note
+
+note right of DATOS
+  PostgreSQL es la única fuente de verdad del
+  histórico. Eventos, alertas y log están
+  replicados en las tres bases; muestras, sucesos
+  y acciones son propios de cada servidor.
+end note
+
+@enduml

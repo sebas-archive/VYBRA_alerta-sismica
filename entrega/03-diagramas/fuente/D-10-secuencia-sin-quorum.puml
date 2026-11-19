@@ -1,0 +1,75 @@
+@startuml D-10-secuencia-sin-quorum
+title D-10 · Secuencia sin quórum\nel commit no avanza · cola de pendientes con tope 100
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam sequenceLifeLineBorderColor #244B5A
+
+participant "Nodo 1\n(único vivo)" as N1
+participant "Nodo 2\nAPAGADO" as N2
+participant "Nodo 3\nAPAGADO" as N3
+participant "Agregador\npoller 1 Hz" as POLL
+participant "ADMIN" as UI
+participant "Servidor de datos 1\nPostgreSQL" as DB
+
+== Pérdida de quórum ==
+N2 -[dashed]-> N2 : contenedor parado o caído
+N3 -[dashed]-> N3 : contenedor parado o caído
+N1 -> N1 : no recibe latidos ni respuestas\nSigue creyéndose líder (sin check-quorum)
+POLL -> N2 : GET /estado
+N2 -[dashed]-> POLL : sin respuesta (timeout 3000 ms)
+POLL -> N2 : reintento en el siguiente ciclo
+POLL -> N2 : GET /estado (3.er fallo)
+POLL -> POLL : alcanzable = false
+POLL -> UI : foto con quorum = false\n(menos de 2 nodos que reconocen\nel mismo líder) y fuente = N1
+
+== Evento en el líder sin mayoría ==
+N1 -> N1 : POST /pulsar {"ms":900}\nproponer(ev) → rol Líder\nagregarComoLider: log_len 1 → 2
+N1 -> N1 : avanzarCommit() no encuentra\nun N del término actual con 2 de 3\n→ commitIndex NO avanza
+N1 -> UI : respuesta 200 {"resultado":"aceptada"}\n(log aceptado, pendiente de confirmar)
+POLL -> N1 : GET /estado
+POLL -> UI : log_len = 2 · commit_index = 1\nsituacion = "sincronizando" · quorum = false
+UI -> UI : ADMIN avisa "Sin quórum";\nno hay alerta porque Sismo solo\nrecibe entradas confirmadas
+N1 -> DB : (el recolector guarda el evento\ncomo confirmado = false)
+
+== Evento que se origina en un seguidor aislado ==
+note over N1, N3
+  Si el único nodo vivo es un SEGUIDOR sin líder
+  conocido, proponer() devuelve Pendiente y el
+  evento queda en la cola de reenvío:
+  - reintento de Forward cada 500 ms cuando
+    conozca un líder;
+  - tope de la cola: 100 eventos
+    (ConfigRaft::topePendientes);
+  - al llenarse: Propuesta::ColaLlena y
+    POST /pulsar responde 507
+    "cola de reenvio llena";
+  - un id repetido devuelve Duplicada;
+  - log lleno (1000 entradas) devuelve 507
+    "log lleno".
+  (raft.h:38-40, raft.cpp:350-370)
+end note
+
+== Recuperación del quórum ==
+N2 -[dashed]-> N1 : nodo o contenedor vuelve a arrancar
+N3 -[dashed]-> N1 : idem
+N1 -> N1 : recibe respuestas/latidos y recupera\nmayoría 2 de 3 (o nueva elección de término +1)
+N1 -> N2 : Append(pi=0, e=entradas 1..8)
+N2 -> N1 : AppendResp(ok)
+N1 -> N3 : Append(...)
+N3 -> N1 : AppendResp(ok)
+N1 -> N1 : avanzarCommit(): nuevo término confirma\nlo heredado → commitIndex salta a log_len
+N1 -> N1 : aplicarConfirmadas() en orden\n→ Sismo::aplicar de los eventos acumulados
+N1 -> N2 : Append(c = commitIndex)
+N2 -> N2 : aplica las mismas entradas confirmadas
+N1 -> POLL : GET /estado: commit_index = log_len\nsituacion = "funcionando"
+POLL -> UI : quorum = true · alerta visible si\ndos detectores coinciden en 10 s
+UI -> UI : la alerta se emite al confirmarse,\naunque el evento se haya pulsado antes
+N1 -> DB : recolector reevalúa el log y marca\nconfirmada = true
+
+@enduml

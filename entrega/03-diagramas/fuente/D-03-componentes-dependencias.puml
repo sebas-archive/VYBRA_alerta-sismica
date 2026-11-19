@@ -1,0 +1,95 @@
+@startuml D-03-componentes-dependencias
+title D-03 · Componentes y dependencias\nfirmware portable y backend Node.js
+scale max 1500 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam componentBorderColor #244B5A
+skinparam packageBorderColor #244B5A
+skinparam nodesep 22
+skinparam ranksep 45
+
+package "Firmware ESP32 (Arduino)" {
+  component "detector.ino\npegamento con el hardware:\nWiFi/DHCP · UDP · HTTP :80 · NVS\npulsador/LED · NTP · OTA · escaneo WiFi" as INO
+  component "config.h · pagina.h · portal.h\nparámetros, HTML de estado\ny portal cautivo" as CFG
+  component "PersistenciaNvs\ncurrentTerm + votedFor en NVS" as PNVS
+  component "Núcleo Raft portable\nraft.cpp · sismo.cpp\nmensajes.cpp · tipos.h\nsin dependencias de Arduino" as RAFT
+  component "api.cpp\nJSON de /estado /log /sucesos /alertas\ny situacion derivada" as API
+  component "huella.cpp\nAP vecinos, parecido y movido" as HUELLA
+  INO --> RAFT
+  INO --> API
+  INO --> HUELLA
+  INO --> CFG
+  INO ..> PNVS : "implementa Persistencia"
+  API --> RAFT
+  INO -[hidden]-> RAFT
+  RAFT -[hidden]-> API
+  API -[hidden]-> HUELLA
+  HUELLA -[hidden]-> CFG
+  CFG -[hidden]-> PNVS
+}
+
+package "Backend Node.js (ESM · Node >= 22)" {
+  component "Panel\nserver.js · poller.js · config.js\nHTTP :8090 · SSE /api/stream\nproxy control/pulsar · histórico" as PANEL
+  component "Servidor de datos\nservidor.js · recolector.js\nbd.js · consulta.js · retencion.js\nHTTP :8100 · PostgreSQL (pg)" as SD
+  component "Controlador\ncontrolador.js · :8200\nEngine API por socket Unix\nsolo stop/start de nodoN y servidorN" as CTRL
+  component "Nodo simulado\nnodo_sim.cpp\nmismo núcleo Raft para Linux" as NSIM
+  component "Interfaces web\npublic/admin (ADMIN)\npublic/cliente (CLIENTE) · shared/" as UI
+  component "Auxiliares\nfake/ (nodos falsos sin Raft)\nscripts/ (verificar-esp32, pruebas)" as AUX
+  UI --> PANEL : "GET /api/estado\nEventSource /api/stream\n/api/historial · /api/infra"
+  PANEL --> SD : "GET /info · /api/historial\nPOST /acciones"
+  PANEL --> CTRL : "Bearer CONTROL_TOKEN"
+  PANEL -[hidden]-> SD
+  SD -[hidden]-> CTRL
+  CTRL -[hidden]-> NSIM
+  NSIM -[hidden]-> UI
+  UI -[hidden]-> AUX
+}
+
+package "Infraestructura externa" {
+  component "ArduinoJson 7.4.3" as JSON
+  component "PostgreSQL 16" as PG
+  component "Docker Engine API v1.43" as DOCKER
+  component "Navegador\n(ADMIN / CLIENTE)" as BROWSER
+}
+
+RAFT --> JSON : "serializa mensajes"
+SD --> PG : "pg 8.23.1"
+CTRL --> DOCKER : "socket /var/run/docker.sock"
+
+INO -[hidden]-> PANEL
+PANEL -[hidden]-> JSON
+
+note right of NSIM
+  Reutiliza el MISMO núcleo Raft del firmware
+  (firmware/detector/src/nucleo/*.cpp): no es
+  un simulador de imitación. Mismo protocolo UDP
+  y mismo contrato HTTP que el ESP32 real.
+end note
+
+note right of UI
+  Las interfaces se ejecutan en el navegador del
+  usuario: ADMIN en /admin/ y CLIENTE en /publico.
+end note
+
+note right of PANEL
+  Sondeo real del panel: intervalo 1000 ms,
+  timeout 3000 ms, 3 fallos → inalcanzable
+  (server.js:459-460 · poller.js:62-63).
+end note
+
+note bottom of NSIM
+  Dockerfile.nodo-sim compila
+  firmware/detector/src/nucleo/*.cpp
+  con g++ -std=c++17. Sin LATIDO_MS ni
+  ELECCION_* en el compose usa los valores
+  por defecto del simulador: 300 ms y
+  1500-3000 ms (el firmware real usa
+  500 ms y 5000-9000 ms).
+end note
+
+@enduml

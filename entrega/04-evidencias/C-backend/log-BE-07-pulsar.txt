@@ -1,0 +1,35 @@
+== BE-07 POST /pulsar (stack aislado vybraint, panel 18095)
+== fecha: 2026-11-18T11:33:09-05:00
+== proyecto: vybraint (11 servicios, Raft real); no es el stack sismo
+
+--- líder y seguidor según GET /api/estado ---
+lider 3
+1 seguidor
+2 seguidor
+3 lider
+
+--- POST /pulsar al LÍDER (nodo 3), 2475 ms -> nivel 6 ---
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-cache
+Content-Length: 69
+Date: Wed, 18 Nov 2026 16:33:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"id":"nodo-3-a31a50e3-1","nivel":6,"resultado":"aceptada"}
+
+--- POST /pulsar a un SEGUIDOR (nodo 1), 2025 ms -> nivel 5 (resultado pendiente) ---
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-cache
+Content-Length: 70
+Date: Wed, 18 Nov 2026 16:33:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"id":"nodo-1-515b989f-1","nivel":5,"resultado":"pendiente"}
+
+--- GET /api/estado tras las pulsaciones (log y alertas) ---
+lider 3 quorum True log_len_nodos [3, 3, 3] commit [3, 3, 3]
+alertas [(3, 5.5, 'media')]

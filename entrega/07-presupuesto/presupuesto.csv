@@ -1,0 +1,33 @@
+id,tipo,item,especificacion,cantidad,unidad,precio_unitario_cop,subtotal_cop,precio_fuente,fuente,url,fecha_consulta,notas
+H-01,hardware,Board de desarrollo ESP32 WiFi BLE CP2102,"ESP32 WiFi Bluetooth BLE CP2102, 30 pines, micro-USB",3,unidad,37730,113190,precio real de compra (factura),Electronilab pedido 60869,comprobante-electronilab-pedido-60869.jpg,2026-11-18,"Valor de linea en el comprobante 113.190; unitario derivado 113.190/3=37.730. Un nodo por placa"
+H-02,hardware,Protoboard adhesiva MB102,"Protoboard adhesiva MB102, 830 puntos, 16,5 x 5,5 cm",3,unidad,13900,41700,precio real de compra (factura),Electronilab pedido 60869,comprobante-electronilab-pedido-60869.jpg,2026-11-18,"Valor de linea en el comprobante 41.700; unitario derivado 41.700/3=13.900. Una por detector"
+H-03,hardware,Cables Jumper Dupont macho-macho,"40 cables jumper Dupont macho-macho, 20 cm",1,paquete,9900,9900,precio real de compra (factura),Electronilab pedido 60869,comprobante-electronilab-pedido-60869.jpg,2026-11-18,"Se instalan 6 (2 por nodo: D4 y GND); sobran 34 de repuesto"
+H-04,hardware,Cable micro-USB,"Cable Micro USB de 30 cm blindado, de datos",3,unidad,4300,12900,precio real de compra (factura),Electronilab pedido 60869,comprobante-electronilab-pedido-60869.jpg,2026-11-18,"Valor de linea en el comprobante 12.900; unitario derivado 12.900/3=4.300. Alimentacion desde el PC y carga del firmware"
+H-05,hardware,Pulsador B3F-4055,"Micro boton pulsador switch 4 pines 12x12x7,3 mm B3F-4055 negro",4,unidad,431,1724,precio real de compra (factura),Electronilab pedido 60869,comprobante-electronilab-pedido-60869.jpg,2026-11-18,"Valor de linea en el comprobante 1.724; unitario derivado 1.724/4=431. Uno por placa entre GPIO4 (D4) y GND; el cuarto es repuesto"
+H-06,envio,Envio Bogota Domicilio,"Envio de la orden del Pedido 60869",1,envio,9800,9800,precio real de compra (factura),Electronilab pedido 60869,comprobante-electronilab-pedido-60869.jpg,2026-11-18,"Incluido en el Total de la orden del comprobante"
+C-01,servicio,Plan de datos Claro,"Plan de datos Claro, 1 mensualidad de referencia",1,mes,67000,67000,dato aportado por el usuario,Claro,dato del usuario,2026-11-18,"Costo mensual de conectividad; el plan exacto depende del operador; sin comprobante adjunto"
+S-01,software,ArduinoJson 7.4.3,MIT,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,"Serializacion JSON del firmware, pruebas y nodo simulado"
+S-02,software,Arduino core ESP32 3.3.12,LGPL-2.1,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,Compilacion del firmware
+S-03,software,Node.js >= 22,MIT,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,"Agregador, interfaces y pruebas"
+S-04,software,Alpine Linux (node:22-alpine),MIT y licencias de paquetes,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,Contenedor del panel
+S-05,software,Debian 12,Licencias Debian,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,Compilacion y contenedor del nodo simulado
+S-06,software,Fedora Linux 42,Licencias Fedora,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,Servidor de datos 1
+S-07,software,openSUSE Leap 15.6,Licencias openSUSE,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,Servidor de datos 2
+S-08,software,Ubuntu 24.04,Licencias Ubuntu,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,Servidor de datos 3
+S-09,software,GCC/g++,GPL-3.0-or-later con excepcion de runtime,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,Compilacion del nodo simulado
+S-10,software,Inter (tipografia),SIL OFL 1.1,1,licencia,0,0,open source,THIRD-PARTY.md,THIRD-PARTY.md,2026-11-18,Tipografia de las interfaces
+S-11,software,PostgreSQL 16.15,PostgreSQL License,1,licencia,0,0,open source,licencia oficial de la imagen/servicio,THIRD-PARTY.md,2026-11-18,Bases historicas de los servidores de datos
+S-12,software,Docker Engine / Compose,Apache-2.0,1,licencia,0,0,open source,licencia oficial de la imagen/servicio,THIRD-PARTY.md,2026-11-18,Orquestacion local de los 11 servicios
+S-13,software,Caddy 2,Apache-2.0,1,licencia,0,0,open source,licencia oficial de la imagen/servicio,THIRD-PARTY.md,2026-11-18,Perfil opcional https con TLS local
+E-01,exclusion,PC de desarrollo,no aplica,0,no aplica,0,0,no aplica,no aplica,,2026-11-18,Equipo Linux ya existente
+E-02,exclusion,"Router WiFi 2,4 GHz",no aplica,0,no aplica,0,0,no aplica,no aplica,,2026-11-18,Red existente con DHCP y broadcast
+E-03,exclusion,Hosting en la nube / VPS,no aplica,0,no aplica,0,0,no aplica,no aplica,,2026-11-18,No se usa: el sistema corre en el PC local
+E-04,exclusion,Instrumentacion sismica,no aplica,0,no aplica,0,0,no aplica,no aplica,,2026-11-18,No se usa: el evento es simulado con un pulsador
+E-05,exclusion,Horas de trabajo del estudiante,no aplica,0,no aplica,0,0,no aplica,no aplica,,2026-11-18,"Costo no monetario, no cuantificado"
+E-06,exclusion,Envio e impuestos de la compra,no aplica,0,no aplica,0,0,no aplica,no aplica,,2026-11-18,"Ya incluidos en el Total de la orden (envio 9.800 COP; IVA incluido en los precios); no se suman de nuevo"
+E-07,exclusion,Internet del hogar y energia electrica,no aplica,0,no aplica,0,0,no aplica,no aplica,,2026-11-18,"Servicios ya contratados; el plan Claro se registra aparte en C-01"
+ITEMS-SUBTOTAL,total,Subtotal de items (sin envio),,,,,179414,,,,2026-11-18,Suma de filas tipo=hardware
+TOTAL-COMPRA,total,Total de la orden Electronilab 60869 (items + envio),,,,,189214,precio real de compra (factura),Electronilab pedido 60869,comprobante-electronilab-pedido-60869.jpg,2026-11-18,Items 179.414 + envio 9.800; coincide con el Total de la orden del comprobante
+TOTAL-PLAN,total,Total plan de datos Claro (1 mensualidad de referencia),,,,,67000,dato aportado por el usuario,Claro,dato del usuario,2026-11-18,Plan exacto y condiciones dependen del operador
+TOTAL-SOFTWARE,total,Total software y licencias,,,,,0,,,,2026-11-18,Todo open source
+TOTAL-GENERAL,total,Total general del proyecto (compra + plan + software),,,,,256214,,,,2026-11-18,TRM 3309.55 COP/USD 2026-11-18 = 77.42 USD

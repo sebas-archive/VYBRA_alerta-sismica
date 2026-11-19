@@ -1,0 +1,210 @@
+@startuml D-04-clases-nucleo-raft
+title D-04 · Clases y estructuras del núcleo Raft\nfirmware/detector/src/nucleo/ (C++17 portable)
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam classBorderColor #244B5A
+skinparam classAttributeFontSize 10
+
+package "tipos.h" {
+  enum "Rol" as ROL {
+    Seguidor
+    Candidato
+    Lider
+  }
+  enum "Clase" as CLASE {
+    InicioTermino
+    Evento
+  }
+  enum "Tipo" as TIPO {
+    VoteReq
+    VoteResp
+    Append
+    AppendResp
+    Forward
+    ForwardAck
+  }
+  class "Evento" as EVENTO {
+    + id : string
+    + nodo : int
+    + nivel : int
+    + pga : float
+    + duracion_ms : uint32
+    + t : uint64
+    + t_lider : uint64
+    + recibido_por : int
+  }
+  class "Entrada" as ENTRADA {
+    + indice : uint32
+    + termino : uint32
+    + clase : Clase
+    + lider : int
+    + ev : Evento
+  }
+  class "Msg" as MSG {
+    + tipo : Tipo
+    + de : int
+    + termino : uint32
+    + last_idx / last_term : uint32
+    + concedido : bool
+    + prev_idx / prev_term / commit : uint32
+    + entradas : vector de Entrada
+    + ok : bool
+    + match_idx : uint32
+    + ev : Evento
+    + id : string
+  }
+  class "Suceso" as SUCESO {
+    + seq : uint32
+    + t : uint64
+    + tipo : string
+    + texto : string
+    + termino : uint32
+  }
+}
+
+package "raft.h" {
+  interface "Persistencia" as PERS {
+    + guardar(termino, votadoPor)
+    + cargar(termino, votadoPor)
+  }
+  class "Salida" as SALIDA {
+    + a : int
+    + msg : Msg
+  }
+  class "ConfigRaft" as CFG {
+    + yo : int
+    + semilla : uint32
+    + latidoMs = 300
+    + eleccionMinMs = 1500
+    + eleccionMaxMs = 3000
+    + topeLog = 1000
+    + maxPorAppend = 8
+    + reintentoForwardMs = 500
+    + topePendientes = 100
+  }
+  enum "Propuesta" as PROP {
+    Aceptada
+    Pendiente
+    Caido
+    LogLleno
+    ColaLlena
+    Duplicada
+  }
+  class "Raft" as RAFT {
+    - cfg : ConfigRaft
+    - pers : Persistencia
+    - reloj : función epoch ms
+    - termino : uint32
+    - votadoPor : int
+    - rol : Rol
+    - lider : int
+    - caido : bool
+    - plazoEleccion : uint64
+    - proximoLatido : uint64
+    - votos : set de int
+    - log : vector de Entrada
+    - commitIndex : uint32
+    - commitLider : uint32
+    - ultimoAplicado : uint32
+    - nextIdx[4] / matchIdx[4]
+    - enVuelo[4] : uint32
+    - pendientes : deque de Evento
+    - adelantados : vector de Msg
+    - sismo : Sismo
+    - sucesos : deque de Suceso
+    + tick(ahoraMs)
+    + recibir(m, ahoraMs)
+    + sacarSalidas() : vector de Salida
+    + proponer(ev, ahoraMs) : Propuesta
+    + caer(ahoraMs)
+    + recuperar(ahoraMs)
+    + registrarSuceso(tipo, texto)
+    + rol() / termino() / lider() / caido()
+    + logLen() / commitIndex() / pendientes()
+    + mayoria() = 2
+  }
+}
+
+package "sismo.h" {
+  class "Sismo" as SISMO {
+    - eventos : deque de Evento (tope 100)
+    - regs : deque de Reg (libre)
+    - alertas : vector de Alerta
+    + aplicar(e : Entrada)  // solo confirmadas
+    + eventos() / alertas()
+    + enAlerta(idEvento) : bool
+    + {static} nivelPorTiempo(ms) = min(10, 1 + ms/450)
+    + {static} nivelAlerta(promedio) : string
+    + {static} horaDe(ev) : uint64
+  }
+  class "Alerta" as ALERTA {
+    + id : uint32  // índice de log del disparador
+    + promedio : float
+    + eventos : vector de string
+    + termino : uint32
+    + lider : int
+  }
+}
+
+package "api.h / huella.h" {
+  class "InfoRed" as INFO {
+    + ip : string
+    + rssi : int
+    + uptimeMs : uint64
+    + conHora : bool
+    + movido : bool
+    + conHuella : bool
+  }
+  class "Ap" as AP {
+    + bssid : string
+    + rssi : int
+  }
+  class "DetectorMovimiento" as MOV {
+    - ref : vector de Ap
+    - anterior : vector de Ap
+    - malosSeguidos : int
+    - movido : bool
+    + fijarReferencia(ref)
+    + nuevoEscaneo(actual)
+    + movido() : bool
+    + restaurarMovido(movido)
+  }
+}
+
+RAFT *-- CFG
+RAFT o-- PERS : "usa"
+RAFT *-- SISMO : "aplica confirmadas"
+RAFT *-- SALIDA : "produce"
+RAFT o-- ENTRADA : "log replicado"
+RAFT ..> MSG : "codifica/decodifica"
+RAFT ..> PROP : "resultado de proponer"
+MSG *-- ENTRADA : "entradas[]"
+ENTRADA *-- EVENTO
+MSG *-- EVENTO
+SISMO *-- ALERTA : "genera"
+SISMO o-- EVENTO : "últimos 100"
+SUCESO ..> TIPO : "tipo textual"
+MOV o-- AP
+
+note bottom of RAFT
+  Invariantes verificadas en el código:
+  - mayoria() = (3 - 1 + 1)/2 + 1 = 2.
+  - índices del log 1-based: log_[i-1].indice == i.
+  - commitIndex solo avanza con entradas del término actual.
+  - ForwardAck se envía al aceptar, no al confirmar.
+end note
+
+note bottom of SISMO
+  kVentana = 10000 ms; kTope = 100 eventos.
+  Grupo = evento disparador + el más cercano
+  libre de cada otro detector dentro de la ventana.
+  Los eventos usados en una alerta no se reutilizan.
+end note
+
+@enduml

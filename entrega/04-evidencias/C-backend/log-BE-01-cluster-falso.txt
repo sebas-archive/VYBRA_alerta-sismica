@@ -1,0 +1,14 @@
+== BE-01 Cluster falso (npm run fake) sin Raft
+== fecha: 2026-11-18T11:39:04-05:00
+== comando: unshare -rn bash -c 'ip link set lo up; cd web; node fake/cluster-falso.js' (namespace de red propio porque los puertos 9001-9003 del host los publica el stack sismo)
+
+--- salida de npm run fake (node fake/cluster-falso.js) ---
+Cluster falso en http://127.0.0.1:9001  http://127.0.0.1:9002  http://127.0.0.1:9003
+
+--- comprobación: GET /estado de los 3 nodos falsos ---
+127.0.0.1:9001 -> {"nodo":1,"rol":"lider","caido":false,"termino":1,"votado_por":1,"lider_conocido":1,"log_len":3,"commit_index":3,"pendientes":0,"log_lleno":
+127.0.0.1:9002 -> {"nodo":2,"rol":"seguidor","caido":false,"termino":1,"votado_por":1,"lider_conocido":1,"log_len":3,"commit_index":3,"pendientes":0,"log_llen
+127.0.0.1:9003 -> {"nodo":3,"rol":"seguidor","caido":false,"termino":1,"votado_por":1,"lider_conocido":1,"log_len":3,"commit_index":3,"pendientes":0,"log_llen
+
+--- el cluster falso termina con SIGTERM ---
+cerrado

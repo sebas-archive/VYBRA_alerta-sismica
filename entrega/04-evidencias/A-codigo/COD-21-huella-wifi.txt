@@ -1,0 +1,61 @@
+COD-21 — Huella WiFi: mejoresAps(), parecido() y DetectorMovimiento
+Fuente: firmware/detector/src/nucleo/huella.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 8-62   (rango del inventario original: 8-61)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+    8  std::vector<Ap> mejoresAps(std::vector<Ap> vistas, size_t max) {
+    9    // Más fuerte primero; a igual RSSI, por BSSID para que el resultado sea estable.
+   10    std::sort(vistas.begin(), vistas.end(), [](const Ap& a, const Ap& b) {
+   11      return a.rssi != b.rssi ? a.rssi > b.rssi : a.bssid < b.bssid;
+   12    });
+   13    std::vector<Ap> r;
+   14    for (const Ap& ap : vistas) {
+   15      if (r.size() >= max) break;
+   16      bool repetido = false;
+   17      for (const Ap& x : r) repetido = repetido || x.bssid == ap.bssid;
+   18      if (!repetido) r.push_back(ap);  // el primero de cada BSSID es el más fuerte
+   19    }
+   20    return r;
+   21  }
+   22  
+   23  float parecido(const std::vector<Ap>& ref, const std::vector<Ap>& actual, int tolDb) {
+   24    if (ref.empty()) return 1.0f;
+   25    size_t iguales = 0;
+   26    for (const Ap& r : ref) {
+   27      for (const Ap& a : actual) {
+   28        if (a.bssid == r.bssid) {
+   29          if (std::abs(a.rssi - r.rssi) <= tolDb) iguales++;
+   30          break;
+   31        }
+   32      }
+   33    }
+   34    return (float)iguales / (float)ref.size();
+   35  }
+   36  
+   37  void DetectorMovimiento::fijarReferencia(const std::vector<Ap>& ref) {
+   38    ref_ = ref;
+   39    anterior_.clear();
+   40    malosSeguidos_ = 0;
+   41    movido_ = false;
+   42  }
+   43  
+   44  void DetectorMovimiento::restaurarMovido(bool movido) {
+   45    movido_ = movido && !ref_.empty();
+   46    malosSeguidos_ = 0;
+   47  }
+   48  
+   49  void DetectorMovimiento::nuevoEscaneo(const std::vector<Ap>& actual) {
+   50    if (ref_.empty()) return;  // sin referencia no hay nada que comparar
+   51    // Unión por BSSID de este escaneo y el anterior, con el RSSI más fuerte de cada uno.
+   52    std::vector<Ap> juntos = anterior_;
+   53    juntos.insert(juntos.end(), actual.begin(), actual.end());
+   54    const size_t total = juntos.size();
+   55    juntos = mejoresAps(std::move(juntos), total);
+   56    anterior_ = actual;
+   57    if (parecido(ref_, juntos) < 0.5f) {
+   58      if (++malosSeguidos_ >= 2) movido_ = true;
+   59    } else {
+   60      malosSeguidos_ = 0;
+   61    }
+   62  }

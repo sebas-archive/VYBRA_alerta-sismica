@@ -1,0 +1,52 @@
+@startuml D-11-estados-maquina-sismica
+title D-11 · Máquina de estados sísmica y niveles de alerta\nSismo::aplicar() sobre entradas confirmadas
+scale max 1100 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam stateBorderColor #244B5A
+skinparam nodesep 40
+skinparam ranksep 60
+
+state "Reposo\nsin eventos en memoria" as REPOSO
+state "Acumulando eventos\nregistro del detector (tope 100)" as ACUM
+state "Alerta emitida\nbaja / media / alta" as ALERTA
+
+[*] -down-> REPOSO
+REPOSO -down-> ACUM : primera entrada CONFIRMADA de clase Evento
+ACUM -right-> ACUM : evento sin coincidencia\n(sigue acumulando)
+ACUM -down-> ALERTA : evento con coincidencia:\n2 o más detectores en 10 s
+ALERTA -up-> ACUM : alerta emitida; los eventos\nusados no se reutilizan
+
+note right of ACUM
+  Por cada evento confirmado, en orden de índice
+  de log, se busca el evento LIBRE más cercano en
+  tiempo de cada OTRO detector dentro de 10 000 ms.
+  Si el grupo tiene 2 o más detectores, se emite alerta;
+  el grupo se recorta a la ventana del evento más antiguo.
+  Solo se aplican entradas CONFIRMADAS (commitIndex);
+  las de clase InicioTermino se ignoran.
+  Hora: t; si es 0, t_lider; si ambas son 0, no se agrupa.
+  Sin NTP no hay alertas. (sismo.cpp:17-80)
+end note
+
+note right of ALERTA
+  Severidad por promedio de niveles del grupo:
+  >= 7.5 alta · >= 4.5 media · resto baja.
+  La alerta guarda: id = índice de log del evento
+  disparador, promedio, ids de eventos, término y líder.
+  (sismo.cpp:11-15 · sismo.h:11-17)
+end note
+
+note bottom of REPOSO
+  Nivel de simulación por duración del pulso:
+  nivel = min(10, 1 + ms/450);
+  pga = 0.028 * nivel + 0.015.
+  No hay medición sísmica real.
+end note
+
+@enduml

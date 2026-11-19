@@ -1,0 +1,148 @@
+Verificacion aritmetica del presupuesto - VYBRA / Alerta Sismica
+Fecha: 2026-11-18 (America/Bogota)
+Directorio: /home/t1an/detector de sismos en red distribuida
+Archivos verificados: entrega/07-presupuesto/presupuesto.csv
+                      entrega/07-presupuesto/presupuesto.md
+Fuente primaria:      entrega/07-presupuesto/comprobante-electronilab-pedido-60869.jpg
+Comando: python3 /tmp/verificar_presupuesto.py > entrega/07-presupuesto/verificacion-sumas.txt
+Entorno: Python 3.14.9, solo biblioteca estandar (csv, decimal, hashlib)
+------------------------------------------------------------------------------------------------------------
+
+[1] CSV: cantidad x precio unitario = subtotal (Decimal, sin redondeos)
+------------------------------------------------------------------------------------------------------------
+  ID             Cant.    Unitario    Subtotal   Recalculo  Tipo      OK
+  H-01               3      37.730     113.190     113.190  hardware  si
+  H-02               3      13.900      41.700      41.700  hardware  si
+  H-03               1       9.900       9.900       9.900  hardware  si
+  H-04               3       4.300      12.900      12.900  hardware  si
+  H-05               4         431       1.724       1.724  hardware  si
+  H-06               1       9.800       9.800       9.800  envio     si
+  C-01               1      67.000      67.000      67.000  servicio  si
+  S-01               1           0           0           0  software  si
+  S-02               1           0           0           0  software  si
+  S-03               1           0           0           0  software  si
+  S-04               1           0           0           0  software  si
+  S-05               1           0           0           0  software  si
+  S-06               1           0           0           0  software  si
+  S-07               1           0           0           0  software  si
+  S-08               1           0           0           0  software  si
+  S-09               1           0           0           0  software  si
+  S-10               1           0           0           0  software  si
+  S-11               1           0           0           0  software  si
+  S-12               1           0           0           0  software  si
+  S-13               1           0           0           0  software  si
+  E-01               0           0           0           0  exclusion si
+  E-02               0           0           0           0  exclusion si
+  E-03               0           0           0           0  exclusion si
+  E-04               0           0           0           0  exclusion si
+  E-05               0           0           0           0  exclusion si
+  E-06               0           0           0           0  exclusion si
+  E-07               0           0           0           0  exclusion si
+
+[2] CSV: subtotales por tipo contra las filas TOTAL-*
+------------------------------------------------------------------------------------------------------------
+  Suma filas tipo=hardware = ITEMS-SUBTOTAL                  si  179.414 COP
+  ITEMS-SUBTOTAL del CSV coincide                            si  179.414 COP
+  Hardware + envio = TOTAL-COMPRA                            si  189.214 COP
+  TOTAL-COMPRA del CSV coincide                              si  189.214 COP
+  Suma filas tipo=servicio = TOTAL-PLAN                      si  67.000 COP
+  TOTAL-PLAN del CSV coincide                                si  67.000 COP
+  Suma filas tipo=software = 0                               si  0 COP
+  TOTAL-SOFTWARE del CSV coincide                            si  0 COP
+  Compra + plan + software = TOTAL-GENERAL                   si  256.214 COP
+  TOTAL-GENERAL del CSV coincide                             si  256.214 COP
+
+[3] Cotejo contra el comprobante del Pedido 60869 (valores de linea de la factura)
+------------------------------------------------------------------------------------------------------------
+  H-01 Board ESP32 CP2102 30 pines                3 x    37.730 =   113.190  exacto
+  H-02 Protoboard MB102 830 puntos                3 x    13.900 =    41.700  exacto
+  H-03 40 cables Dupont M-M 20 cm                 1 x     9.900 =     9.900  exacto
+  H-04 Cable micro-USB 30 cm                      3 x     4.300 =    12.900  exacto
+  H-05 Pulsador B3F-4055                          4 x       431 =     1.724  exacto
+  Suma de los 5 valores de linea = subtotal de la factura    si  179.414 COP
+  Subtotal + envio = Total de la orden                       si  189.214 COP
+  Suma de la factura = suma de filas hardware del CSV        si  179.414 COP
+  Total de la factura = hardware + envio del CSV             si  189.214 COP
+  Envio de la factura = fila de envio del CSV                si  9.800 COP
+  Plan Claro (dato del usuario) = fila de servicio           si  67.000 COP
+
+[4] Conversion referencial a USD (TRM 2026-11-18)
+------------------------------------------------------------------------------------------------------------
+  TRM usada ............................................ 3309.55 COP/USD
+  Compra 189.214 / 3.309,55 ........................... 57,17 USD
+  Plan    67.000 / 3.309,55 ........................... 20,24 USD
+  Total  256.214 / 3.309,55 ........................... 77,42 USD
+  Compra = 57,17 USD                                         si  57,17
+  Plan = 20,24 USD                                           si  20,24
+  Total general = 77,42 USD                                  si  77,42
+  Subtotal de items = 54,21 USD (informativo)                si  54,21
+  Suma de lineas USD ya redondeadas 57,17 + 20,24 = 77.41 (difiere 0,01 del total por redondeo final)
+  Redondeo final: 256.214 COP = 77,42 USD (lineas suman 77,41) si  diferencia de redondeo 0,01 USD
+
+[5] Comprobacion independiente del Markdown (presupuesto.md)
+------------------------------------------------------------------------------------------------------------
+  Resumen contiene 189.214                                   si  
+  Resumen contiene 57,17                                     si  
+  Resumen contiene 67.000                                    si  
+  Resumen contiene 20,24                                     si  
+  Resumen contiene 256.214                                   si  
+  Resumen contiene 77,42                                     si  
+  Resumen NO contiene el total anterior 242.320              si  
+  El total anterior 242.320 solo aparece para comparar       si  
+  USD del total anterior 73,22 citado en la comparacion      si  
+  TRM 3.309,55 citada                                        si  
+  Comprobante citado como fuente primaria                    si  
+  Pedido 60869 citado                                        si  
+  Fila H-01 del Markdown con sus cifras                      si  
+  Fila H-02 del Markdown con sus cifras                      si  
+  Fila H-03 del Markdown con sus cifras                      si  
+  Fila H-04 del Markdown con sus cifras                      si  
+  Fila H-05 del Markdown con sus cifras                      si  
+  Fila H-06 del Markdown con sus cifras                      si  
+  Fila de total general 256.214 / 77,42 en el resumen        si  
+  Subtotal 179.414 y total compra 189.214 citados            si  
+  Plan de datos 67.000 citado                                si  
+  Plan Claro declarado como dato del usuario                 si  
+  Supuesto de que el plan depende del operador documentado   si  
+  Nota explicita de que no se compraron adaptadores          si  
+  Alimentacion por cables micro-USB documentada              si  
+  Markdown explica la diferencia de redondeo USD             si  
+
+[6] Comprobante incluido (integridad)
+------------------------------------------------------------------------------------------------------------
+  comprobante-electronilab-pedido-60869.jpg presente         si  36323 bytes
+  SHA-256 del comprobante coincide con el original           si  890b422f589c60533229859d...
+
+[7] Soporte fotografico de la recepcion (formato PNG, integridad y citacion)
+------------------------------------------------------------------------------------------------------------
+  Markdown incluye el apartado de soporte fotografico        si  
+  fotos-componentes-recibidos-1.png presente en la carpeta   si  1786488 bytes
+  fotos-componentes-recibidos-1.png tiene firma PNG valida   si  abre como PNG
+  fotos-componentes-recibidos-1.png mide 900 x 1600 px       si  (900, 1600)
+  SHA-256 de fotos-componentes-recibidos-1.png coincide con el original si  34088b3dac6a1e64fe06f826...
+  Markdown cita fotos-componentes-recibidos-1.png            si  
+  fotos-componentes-recibidos-2.png presente en la carpeta   si  1779348 bytes
+  fotos-componentes-recibidos-2.png tiene firma PNG valida   si  abre como PNG
+  fotos-componentes-recibidos-2.png mide 900 x 1600 px       si  (900, 1600)
+  SHA-256 de fotos-componentes-recibidos-2.png coincide con el original si  3d0ba00e5368a31c394bdf2e...
+  Markdown cita fotos-componentes-recibidos-2.png            si  
+  fotos-componentes-recibidos-3.png presente en la carpeta   si  2245755 bytes
+  fotos-componentes-recibidos-3.png tiene firma PNG valida   si  abre como PNG
+  fotos-componentes-recibidos-3.png mide 900 x 1600 px       si  (900, 1600)
+  SHA-256 de fotos-componentes-recibidos-3.png coincide con el original si  6b20df2a423249c9a8e8da03...
+  Markdown cita fotos-componentes-recibidos-3.png            si  
+  No quedan fotos con extension .jpg en la carpeta           si  
+  Markdown sin referencias .jpg a las fotos                  si  
+  Unico .jpg citado: el comprobante (JPEG real)              si  comprobante-electronilab-pedido-60869.jpg
+  Markdown declara la procedencia de las fotos               si  
+  Markdown aclara que las fotos no alteran las cifras        si  
+
+[8] Total general en el Markdown vs CSV
+------------------------------------------------------------------------------------------------------------
+  Markdown: total general 256.214 COP y 77,42 USD            si  | **Total general del proyecto** | **256.214** | **77,42** |
+  Markdown: fila de compra real 189.214 / 57,17              si  
+  Markdown: fila de plan Claro 67.000 / 20,24                si  
+------------------------------------------------------------------------------------------------------------
+RESULTADO: OK - todas las sumas y conversiones cuadran
+Cotejo independiente: CSV leido con el modulo csv y Markdown leido como texto;
+los subtotales por tipo y las cifras del resumen coinciden con la factura y con la TRM.

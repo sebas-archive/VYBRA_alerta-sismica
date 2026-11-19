@@ -1,0 +1,40 @@
+COD-22 — Backend: estatico() con validación de rutas y soporte de Range (audio)
+Fuente: web/server.js
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 76-109   (rango del inventario original: 88-116)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   76    function estatico(res, nombre, rango) {
+   77      let rel;
+   78      try { rel = decodeURIComponent(nombre); } catch { return responderJson(res, 404, { error: 'no existe' }); }
+   79      // Sin NUL, sin barras iniciales extra ni segmentos '..' (ni con \ de Windows).
+   80      const segmentos = rel.split(/[\\/]/);
+   81      if (rel.includes('\0') || segmentos.some((s) => s === '..') || rel.startsWith('/') || rel.startsWith('\\')) {
+   82        return responderJson(res, 404, { error: 'no existe' });
+   83      }
+   84      const ruta = path.resolve(raiz, rel);
+   85      if (!ruta.startsWith(raiz + path.sep)) return responderJson(res, 404, { error: 'no existe' });
+   86      const tipo = TIPOS[path.extname(ruta).toLowerCase()];
+   87      if (!tipo) return responderJson(res, 404, { error: 'no existe' });
+   88      fs.readFile(ruta, (err, datos) => {
+   89        if (err) return responderJson(res, 404, { error: 'no existe' });
+   90        // Range: los navegadores lo exigen para reposicionar un audio (currentTime = 0).
+   91        const m = /^bytes=(\d*)-(\d*)$/.exec(rango ?? '');
+   92        if (m && (m[1] || m[2])) {
+   93          let ini = m[1] === '' ? datos.length - Number(m[2]) : Number(m[1]);
+   94          let fin = m[1] === '' || m[2] === '' ? datos.length - 1 : Math.min(Number(m[2]), datos.length - 1);
+   95          ini = Math.max(0, ini);
+   96          if (ini > fin || ini >= datos.length) {
+   97            res.writeHead(416, { 'Content-Range': `bytes */${datos.length}` });
+   98            return res.end();
+   99          }
+  100          res.writeHead(206, {
+  101            'Content-Type': tipo, 'Cache-Control': 'no-cache', 'Accept-Ranges': 'bytes',
+  102            'Content-Range': `bytes ${ini}-${fin}/${datos.length}`, 'Content-Length': fin - ini + 1,
+  103          });
+  104          return res.end(datos.subarray(ini, fin + 1));
+  105        }
+  106        res.writeHead(200, { 'Content-Type': tipo, 'Cache-Control': 'no-cache', 'Accept-Ranges': 'bytes', 'Content-Length': datos.length });
+  107        res.end(datos);
+  108      });
+  109    }

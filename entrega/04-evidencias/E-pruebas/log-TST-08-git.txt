@@ -1,0 +1,50 @@
+== TST-08 Trazabilidad Git de la corrida
+== fecha: 2026-11-18T11:20:02-05:00
+== comando: git log -1 --format='%H %ad %s' --date=iso ; git status --porcelain
+
+0ee5ed4a626c28904db55ab6e436e040c03f046c
+2026-11-18 10:58:38 -0500
+chore: retira material de diseño histórico, prompts y planes internos
+
+--- git status --porcelain ---
+ M entrega/04-evidencias/B-interfaz/cap-REF-CLI-01-publico.png
+ D entrega/04-evidencias/B-interfaz/cap-REF-OP-03-sismografos.png
+ M entrega/04-evidencias/B-interfaz/cap-REF-OP-05-raft.png
+ D entrega/04-evidencias/B-interfaz/cap-REF-OP-08-detectores.png
+ D entrega/04-evidencias/B-interfaz/cap-REF-OP-11-alertas.png
+ D entrega/04-evidencias/B-interfaz/cap-REF-OP-12-registros.png
+ M entrega/04-evidencias/B-interfaz/cap-REF-OP-18-movil.png
+ M entrega/04-evidencias/C-backend/cap-REF-BE-03-api-estado.png
+ M entrega/04-evidencias/E-pruebas/log-TST-01-cpp.txt
+ M entrega/04-evidencias/E-pruebas/log-TST-03-js.txt
+ M entrega/05-pruebas/logs/TST-01-cpp.log
+ M entrega/05-pruebas/logs/TST-03-js.log
+ M entrega/06-manual/conexion-esp32.md
+ M entrega/10-informes-fase3/informe-fase3.md
+?? docs/ARQUITECTURA-ACTUAL.md
+?? entrega/01-documento/
+?? entrega/03-diagramas/
+?? entrega/04-evidencias/A-codigo/
+?? entrega/04-evidencias/B-interfaz/cap-REF-OP-01-panorama.png
+?? entrega/04-evidencias/B-interfaz/cap-REF-OP-02-sismografos.png
+?? entrega/04-evidencias/B-interfaz/cap-REF-OP-03-alertas.png
+?? entrega/04-evidencias/B-interfaz/cap-REF-OP-04-historico.png
+?? entrega/04-evidencias/B-interfaz/cap-REF-OP-06-servidores.png
+?? entrega/04-evidencias/B-interfaz/cap-REF-OP-07-detectores.png
+?? entrega/04-evidencias/B-interfaz/cap-REF-OP-08-registros.png
+?? entrega/04-evidencias/B-interfaz/cap-REF-OP-09-configuracion.png
+?? entrega/04-evidencias/E-pruebas/log-TST-06-arbol-tests.txt
+?? entrega/04-evidencias/E-pruebas/log-TST-07-versiones.txt
+?? entrega/04-evidencias/E-pruebas/log-TST-08-git.txt
+?? entrega/04-evidencias/I-resultados/log-TST-04-test-db.txt
+?? entrega/04-evidencias/I-resultados/log-TST-05-test-infra.txt
+?? entrega/05-pruebas/logs/NOD-11-compilacion.log
+?? entrega/05-pruebas/logs/NOD-19-compilacion-nodo-sim.log
+?? entrega/05-pruebas/logs/TST-04-test-db.log
+?? entrega/05-pruebas/logs/TST-05-test-infra.log
+?? entrega/06-manual/manual-instalacion-y-ejecucion.md
+?? entrega/07-presupuesto/
+?? entrega/08-video/
+
+--- tag v1.0.0-rc1 ---
+f567487cc3488f4bcc0d570dc88858a0bccff562 2026-11-17 16:33:15 -0500 evidencia: identifica las tres ESP32 por MAC y banner de arranque

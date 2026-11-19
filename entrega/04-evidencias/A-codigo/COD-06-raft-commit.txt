@@ -1,0 +1,27 @@
+COD-06 — Raft: avanzarCommit por mayoría del término actual y aplicarConfirmadas en orden
+Fuente: firmware/detector/src/nucleo/raft.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 394-414   (rango del inventario original: 391-411)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  394  void Raft::avanzarCommit() {
+  395    for (uint32_t n = ultimoIndice(); n > commitIndex_; n--) {
+  396      if (terminoEn(n) != termino_) break;  // lo de términos viejos se confirma solo de arrastre
+  397      int votos = 0;
+  398      for (int p = kPrimerNodo; p <= kUltimoNodo; p++)
+  399        if (p == cfg_.yo || matchIdx_[p] >= n) votos++;
+  400      if (votos >= mayoria()) {
+  401        commitIndex_ = n;
+  402        aplicarConfirmadas();
+  403        return;
+  404      }
+  405    }
+  406  }
+  407  
+  408  void Raft::aplicarConfirmadas() {
+  409    while (ultimoAplicado_ < commitIndex_ && ultimoAplicado_ < ultimoIndice()) {
+  410      const Entrada& e = log_[ultimoAplicado_++];
+  411      sismo_.aplicar(e);
+  412      if (e.clase == Clase::Evento) quitarPendiente(e.ev.id);
+  413    }
+  414  }

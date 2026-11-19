@@ -1,0 +1,19 @@
+# commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4) — 2026-11-18
+# host: Linux 7.3.3-1-cachyos x86_64
+# git status: árbol limpio salvo docs/ARQUITECTURA-ACTUAL.md no versionado (documentación en curso)
+# firmware compile 3 nodos 2026-11-18T11:11:34-05:00 arduino-cli=arduino-cli  Version: 1.5.1 Commit: 01f3d4f2ba7c2eaafb5dc710c8a1903af7762fea Date:  core=esp32:esp32 3.3.12    3.3.12 esp32
+=== NODO=1 ===
+Sketch uses 1105581 bytes (84%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 54264 bytes (16%) of dynamic memory, leaving 273416 bytes for local variables. Maximum is 327680 bytes.
+[exit=0]
+-rw-r--r-- 1 t1an t1an 1105728 Nov 18 11:12 /tmp/fw1/detector.ino.bin
+=== NODO=2 ===
+Sketch uses 1105585 bytes (84%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 54264 bytes (16%) of dynamic memory, leaving 273416 bytes for local variables. Maximum is 327680 bytes.
+[exit=0]
+-rw-r--r-- 1 t1an t1an 1105728 Nov 18 11:12 /tmp/fw2/detector.ino.bin
+=== NODO=3 ===
+Sketch uses 1105569 bytes (84%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 54264 bytes (16%) of dynamic memory, leaving 273416 bytes for local variables. Maximum is 327680 bytes.
+[exit=0]
+-rw-r--r-- 1 t1an t1an 1105712 Nov 18 11:13 /tmp/fw3/detector.ino.bin

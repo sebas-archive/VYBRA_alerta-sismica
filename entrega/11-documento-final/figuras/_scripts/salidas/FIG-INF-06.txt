@@ -1,0 +1,11 @@
+# FIG-INF-06 — Infraestructura · controlador (logs reales)
+# fecha: 2026-11-18T13:02:02-05:00
+# fuente: Salida real de `docker logs` y `docker inspect`, renderizada con Chromium sobre HTML monoespaciado.
+
+$ docker logs sismo-controlador --tail 40
+Controlador de infraestructura · proyecto "detectordesismosenreddistribuida" · puerto 8200
+Controlador de infraestructura · proyecto "detectordesismosenreddistribuida" · puerto 8200
+
+$ docker inspect --format '{{.Name}} estado={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}} reinicios={{.RestartCount}}' sismo-controlador
+/sismo-controlador estado=running health=healthy reinicios=0
+

@@ -1,0 +1,71 @@
+@startuml D-08-secuencia-failover-recuperacion
+title D-08 · Secuencia de failover y recuperación\ncaída del líder · nueva elección · catch-up desde el índice 1
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam sequenceLifeLineBorderColor #244B5A
+
+participant "Nodo 1\nLíder (término T)" as N1
+participant "Nodo 2\nSeguidor" as N2
+participant "Nodo 3\nSeguidor" as N3
+participant "NVS del Nodo 1\n(término + voto)" as NVS
+
+== Caída del líder ==
+N1 -> N1 : docker stop nodo1\n(o POST /control accion=caer)\ncaido_ = true · rol = Seguidor\nsalidas descartadas
+N2 -> N2 : deja de recibir latidos\n(el plazo de elección no se reinicia)
+N3 -> N3 : idem
+note over N2, N3
+  Cada seguidor tiene un plazo aleatorio
+  de 5000-9000 ms; el primero que vence
+  se postula. Criterio de campaña de
+  reelección: <= 12 s.
+end note
+
+== Nueva elección con 2 de 3 ==
+N2 -> N2 : vence su plazo\ntermino = T + 1 · votadoPor = 2
+N2 -> N3 : VoteReq(T+1, li, lt)
+N3 -> N2 : VoteResp(g=true) : "log al día"
+N2 -> N2 : mayoría 2 de 3 → ganar()\nrol = Lider · líder = 2
+N2 -> N3 : Append(InicioTermino del término T+1)
+N3 -> N2 : AppendResp(ok)
+
+== Recuperación del Nodo 1 ==
+N1 -> NVS : al arrancar: cargar término T\ny voto persistido
+N1 -> N1 : rol = Seguidor · log vacío\n(el log vive en RAM; se perdió)
+N2 -> N1 : Append(pi=X, pt=Y, c=commit)\n(con nextIdx calculado por el líder)
+N1 -> N2 : AppendResp(o=false, m=0)\nprev_idx > ultimoIndice()
+N2 -> N2 : nextIdx[1] = pista + 1 = 1
+N2 -> N1 : Append(pi=0, pt=0, c=commit,\ne = entradas 1..8)
+N1 -> N1 : copia entradas desde el índice 1
+N1 -> N2 : AppendResp(o=true, m=8)
+N2 -> N1 : Append(pi=8, pt=..., e = 9..16)
+N1 -> N1 : copia el resto por lotes de <= 8\ncatch-up completo
+N2 -> N1 : Append(c = commitIndex final)
+N1 -> N1 : commitIndex = commit nuevo\naplicarConfirmadas() → Sismo
+N1 -> N2 : AppendResp(ok)
+
+== Si el log local choca con lo confirmado ==
+note over N1, N2
+  Si el líder legítimo envía una entrada que choca
+  con una ya confirmada por este nodo, resincronizar():
+  borra el log y la máquina sísmica, commitIndex = 0,
+  responde con pista 0 y el líder reenvía desde 1.
+  Es deliberado porque los logs viven en RAM
+  (resincronización de emergencia, no durabilidad).
+  (raft.cpp:187-198, 235-253)
+end note
+
+note over N1, N3
+  Reinicio de placa: término y voto sobreviven en NVS,
+  pero el log no. El reinicio no cambia el término hasta
+  que llegue un mensaje con uno mayor.
+  Limitaciones: sin log durable ni snapshots; el tope del
+  log es 1000 entradas (ConfigRaft::topeLog).
+end note
+
+@enduml

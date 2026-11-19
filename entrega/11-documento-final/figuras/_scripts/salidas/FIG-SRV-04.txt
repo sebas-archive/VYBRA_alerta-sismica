@@ -1,0 +1,57 @@
+# FIG-SRV-04 — PostgreSQL 1 · consultas psql reales (contenedor sismo-db-1)
+# fecha: 2026-11-18T13:01:58-05:00
+# fuente: Salida real de docker exec sismo-db-1 psql -U vybra -d vybra, renderizada con Chromium sobre HTML monoespaciado.
+
+$ docker exec sismo-db-1 psql -U vybra -d vybra -c "SELECT current_database() AS base, current_setting('server_version') AS version, inet_server_addr() AS ip;"
+ base  | version | ip 
+-------+---------+----
+ vybra | 16.15   | 
+(1 row)
+
+$ docker exec sismo-db-1 psql -U vybra -d vybra -c '\dt'
+               List of relations
+ Schema |         Name         | Type  | Owner 
+--------+----------------------+-------+-------
+ public | acciones             | table | vybra
+ public | alertas              | table | vybra
+ public | archivo_acciones     | table | vybra
+ public | archivo_alertas      | table | vybra
+ public | archivo_eventos      | table | vybra
+ public | archivo_log_entradas | table | vybra
+ public | archivo_muestras     | table | vybra
+ public | archivo_sucesos      | table | vybra
+ public | eventos              | table | vybra
+ public | log_entradas         | table | vybra
+ public | muestras             | table | vybra
+ public | sucesos              | table | vybra
+(12 rows)
+
+$ docker exec sismo-db-1 psql -U vybra -d vybra -c "SELECT 'muestras' AS tabla, count(*) FROM muestras UNION ALL SELECT 'log_entradas', count(*) FROM log_entradas UNION ALL SELECT 'eventos', count(*) FROM eventos UNION ALL SELECT 'alertas', count(*) FROM alertas UNION ALL SELECT 'sucesos', count(*) FROM sucesos UNION ALL SELECT 'acciones', count(*) FROM acciones ORDER BY 1;"
+    tabla     | count 
+--------------+-------
+ acciones     |    12
+ alertas      |    12
+ eventos      |    24
+ log_entradas |    26
+ muestras     |   342
+ sucesos      |     3
+(6 rows)
+
+$ docker exec sismo-db-1 psql -U vybra -d vybra -c "SELECT id, nodo, nivel, pga, duracion_ms, to_char(to_timestamp(t_ms/1000.0) AT TIME ZONE 'America/Bogota','YYYY-MM-DD HH24:MI:SS') AS hora, confirmado FROM eventos ORDER BY t_ms DESC LIMIT 4;"
+         id         | nodo | nivel |  pga  | duracion_ms |        hora         | confirmado 
+--------------------+------+-------+-------+-------------+---------------------+------------
+ nodo-2-9ef7b678-12 |    2 |     5 | 0.155 |        2025 | 2026-11-18 13:01:49 | t
+ nodo-1-7f5258bd-12 |    1 |     6 | 0.183 |        2475 | 2026-11-18 13:01:48 | t
+ nodo-2-9ef7b678-11 |    2 |     5 | 0.155 |        2025 | 2026-11-18 12:58:16 | t
+ nodo-1-7f5258bd-11 |    1 |     6 | 0.183 |        2475 | 2026-11-18 12:58:15 | t
+(4 rows)
+
+$ docker exec sismo-db-1 psql -U vybra -d vybra -c "SELECT alerta_id, nivel, promedio, termino, lider, eventos FROM alertas ORDER BY t_ms DESC NULLS LAST LIMIT 4;"
+ alerta_id | nivel | promedio | termino | lider |                 eventos                 
+-----------+-------+----------+---------+-------+-----------------------------------------
+        25 | media |      5.5 |       3 |     1 | {nodo-2-9ef7b678-12,nodo-1-7f5258bd-12}
+        23 | media |      5.5 |       3 |     1 | {nodo-2-9ef7b678-11,nodo-1-7f5258bd-11}
+        21 | media |      5.5 |       3 |     1 | {nodo-2-9ef7b678-10,nodo-1-7f5258bd-10}
+        19 | media |      5.5 |       3 |     1 | {nodo-2-9ef7b678-9,nodo-1-7f5258bd-9}
+(4 rows)
+

@@ -1,0 +1,30 @@
+COD-25 — Poller: disponibilidad, líder por término y quórum inferido (≥ 2 nodos con el mismo líder)
+Fuente: web/poller.js
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 83-106   (rango del inventario original: 83-106)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   83    const disponible = (x) => x.alcanzable && x.estado && !x.estado.caido;
+   84  
+   85    function calcularLiderYFuente() {
+   86      const lideres = info.filter((x) => disponible(x) && x.estado.rol === 'lider');
+   87      lideres.sort((a, b) => (b.estado.termino - a.estado.termino) || (a.n - b.n));
+   88      const lider = lideres[0]?.n ?? null;
+   89  
+   90      // Quórum: al menos 2 nodos disponibles que reconocen al mismo líder.
+   91      const votos = new Map();
+   92      for (const x of info) {
+   93        if (!disponible(x)) continue;
+   94        const l = x.estado.lider_conocido;
+   95        if (l) votos.set(l, (votos.get(l) ?? 0) + 1);
+   96      }
+   97      const quorum = Math.max(0, ...votos.values()) >= 2;
+   98  
+   99      let fuente = lider;
+  100      if (fuente === null) {
+  101        const candidatos = info.filter(disponible);
+  102        candidatos.sort((a, b) => (b.estado.commit_index - a.estado.commit_index) || (a.n - b.n));
+  103        fuente = candidatos[0]?.n ?? null;
+  104      }
+  105      return { lider, quorum, fuente };
+  106    }

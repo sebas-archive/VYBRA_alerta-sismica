@@ -1,0 +1,10 @@
+COD-12 — Máquina sísmica: constantes kTope (100 eventos) y kVentana (10 000 ms)
+Fuente: firmware/detector/src/nucleo/sismo.h
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 29-32   (rango del inventario original: 28-31)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   29   private:
+   30    struct Reg { uint32_t indice; bool libre; };
+   31    static constexpr size_t kTope = 100;
+   32    static constexpr uint64_t kVentana = 10000;

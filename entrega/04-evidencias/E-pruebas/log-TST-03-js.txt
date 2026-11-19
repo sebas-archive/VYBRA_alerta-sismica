@@ -1,57 +1,96 @@
-== fecha: 2026-11-17T16:07:57-05:00
-== node: v26.13.0
-== host: Linux 7.3.3-1-cachyos x86_64
-== commit: 3e3072957b9d4d2683dc4e348d5211ea9e2f90d9
-== comando: node --test --test-concurrency=1 test/geo.test.js test/poller.test.js test/server.test.js
-
-✔ color: inalcanzable o caido es rojo (5.075994ms)
-✔ color: candidato o atrasado es azul (0.219263ms)
-✔ color: al día es verde (0.123447ms)
-✔ color: si reconoce otro líder que el de la foto es azul (0.126548ms)
-✔ distancia: 1 grado de latitud ≈ 111 km (±1%) (0.178552ms)
-✔ zona: centroide ponderado por nivel (0.257022ms)
-✔ zona: excluye movidos y sin ubicar; con uno es ese nodo y 30 m; con ninguno null (0.142368ms)
-✔ zona: radio mínimo 30 m (0.104927ms)
-✔ geo: un solo punto da encuadre mínimo (0.256423ms)
-✔ geo: norte arriba, este a la derecha, todos dentro del margen (0.258549ms)
-✔ nodoMasCercano: ignora movidos; null sin candidatos (0.169211ms)
-✔ poller: arma foto con lider y quorum (28.136668ms)
-✔ poller: nodo colgado no frena a los demás (610.41775ms)
-✔ poller: pide /log solo cuando cambia log_len (309.787739ms)
-✔ poller: log incremental (43.830296ms)
-✔ poller: cambio de fuente recarga el log (42.022369ms)
-✔ poller: sucesos de todos los nodos ordenados (42.488314ms)
-✔ poller: caido=true cuenta como no disponible para quorum (96.093866ms)
-✔ poller: sin lider la fuente es el de mayor commit_index (11.23321ms)
-✔ poller: solo emite cambio si la foto cambió (459.988915ms)
-✔ poller: nodo caído no hace que cambio se emita sin parar (490.170149ms)
-✔ poller: nunca dos pedidos simultáneos al mismo nodo (sync de log lenta) (317.66315ms)
-✔ nodo falso: /estado trae situacion como el firmware (18 claves) (5.354277ms)
-✔ sse: cliente nuevo recibe snapshot (32.994943ms)
-✔ sse: cambio se propaga (45.359885ms)
-✔ sse: latido vivo periódico aunque no haya cambios (86.866917ms)
-✔ sse: sin fugas de listeners al desconectar (20.484386ms)
-✔ api/estado: foto con las posiciones fijas de los detectores (4.769861ms)
-✔ control: reenvía al nodo correcto (7.981383ms)
-✔ pulsar: reenvía status y cuerpo del nodo (409 caído, 400 cuerpo malo) (10.977992ms)
-✔ control: cuerpo mayor a 4 KB da 413 (3.949122ms)
-✔ control: nodo inalcanzable da 502 (5.789607ms)
-✔ control: nodo colgado da 502 por tiempo (305.553715ms)
-✔ control: n fuera de 1-3 da 404 (11.295857ms)
-✔ estaticos: rutas y tipos (8.935849ms)
-✔ estaticos: no permite .. (31.051664ms)
-✔ control: sin application/json da 415 y no llega al nodo (12.917117ms)
-✔ control: JSON inválido da 400 y no llega al nodo (6.728529ms)
-✔ sse: cliente detenido con cola enorme es desconectado (143.581809ms)
-✔ estaticos: sin operador.html responde 404 sin caerse (5.825388ms)
-✔ nodo falso: "mover" marca movido con suceso; /huella lo limpia al fijar la referencia (60.317122ms)
-ℹ tests 41
+# commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4) — 2026-11-18
+# host: Linux 7.3.3-1-cachyos x86_64
+# git status: árbol limpio salvo docs/ARQUITECTURA-ACTUAL.md no versionado (documentación en curso)
+# JS npm test 2026-11-18T11:11:31-05:00 node=v26.13.0
+npm notice run test
+npm notice run node --test "test/*.test.js"
+✔ estado: modo simulado, contenedores del proyecto y volumen de la base; sin ids de Docker (37.177997ms)
+✔ apagar y encender el servidor 1: solo su nodo y su servidor; las bases y los demás siguen (35.271372ms)
+✔ apagar y encender el servidor 2: solo su nodo y su servidor; las bases y los demás siguen (30.602948ms)
+✔ apagar y encender el servidor 3: solo su nodo y su servidor; las bases y los demás siguen (27.138269ms)
+✔ encender se niega si la base de datos está apagada y no la arranca (21.328444ms)
+✔ ESP32 físico (sin contenedor nodo): solo se para el servidor de datos y se informa el modo (6.572258ms)
+✔ HTTP: solo existen /estado, /salud y POST /servidores/{1-3}/{apagar|encender}; exige token (64.711946ms)
+✔ dos órdenes simultáneas al mismo servidor: una se rechaza (409) (23.878739ms)
+✔ color: inalcanzable o caido es rojo (6.055983ms)
+✔ color: candidato o atrasado es azul (0.463568ms)
+✔ color: al día es verde (0.296594ms)
+✔ color: si reconoce otro líder que el de la foto es azul (0.284956ms)
+✔ distancia: 1 grado de latitud ≈ 111 km (±1%) (0.391815ms)
+✔ zona: centroide ponderado por nivel (0.639939ms)
+✔ zona: excluye movidos y sin ubicar; con uno es ese nodo y 30 m; con ninguno null (0.411935ms)
+✔ zona: radio mínimo 30 m (0.213212ms)
+✔ geo: un solo punto da encuadre mínimo (0.402174ms)
+✔ geo: norte arriba, este a la derecha, todos dentro del margen (0.357353ms)
+✔ nodoMasCercano: ignora movidos; null sin candidatos (0.297867ms)
+﹣ 0. El stack aislado está encendido, con Raft real, quórum y sin exponer Docker (4.702598ms) # defina PANEL_URL o ejecute npm run test:infra
+﹣ 1. Apagar y encender el Servidor 1: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (0.191707ms) # defina PANEL_URL o ejecute npm run test:infra
+﹣ 2. Apagar y encender el Servidor 2: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (0.143682ms) # defina PANEL_URL o ejecute npm run test:infra
+﹣ 3. Apagar y encender el Servidor 3: solo cae lo suyo, Raft lo detecta y se reincorpora sincronizado (0.144678ms) # defina PANEL_URL o ejecute npm run test:infra
+﹣ 4. Pérdida de quórum: con 1 de 3 no se confirma nada; al volver la mayoría se confirma y todo se recupera (0.107635ms) # defina PANEL_URL o ejecute npm run test:infra
+✔ poller: arma foto con lider y quorum (59.202577ms)
+✔ poller: nodo colgado no frena a los demás (610.959813ms)
+✔ poller: pide /log solo cuando cambia log_len (313.108428ms)
+✔ poller: log incremental (44.437998ms)
+✔ poller: cambio de fuente recarga el log (41.580924ms)
+✔ poller: sucesos de todos los nodos ordenados (33.227965ms)
+✔ poller: caido=true cuenta como no disponible para quorum (92.037476ms)
+✔ poller: sin lider la fuente es el de mayor commit_index (12.685259ms)
+✔ poller: solo emite cambio si la foto cambió (457.439169ms)
+✔ poller: nodo caído no hace que cambio se emita sin parar (495.969768ms)
+✔ poller: nunca dos pedidos simultáneos al mismo nodo (sync de log lenta) (311.628912ms)
+✔ nodo falso: /estado trae situacion como el firmware (18 claves) (5.211674ms)
+✔ Raft real: elección, caída del líder, reelección, reincorporación sincronizada y pérdida de quórum (16527.751224ms)
+✔ sse: cliente nuevo recibe snapshot (58.870843ms)
+✔ sse: cambio se propaga (47.47882ms)
+✔ sse: latido vivo periódico aunque no haya cambios (89.133861ms)
+✔ sse: sin fugas de listeners al desconectar (17.236319ms)
+✔ api/estado: foto con las posiciones fijas de los detectores (5.348102ms)
+✔ control: reenvía al nodo correcto (16.81344ms)
+✔ pulsar: reenvía status y cuerpo del nodo (409 caído, 400 cuerpo malo) (30.515839ms)
+✔ control: cuerpo mayor a 4 KB da 413 (16.57273ms)
+✔ control: nodo inalcanzable da 502 (12.029241ms)
+✔ control: nodo colgado da 502 por tiempo (305.351827ms)
+✔ control: n fuera de 1-3 da 404 (10.841225ms)
+✔ estaticos: rutas y tipos (9.810522ms)
+✔ estaticos: no permite .. (10.48468ms)
+✔ control: sin application/json da 415 y no llega al nodo (7.35869ms)
+✔ control: JSON inválido da 400 y no llega al nodo (13.134755ms)
+✔ sse: cliente detenido con cola enorme es desconectado (145.987691ms)
+✔ estaticos: sin operador.html responde 404 sin caerse (6.678472ms)
+✔ nodo falso: "mover" marca movido con suceso; /huella lo limpia al fijar la referencia (59.189196ms)
+✔ frontends nuevos: / y /publico redirigen a /admin/ y /cliente/ cuando están instalados (12.963739ms)
+✔ estaticos: audio mp3 con Accept-Ranges y respuesta 206 a Range (9.222334ms)
+✔ servidores de datos: /api/servidores, /api/historial y registro de acciones en el servidor asignado (534.757157ms)
+✔ sin SERVIDORES configurados /api/historial responde 404 claro (6.977875ms)
+✔ infra: sin controlador la función está desactivada con un motivo claro (8.510874ms)
+Infraestructura: apagar servidor 2 (simulado)
+✔ infra: estado, confirmación obligatoria, anti-CSRF y rutas válidas (20.964209ms)
+Infraestructura: apagar servidor 1 (simulado)
+Infraestructura: apagar servidor 2 (fisico)
+Infraestructura: encender servidor 2 (fisico)
+✔ infra: ESP32 simulado → solo el controlador; ESP32 físico → además desconexión lógica por /control (15.873077ms)
+Infraestructura: encender servidor 1 (simulado)
+✔ infra: los errores del controlador se muestran tal cual y un controlador caído da 502 (11.965407ms)
+Infraestructura: apagar servidor 3 (simulado)
+✔ infra: la orden queda registrada en la base del servidor afectado (acciones, tipo infra) (10.355845ms)
+﹣ lectura de las tres bases: cada servidor guarda solo lo de su ESP32 (nodo ↔ base) (0.996332ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ filtrado por servidor desde el panel y unión sin duplicar lo replicado (1.150138ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ paginación real: páginas sin solaparse, límites y validación (0.105171ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ filtros por nodo, categoría, estado, fechas y búsqueda; detalle de un registro (0.066155ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ persistencia tras reiniciar y ausencia de duplicados (0.066219ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ una orden con el mismo ref no se duplica (reintentos); la orden queda en el servidor de su nodo (0.151898ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ si una base cae, el resto sigue y el panel lo dice (0.064627ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ la vista pública solo expone campos del usuario: nada de datos internos (0.055769ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ retención: por defecto no hace nada; críticos intactos; alertas solo se archivan; eliminar exige confirmación (0.096897ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+﹣ compatibilidad con el contrato del firmware real (capturas de los ESP32 físicos) (0.148813ms) # defina TEST_DATABASE_URL_1..3 o ejecute npm run test:db
+✔ configuración: ESP32 reales por IP o mDNS, validación de URL y secretos (1.145376ms)
+ℹ tests 75
 ℹ suites 0
-ℹ pass 41
+ℹ pass 60
 ℹ fail 0
 ℹ cancelled 0
-ℹ skipped 0
+ℹ skipped 15
 ℹ todo 0
-ℹ duration_ms 3454.085111
-TIEMPO_MS=3488
-EXIT=0
+ℹ duration_ms 16598.244163
+[exit=0]

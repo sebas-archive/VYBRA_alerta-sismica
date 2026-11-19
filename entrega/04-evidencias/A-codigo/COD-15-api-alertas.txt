@@ -1,0 +1,21 @@
+COD-15 — API del nodo: jsonAlertas()
+Fuente: firmware/detector/src/nucleo/api.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 107-121   (rango del inventario original: 107-121)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  107  std::string jsonAlertas(const Raft& r) {
+  108    JsonDocument doc;
+  109    JsonArray arr = doc["alertas"].to<JsonArray>();
+  110    for (const Alerta& a : r.sismo().alertas()) {
+  111      JsonObject o = arr.add<JsonObject>();
+  112      o["id"] = a.id;
+  113      o["promedio"] = tresDecimales(a.promedio);
+  114      o["nivel"] = Sismo::nivelAlerta(a.promedio);
+  115      JsonArray ids = o["eventos"].to<JsonArray>();
+  116      for (const std::string& id : a.eventos) ids.add(id);
+  117      o["termino"] = a.termino;
+  118      o["lider"] = a.lider;
+  119    }
+  120    return texto(doc);
+  121  }

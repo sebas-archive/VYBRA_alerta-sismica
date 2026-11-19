@@ -1,0 +1,36 @@
+== BE-08 Respuestas de error de la API del panel (415 / 413 / 404)
+== fecha: 2026-11-18T11:39:26-05:00
+== stack real en http://127.0.0.1:8095
+
+--- 415: POST sin Content-Type application/json ---
+HTTP/1.1 415 Unsupported Media Type
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-cache
+Content-Length: 40
+Date: Wed, 18 Nov 2026 16:39:41 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"se requiere application/json"}
+--- 413: POST con cuerpo de más de 4 KB ---
+HTTP/1.1 413 Payload Too Large
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-cache
+Content-Length: 35
+Date: Wed, 18 Nov 2026 16:39:41 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"cuerpo demasiado grande"}
+--- 404: POST a un nodo fuera de 1-3 ---
+HTTP/1.1 404 Not Found
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-cache
+Content-Length: 26
+Date: Wed, 18 Nov 2026 16:39:41 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"nodo no existe"}
+--- comprobación: el estado del clúster no cambió (solo lecturas y peticiones rechazadas) ---
+lider 1 quorum True alertas 4

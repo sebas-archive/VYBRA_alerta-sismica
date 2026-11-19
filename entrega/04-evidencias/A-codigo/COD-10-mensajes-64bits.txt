@@ -1,0 +1,8 @@
+COD-10 — Códec UDP: static_assert de enteros de 64 bits en ArduinoJson
+Fuente: firmware/detector/src/nucleo/mensajes.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 4-5   (rango del inventario original: 4-5)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+    4  // Las horas (t, t_lider) son ms epoch de 64 bits: no deben truncarse en el ESP32.
+    5  static_assert(ARDUINOJSON_USE_LONG_LONG == 1, "ArduinoJson debe guardar enteros de 64 bits");

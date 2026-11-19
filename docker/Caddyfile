@@ -3,6 +3,10 @@
 # dispositivo: abre https://IP:8443/ca.crt, descárgalo e instálalo como autoridad de confianza.
 {
 	skip_install_trust
+	# Los navegadores NO envían SNI cuando se entra por IP literal (RFC 6066):
+	# sin un SNI por defecto Caddy aborta el handshake ("alert internal error").
+	# Este default_sni permite el acceso HTTPS por IP (https://IP:8443) que documenta este archivo.
+	default_sni {$HOST_PUBLICO:192.168.80.227}
 }
 
 https://{$HOST_PUBLICO:192.168.80.227}:8443 {

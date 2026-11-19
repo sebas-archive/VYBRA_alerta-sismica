@@ -10,9 +10,9 @@
 static const uint16_t PUERTO_DESCUBRIR = 4211;
 static const uint32_t HOLA_CADA_MS = 2000;
 
-// Tiempos de Raft. Con el hotspot del celular el WiFi llega a 200-600 ms y pierde paquetes:
-// con 1.5-3 s de elección los latidos se pierden y los nodos se disputan el liderazgo sin parar.
-// En un router normal sirven latido 300 y elección 1500-3000.
+// Tiempos de Raft. La red por defecto es el router Apt_105; estos tiempos son conservadores
+// para redes congestionadas o con pérdida puntual de paquetes: con 1.5-3 s de elección los
+// latidos se pierden y los nodos se disputan el liderazgo sin parar.
 static const uint32_t RAFT_LATIDO_MS = 500;
 static const uint32_t RAFT_ELECCION_MIN_MS = 5000;
 static const uint32_t RAFT_ELECCION_MAX_MS = 9000;

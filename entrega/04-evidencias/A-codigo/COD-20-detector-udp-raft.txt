@@ -1,0 +1,54 @@
+COD-20 — Firmware: recibirUdp(), descubrirNodos() (broadcast 4211) y enviarSalidas()
+Fuente: firmware/detector/detector.ino
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 335-382   (rango del inventario original: 326-374)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  335  // ---------------------------------------------------------------- UDP Raft
+  336  
+  337  void recibirUdp(uint64_t ahora) {
+  338    for (int k = 0; k < MAX_PAQUETES_POR_LOOP; k++) {
+  339      int len = udp.parsePacket();   // no bloquea: 0 si no hay nada
+  340      if (len <= 0) return;
+  341      int n = udp.read(paquete, sizeof paquete);
+  342      if (n <= 0 || len > (int)sizeof paquete) continue;   // paquete truncado: se descarta
+  343      nucleo::Msg m;
+  344      if (nucleo::decodificar((const char*)paquete, (size_t)n, m)) {
+  345        if (m.de >= 1 && m.de <= 3 && m.de != NODO) ipNodos[m.de - 1] = udp.remoteIP();
+  346        raft->recibir(m, ahora);
+  347      }
+  348    }
+  349  }
+  350  
+  351  // Cada HOLA_CADA_MS se anuncia por broadcast y se escuchan los anuncios de los demás.
+  352  // Si el DHCP le da otra IP a un nodo, los otros lo notan en el siguiente anuncio.
+  353  void descubrirNodos(uint64_t ahora) {
+  354    if (WiFi.status() != WL_CONNECTED) return;
+  355    int len;
+  356    while ((len = udpDescubrir.parsePacket()) > 0) {
+  357      char buf[16] = {0};
+  358      int n = udpDescubrir.read(buf, sizeof buf - 1);
+  359      int de = 0;
+  360      if (n > 0 && sscanf(buf, "SISMO-HOLA:%d", &de) == 1 && de >= 1 && de <= 3 && de != NODO)
+  361        ipNodos[de - 1] = udpDescubrir.remoteIP();
+  362    }
+  363    if (ahora >= proximoHola) {
+  364      proximoHola = ahora + HOLA_CADA_MS;
+  365      udpDescubrir.beginPacket(WiFi.broadcastIP(), PUERTO_DESCUBRIR);
+  366      udpDescubrir.printf("SISMO-HOLA:%d", NODO);
+  367      udpDescubrir.endPacket();
+  368    }
+  369  }
+  370  
+  371  void enviarSalidas() {
+  372    std::vector<nucleo::Salida> salidas = raft->sacarSalidas();
+  373    if (WiFi.status() != WL_CONNECTED) return;   // Raft tolera la pérdida
+  374    for (const nucleo::Salida& s : salidas) {
+  375      if (s.a < 1 || s.a > 3 || s.a == NODO) continue;
+  376      if (ipNodos[s.a - 1] == IPAddress((uint32_t)0)) continue;   // aún no se descubrió
+  377      std::string datos = nucleo::codificar(s.msg);
+  378      udp.beginPacket(ipNodos[s.a - 1], PUERTO_RAFT);
+  379      udp.write((const uint8_t*)datos.data(), datos.size());
+  380      udp.endPacket();
+  381    }
+  382  }

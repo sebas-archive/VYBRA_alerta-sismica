@@ -1,0 +1,20 @@
+COD-18 — Firmware: PersistenciaNvs (término y voto en NVS, namespace "raft")
+Fuente: firmware/detector/detector.ino
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 73-86   (rango del inventario original: 62-77)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   73  struct PersistenciaNvs : nucleo::Persistencia {
+   74    Preferences prefs;
+   75    void abrir() { prefs.begin("raft", false); }
+   76    void guardar(uint32_t termino, int votadoPor) override {
+   77      prefs.putUInt("T", termino);
+   78      prefs.putInt("V", votadoPor);
+   79    }
+   80    void cargar(uint32_t& termino, int& votadoPor) override {
+   81      termino = prefs.getUInt("T", 0);
+   82      votadoPor = prefs.getInt("V", 0);
+   83    }
+   84  };
+   85  
+   86  PersistenciaNvs persistencia;

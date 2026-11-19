@@ -1,0 +1,25 @@
+# FIG-TST-03 — Pruebas de base de datos · npm run test:db (70 + 5)
+# fecha: 2026-11-18T13:02:03-05:00
+# fuente: Extracto literal de entrega/05-pruebas/logs/TST-04-test-db.log (commit 0ee5ed4, 2026-11-18), renderizado con Chromium sobre HTML monoespaciado.
+
+$ head -4 entrega/05-pruebas/logs/TST-04-test-db.log
+# commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4) — 2026-11-18
+# host: Linux 7.3.3-1-cachyos x86_64
+# git status: árbol limpio salvo docs/ARQUITECTURA-ACTUAL.md no versionado (documentación en curso)
+# test:db 2026-11-18T11:11:31-05:00 node=v26.13.0 docker=Docker version 29.9.3, build 5457199aa5
+
+$ tail -13 entrega/05-pruebas/logs/TST-04-test-db.log
+✔ la vista pública solo expone campos del usuario: nada de datos internos (250.911149ms)
+✔ retención: por defecto no hace nada; críticos intactos; alertas solo se archivan; eliminar exige confirmación (285.076768ms)
+✔ compatibilidad con el contrato del firmware real (capturas de los ESP32 físicos) (345.46965ms)
+✔ configuración: ESP32 reales por IP o mDNS, validación de URL y secretos (1.925302ms)
+ℹ tests 75
+ℹ suites 0
+ℹ pass 70
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+ℹ duration_ms 13778.621044
+[exit=0]
+

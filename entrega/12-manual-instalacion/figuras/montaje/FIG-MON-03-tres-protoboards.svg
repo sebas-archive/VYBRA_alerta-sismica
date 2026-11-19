@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1060" viewBox="0 0 1600 1060">
+<style>text{font-family:"DejaVu Sans",sans-serif;}.mono{font-family:"DejaVu Sans Mono",monospace;}</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="60" y="58" font-size="32" fill="#1a1a1a" text-anchor="start" font-weight="bold">Las tres protoboards: mismo montaje, distinta etiqueta</text>
+<text x="60" y="96" font-size="18" fill="#444444" text-anchor="start">SIS-D1, SIS-D2 y SIS-D3 se arman con las mismas piezas y en las mismas posiciones. Solo cambia el firmware.</text>
+<rect x="70" y="118" width="430" height="58" rx="8" fill="#1565c0" stroke="none" stroke-width="1"/>
+<text x="88" y="158" font-size="28" fill="#ffffff" text-anchor="start" font-weight="bold">SIS-D1</text>
+<text x="482" y="156" font-size="22" fill="#ffffff" text-anchor="end">nodo-1</text>
+<rect x="70" y="190" width="430" height="570" rx="10" fill="#f4f6f7" stroke="#90a4ae" stroke-width="2.5"/>
+<rect x="90" y="455" width="390" height="48" rx="6" fill="#e0e5e8" stroke="none" stroke-width="1"/>
+<rect x="108" y="250" width="210" height="390" rx="8" fill="#263238" stroke="#1a1a1a" stroke-width="2"/>
+<rect x="88" y="418" width="20" height="46" rx="3" fill="#b0bec5" stroke="#37474f" stroke-width="1.5"/>
+<text x="213" y="420" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="bold">ESP32</text>
+<text x="213" y="448" font-size="14" fill="#e0e0e0" text-anchor="middle">DevKit V1</text>
+<text x="213" y="612" font-size="13" fill="#e0e0e0" text-anchor="middle">filas a e i</text>
+<text x="213" y="630" font-size="13" fill="#e0e0e0" text-anchor="middle">cols 1-15</text>
+<rect x="370" y="390" width="90" height="90" rx="8" fill="#37474f" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="415" cy="435" r="24" fill="#616161" stroke="#263238" stroke-width="2"/>
+<line x1="385" y1="390" x2="385" y2="360" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="445" y1="390" x2="445" y2="360" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="385" y1="480" x2="385" y2="520" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="445" y1="480" x2="445" y2="520" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<circle cx="385" cy="360" r="7" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<circle cx="445" cy="520" r="7" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<text x="400" y="552" font-size="13" fill="#1a1a1a" text-anchor="middle">pulsador</text>
+<text x="400" y="570" font-size="12" fill="#555555" text-anchor="middle">d24 / g26</text>
+<path d="M130 250 V228 H385 V360" fill="none" stroke="#111111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M130 640 V688 H445 V520" fill="none" stroke="#1565c0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="285" y="728" font-size="15" fill="#37474f" text-anchor="middle">servidor preferido 1</text>
+<rect x="585" y="118" width="430" height="58" rx="8" fill="#2e7d32" stroke="none" stroke-width="1"/>
+<text x="603" y="158" font-size="28" fill="#ffffff" text-anchor="start" font-weight="bold">SIS-D2</text>
+<text x="997" y="156" font-size="22" fill="#ffffff" text-anchor="end">nodo-2</text>
+<rect x="585" y="190" width="430" height="570" rx="10" fill="#f4f6f7" stroke="#90a4ae" stroke-width="2.5"/>
+<rect x="605" y="455" width="390" height="48" rx="6" fill="#e0e5e8" stroke="none" stroke-width="1"/>
+<rect x="623" y="250" width="210" height="390" rx="8" fill="#263238" stroke="#1a1a1a" stroke-width="2"/>
+<rect x="603" y="418" width="20" height="46" rx="3" fill="#b0bec5" stroke="#37474f" stroke-width="1.5"/>
+<text x="728" y="420" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="bold">ESP32</text>
+<text x="728" y="448" font-size="14" fill="#e0e0e0" text-anchor="middle">DevKit V1</text>
+<text x="728" y="612" font-size="13" fill="#e0e0e0" text-anchor="middle">filas a e i</text>
+<text x="728" y="630" font-size="13" fill="#e0e0e0" text-anchor="middle">cols 1-15</text>
+<rect x="885" y="390" width="90" height="90" rx="8" fill="#37474f" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="930" cy="435" r="24" fill="#616161" stroke="#263238" stroke-width="2"/>
+<line x1="900" y1="390" x2="900" y2="360" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="960" y1="390" x2="960" y2="360" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="900" y1="480" x2="900" y2="520" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="960" y1="480" x2="960" y2="520" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<circle cx="900" cy="360" r="7" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<circle cx="960" cy="520" r="7" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<text x="915" y="552" font-size="13" fill="#1a1a1a" text-anchor="middle">pulsador</text>
+<text x="915" y="570" font-size="12" fill="#555555" text-anchor="middle">d24 / g26</text>
+<path d="M645 250 V228 H900 V360" fill="none" stroke="#111111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M645 640 V688 H960 V520" fill="none" stroke="#1565c0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="800" y="728" font-size="15" fill="#37474f" text-anchor="middle">servidor preferido 2</text>
+<rect x="1100" y="118" width="430" height="58" rx="8" fill="#ef6c00" stroke="none" stroke-width="1"/>
+<text x="1118" y="158" font-size="28" fill="#ffffff" text-anchor="start" font-weight="bold">SIS-D3</text>
+<text x="1512" y="156" font-size="22" fill="#ffffff" text-anchor="end">nodo-3</text>
+<rect x="1100" y="190" width="430" height="570" rx="10" fill="#f4f6f7" stroke="#90a4ae" stroke-width="2.5"/>
+<rect x="1120" y="455" width="390" height="48" rx="6" fill="#e0e5e8" stroke="none" stroke-width="1"/>
+<rect x="1138" y="250" width="210" height="390" rx="8" fill="#263238" stroke="#1a1a1a" stroke-width="2"/>
+<rect x="1118" y="418" width="20" height="46" rx="3" fill="#b0bec5" stroke="#37474f" stroke-width="1.5"/>
+<text x="1243" y="420" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="bold">ESP32</text>
+<text x="1243" y="448" font-size="14" fill="#e0e0e0" text-anchor="middle">DevKit V1</text>
+<text x="1243" y="612" font-size="13" fill="#e0e0e0" text-anchor="middle">filas a e i</text>
+<text x="1243" y="630" font-size="13" fill="#e0e0e0" text-anchor="middle">cols 1-15</text>
+<rect x="1400" y="390" width="90" height="90" rx="8" fill="#37474f" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="1445" cy="435" r="24" fill="#616161" stroke="#263238" stroke-width="2"/>
+<line x1="1415" y1="390" x2="1415" y2="360" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1475" y1="390" x2="1475" y2="360" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1415" y1="480" x2="1415" y2="520" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1475" y1="480" x2="1475" y2="520" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<circle cx="1415" cy="360" r="7" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<circle cx="1475" cy="520" r="7" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<text x="1430" y="552" font-size="13" fill="#1a1a1a" text-anchor="middle">pulsador</text>
+<text x="1430" y="570" font-size="12" fill="#555555" text-anchor="middle">d24 / g26</text>
+<path d="M1160 250 V228 H1415 V360" fill="none" stroke="#111111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1160 640 V688 H1475 V520" fill="none" stroke="#1565c0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1315" y="728" font-size="15" fill="#37474f" text-anchor="middle">servidor preferido 3</text>
+<text x="70" y="880" font-size="17" fill="#444444" text-anchor="start">El montaje físico es idéntico en las tres. La diferencia es la macro NODO con la que se compila cada placa (-DNODO=1, 2 o 3; firmware/cargar.sh:79).</text>
+<text x="70" y="912" font-size="16" fill="#444444" text-anchor="start">La etiqueta de servidor preferido es una asignación operativa de la campaña: no es una constante del firmware.</text>
+<text x="70" y="944" font-size="16" fill="#444444" text-anchor="start">El firmware replica los eventos por Raft entre los tres nodos (UDP 4210); el agregador consulta los tres y guarda en los servidores de datos.</text>
+<text x="70" y="1000" font-size="16" fill="#444444" text-anchor="start">Etiqueta cada protoboard en el borde, junto al conector USB, y anota su MAC en firmware/placas.conf.</text>
+</svg>

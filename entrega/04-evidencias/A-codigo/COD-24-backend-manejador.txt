@@ -1,0 +1,16 @@
+COD-24 — Backend: firma y opciones de crearManejador()
+Fuente: web/server.js
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 65-74   (rango del inventario original: 69-86)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   65  // Manejador HTTP.
+   66  export function crearManejador({
+   67    poller, nodos, publicDir = path.join(AQUI, 'public'), timeoutNodoMs = 1000,
+   68    maxPendienteSse = MAX_PENDIENTE, vivoMs = VIVO_MS,
+   69    ubicaciones = UBICACIONES, servidores = [], timeoutServidorMs = 2000,
+   70    controlador = null, timeoutControlMs = 30000,
+   71  }) {
+   72    const raiz = path.resolve(publicDir);
+   73    // Las posiciones de los detectores son fijas (config.js): se agregan a cada foto.
+   74    const conUbicaciones = (foto) => ({ ...foto, ubicaciones });

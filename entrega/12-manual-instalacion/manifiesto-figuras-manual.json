@@ -1,0 +1,104 @@
+[
+  {
+    "id": "FIG-MON-01",
+    "archivo": "figuras/montaje/FIG-MON-01-plano-protoboard.png",
+    "caption_es": "Vista superior de la protoboard MB102 con el ESP32 en las columnas 1 a 15, el pulsador en d24, d26, g24 y g26, el jumper azul j5 a j26 y el jumper negro j2 a a24.",
+    "grupo": "MON"
+  },
+  {
+    "id": "FIG-MON-02",
+    "archivo": "figuras/montaje/FIG-MON-02-pulsador.png",
+    "caption_es": "Pulsador B3F-4055 sobre el canal, con las patas en d24, d26, g24 y g26, la conexión en diagonal y las tres orientaciones posibles.",
+    "grupo": "MON"
+  },
+  {
+    "id": "FIG-MON-03",
+    "archivo": "figuras/montaje/FIG-MON-03-tres-protoboards.png",
+    "caption_es": "Las tres protoboards idénticas etiquetadas SIS-D1, SIS-D2 y SIS-D3, con su nodo y su servidor de datos preferido.",
+    "grupo": "MON"
+  },
+  {
+    "id": "FIG-MON-04",
+    "archivo": "figuras/montaje/FIG-MON-04-prototipo-real.png",
+    "caption_es": "Fotografía del prototipo real montado durante la campaña física, copiada sin recortes ni retoques desde entrega/04-evidencias/F-fisicas/.",
+    "grupo": "MON"
+  },
+  {
+    "id": "FIG-ARQ-M01",
+    "archivo": "figuras/arq/FIG-ARQ-M01-arquitectura-mecanismos.png",
+    "caption_es": "Vista de contexto del sistema: tres nodos ESP32 con Raft, agregador y panel, servidores de datos con PostgreSQL, controlador, navegadores, Caddy opcional y NTP, con los puertos y mecanismos de comunicación.",
+    "grupo": "ARQ"
+  },
+  {
+    "id": "FIG-ARQ-M02",
+    "archivo": "figuras/arq/FIG-ARQ-M02-despliegue-docker.png",
+    "caption_es": "Despliegue Docker: once servicios por defecto, puertos publicados, volúmenes, dependencias y healthchecks, con el perfil opcional https y el overlay de producción.",
+    "grupo": "ARQ"
+  },
+  {
+    "id": "FIG-ARQ-M03",
+    "archivo": "figuras/arq/FIG-ARQ-M03-secuencia-evento-alerta.png",
+    "caption_es": "Secuencia de un evento simulado: pulsador, propuesta al log de Raft, replicación y commit por mayoría, aplicación de la regla de alerta con dos detectores y publicación por SSE.",
+    "grupo": "ARQ"
+  },
+  {
+    "id": "FIG-EV-01",
+    "archivo": "figuras/pruebas/FIG-EV-01-tst-cpp-78.png",
+    "caption_es": "Salida real de la suite C++ con 78 casos aprobados y 0 fallos.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-EV-02",
+    "archivo": "figuras/pruebas/FIG-EV-02-tst-db-70.png",
+    "caption_es": "Salida real de la suite con tres PostgreSQL: 70 casos aprobados, 5 omitidos y 0 fallos.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-EV-03",
+    "archivo": "figuras/pruebas/FIG-EV-03-tst-infra-5.png",
+    "caption_es": "Salida real de la integración Docker: 5 casos aprobados, 0 fallos, 79,2 s.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-EV-04",
+    "archivo": "figuras/pruebas/FIG-EV-04-tst-raft-32.png",
+    "caption_es": "Salida real de los 32 casos de la suite Raft con 0 fallos.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-EV-05",
+    "archivo": "figuras/pruebas/FIG-EV-05-res-latencia.png",
+    "caption_es": "Distribución de las 100 latencias de GET /api/estado del panel con mediana y percentil 95.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-EV-06",
+    "archivo": "figuras/pruebas/FIG-EV-06-res-consumo.png",
+    "caption_es": "Consumo medio de RAM y CPU de los once contenedores del stack.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-EV-07",
+    "archivo": "figuras/pruebas/FIG-EV-07-ui-cluster-raft.png",
+    "caption_es": "Pestaña Clúster Raft de ADMIN con el líder S1, dos seguidores y la línea de tiempo del consenso.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-EV-08",
+    "archivo": "figuras/pruebas/FIG-EV-08-fis-p0-panel.png",
+    "caption_es": "Captura real del panel durante P0: líder S2, término 739, 3 de 3 detectores activos y conexión establecida.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-EV-09",
+    "archivo": "figuras/pruebas/FIG-EV-09-fis-prototipo-montado.png",
+    "caption_es": "Detalle del prototipo montado: ESP32 DevKit V1 en la protoboard y cables hacia el pulsador.",
+    "grupo": "EV"
+  },
+  {
+    "id": "FIG-FW-01",
+    "archivo": "figuras/firmware/FIG-FW-01-flujo-loop-evento.png",
+    "caption_es": "Flujo del firmware: orden de las llamadas del loop() y ciclo completo de un evento, desde el pulsador hasta el panel. Fuente: elaboración propia a partir de firmware/detector/detector.ino y firmware/detector/src/nucleo/raft.cpp.",
+    "grupo": "FW"
+  }
+]

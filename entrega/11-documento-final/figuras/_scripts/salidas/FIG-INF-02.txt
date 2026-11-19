@@ -1,0 +1,31 @@
+# FIG-INF-02 — Infraestructura · docker compose ps y servicios del compose
+# fecha: 2026-11-18T13:02:01-05:00
+# fuente: Salida real de `docker compose ps` y `docker compose config --services`, renderizada con Chromium sobre HTML monoespaciado.
+
+$ docker compose ps --format "table {{.Name}}\t{{.Service}}\t{{.Status}}"
+NAME                SERVICE       STATUS
+sismo-controlador   controlador   Up 2 hours (healthy)
+sismo-db-1          db1           Up 2 hours (healthy)
+sismo-db-2          db2           Up 2 hours (healthy)
+sismo-db-3          db3           Up 2 hours (healthy)
+sismo-nodo-1        nodo1         Up 2 hours (healthy)
+sismo-nodo-2        nodo2         Up 2 hours (healthy)
+sismo-nodo-3        nodo3         Up 2 hours (healthy)
+sismo-panel         panel         Up 2 hours
+sismo-servidor-1    servidor1     Up 2 hours (healthy)
+sismo-servidor-2    servidor2     Up 2 hours (healthy)
+sismo-servidor-3    servidor3     Up 2 hours (healthy)
+
+$ docker compose config --services
+nodo3
+db2
+servidor2
+controlador
+db1
+db3
+servidor3
+nodo1
+nodo2
+servidor1
+panel
+

@@ -1,0 +1,26 @@
+# FIG-INF-05 — Infraestructura · sistema operativo de los tres servidores
+# fecha: 2026-11-18T13:02:02-05:00
+# fuente: Salida real de `docker exec sismo-servidor-N` con uname/os-release, renderizada con Chromium sobre HTML monoespaciado.
+
+$ for c in sismo-servidor-1 sismo-servidor-2 sismo-servidor-3; do echo "## $c"; docker exec $c sh -c 'uname -sr; grep -E "^(NAME|VERSION|PRETTY_NAME|VERSION_ID)=" /etc/os-release'; echo; done
+## sismo-servidor-1
+Linux 7.3.3-1-cachyos
+NAME="Fedora Linux"
+VERSION="42 (Container Image)"
+VERSION_ID=42
+PRETTY_NAME="Fedora Linux 42 (Container Image)"
+
+## sismo-servidor-2
+Linux 7.3.3-1-cachyos
+NAME="openSUSE Leap"
+VERSION="15.6"
+VERSION_ID="15.6"
+PRETTY_NAME="openSUSE Leap 15.6"
+
+## sismo-servidor-3
+Linux 7.3.3-1-cachyos
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.5 LTS (Noble Numbat)"
+

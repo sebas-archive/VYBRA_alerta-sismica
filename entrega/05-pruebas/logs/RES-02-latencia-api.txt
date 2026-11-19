@@ -1,0 +1,18 @@
+== RES-02 Latencia de GET /api/estado del panel (100 muestras)
+== fecha: 2026-11-18T11:40:51.680056-05:00
+== endpoint: http://127.0.0.1:8095/api/estado (stack real de 11 servicios, Raft real)
+== método: 5 peticiones de calentamiento + 100 mediciones secuenciales con time.perf_counter();
+   se descarga el cuerpo completo; latencia en ms sin incluir la escritura en disco del CSV.
+== entorno: Linux 7.3.3-1-cachyos; Node v26.13.0 (cliente de medida); panel en Docker (Alpine/Node 22)
+== commit: 0ee5ed4
+
+min         0.407 ms
+mediana     0.613 ms
+media       0.672 ms
+p95         1.097 ms
+p99         1.184 ms
+max         1.338 ms
+n        100
+
+== datos completos: entrega/05-pruebas/datos/RES-02-latencia-api.csv
+== gráfica: entrega/04-evidencias/I-resultados/cap-RES-02-grafica-latencia.png

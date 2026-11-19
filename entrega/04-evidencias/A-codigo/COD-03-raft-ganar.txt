@@ -1,0 +1,38 @@
+COD-03 — Raft: al ganar la elección reinicia nextIdx/matchIdx y anuncia InicioTermino
+Fuente: firmware/detector/src/nucleo/raft.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 72-103   (rango del inventario original: 72-103)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   72  void Raft::ganar(uint64_t ahoraMs) {
+   73    rol_ = Rol::Lider;
+   74    lider_ = cfg_.yo;
+   75    votos_.clear();
+   76    adelantados_.clear();
+   77    for (int p = kPrimerNodo; p <= kUltimoNodo; p++) {
+   78      nextIdx_[p] = ultimoIndice() + 1;
+   79      matchIdx_[p] = 0;
+   80      respondio_[p] = false;
+   81      retroceso_[p] = 0;
+   82      enVuelo_[p] = 0;
+   83    }
+   84    // Entrada del término nuevo: permite confirmar lo heredado (sección 5.4.2).
+   85    if (!logLleno()) {
+   86      Entrada e;
+   87      e.indice = ultimoIndice() + 1;
+   88      e.termino = termino_;
+   89      e.clase = Clase::InicioTermino;
+   90      e.lider = cfg_.yo;
+   91      log_.push_back(e);
+   92      revisarLleno();
+   93    }
+   94    suceso("gano", servidor() + " ganó la elección y es el líder");
+   95    // Lo que este nodo tenía en su cola de reenvío ahora lo agrega él mismo.
+   96    std::deque<Evento> cola;
+   97    cola.swap(pendientes_);
+   98    for (Evento& ev : cola)
+   99      if (agregarComoLider(ev) == Propuesta::LogLleno) pendientes_.push_back(ev);
+  100    matchIdx_[cfg_.yo] = ultimoIndice();
+  101    enviarLatidos();
+  102    proximoLatido_ = ahoraMs + cfg_.latidoMs;
+  103  }

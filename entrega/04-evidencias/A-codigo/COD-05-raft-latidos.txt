@@ -1,0 +1,40 @@
+COD-05 — Raft: latidos y retroceso de nextIdx al reenviar AppendEntries
+Fuente: firmware/detector/src/nucleo/raft.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 313-346   (rango del inventario original: 313-346)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+  313  void Raft::enviarLatidos() {
+  314    for (int p = kPrimerNodo; p <= kUltimoNodo; p++) {
+  315      if (p == cfg_.yo) continue;
+  316      // Lo enviado y no confirmado pudo perderse: se reenvía desde la última coincidencia.
+  317      // Lo que siga en vuelo a esta altura se da por perdido (o ya respondido).
+  318      if (respondio_[p] && nextIdx_[p] > matchIdx_[p] + 1) {
+  319        nextIdx_[p] = matchIdx_[p] + 1;
+  320        retroceso_[p] = nextIdx_[p];
+  321      }
+  322      enVuelo_[p] = 0;
+  323      enviarAppend(p);
+  324    }
+  325  }
+  326  
+  327  void Raft::enviarAppend(int peer) {
+  328    Msg m(Tipo::Append);
+  329    if (nextIdx_[peer] < 1) nextIdx_[peer] = 1;
+  330    if (nextIdx_[peer] > ultimoIndice() + 1) nextIdx_[peer] = ultimoIndice() + 1;
+  331    m.prev_idx = nextIdx_[peer] - 1;
+  332    m.prev_term = terminoEn(m.prev_idx);
+  333    m.commit = commitIndex_;
+  334    for (uint32_t i = nextIdx_[peer]; i <= ultimoIndice() && m.entradas.size() < cfg_.maxPorAppend; i++)
+  335      m.entradas.push_back(log_[i - 1]);
+  336    nextIdx_[peer] += (uint32_t)m.entradas.size();
+  337    if (!m.entradas.empty()) enVuelo_[peer]++;
+  338    enviar(peer, m);
+  339  }
+  340  
+  341  void Raft::rellenar(int peer) {
+  342    if (!respondio_[peer]) return;  // primero hay que saber dónde está su log
+  343    // Tope duro de lotes sin respuesta: cada respuesta libera a lo sumo un lugar, así que el
+  344    // tráfico no se multiplica aunque el seguidor conteste fallos en cadena.
+  345    while (nextIdx_[peer] <= ultimoIndice() && enVuelo_[peer] < kLotesEnVuelo) enviarAppend(peer);
+  346  }

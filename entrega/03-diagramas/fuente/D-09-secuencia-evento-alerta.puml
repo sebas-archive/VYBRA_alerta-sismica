@@ -1,0 +1,89 @@
+@startuml D-09-secuencia-evento-alerta
+title D-09 · Secuencia de evento con pulsador hasta commit y alerta\ndos detectores en una ventana de 10 s · Forward/ForwardAck
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam sequenceLifeLineBorderColor #244B5A
+
+actor "Pulsador 1\nGPIO4" as P1
+participant "Nodo 1\nLíder (término T)" as N1
+actor "Pulsador 3\nGPIO4" as P3
+participant "Nodo 3\nSeguidor" as N3
+participant "Nodo 2\nSeguidor" as N2
+participant "Agregador\npoller 1 Hz" as POLL
+participant "ADMIN / CLIENTE" as UI
+
+== Primer evento: el detector 1 pulsa (t = 0 s) ==
+P1 -> N1 : flanco de bajada + subida\nantirrebote 20 ms · mínimo 80 ms
+N1 -> N1 : nivel = min(10, 1 + ms/450)\npga = 0.028 * nivel + 0.015\nt = hora NTP (epoch ms)\nid = nodo-1-arranque-contador
+N1 -> N1 : proponer(ev): el nodo ES líder\nagregarComoLider → log_.push_back(Entrada)\nclase Evento · índice k · término T
+N1 -> N2 : Append(pi, pt, c, e=[evento 1])
+N1 -> N3 : Append(pi, pt, c, e=[evento 1])
+N2 -> N1 : AppendResp(ok, match)
+N3 -> N1 : AppendResp(ok, match)
+N1 -> N1 : avanzarCommit(): 2 de 3\ncommitIndex = k · aplicarConfirmadas()
+N1 -> N1 : Sismo::aplicar(evento 1)\nqueda registrado (libre = true)
+N1 -> N2 : Append(c = k)
+N1 -> N3 : Append(c = k)
+
+== Segundo evento: el detector 3 pulsa (t ≈ 3-5 s, <= 10 s) ==
+P3 -> N3 : flanco de bajada + subida
+N3 -> N3 : nivel, pga, t, id = nodo-3-...
+N3 -> N3 : proponer(ev): NO es líder\nid no duplicado → cola pendientes\n(no hay tope alcanzado)
+N3 -> N1 : Forward(k=4, T, v=evento 2)\nreintento cada 500 ms hasta ForwardAck
+N1 -> N1 : alForward(): es líder\nagregarComoLider(evento 2)\nEntrada nueva en su log
+N1 -> N3 : ForwardAck(k=5, id de evento 2)
+note over N1, N3
+  ForwardAck se envía al ACEPTAR en el log,
+  no al confirmar por mayoría (limitación:
+  si el líder muere justo después, el evento
+  puede perderse). (raft.cpp:301-311)
+end note
+N3 -> N3 : quitarPendiente(id)
+N1 -> N2 : Append(e=[evento 2])
+N1 -> N3 : Append(e=[evento 2])
+N2 -> N1 : AppendResp(ok)
+N3 -> N1 : AppendResp(ok)
+N1 -> N1 : commitIndex avanza\n→ aplicarConfirmadas(): Sismo::aplicar(evento 2)
+
+== Regla de alerta (determinista) ==
+N1 -> N1 : grupo = evento 2 (disparador)\n+ evento más cercano LIBRE de cada\nOTRO detector con |Δt| <= 10 000 ms\n→ encuentra evento del detector 1
+N1 -> N1 : promedio = (nivel1 + nivel2) / 2\nalerta.nivel = alta si >= 7.5\nmedia si >= 4.5 · si no, baja
+N1 -> N1 : marca ambos eventos como NO libres\n(no se reutilizan en otra alerta)
+N1 -> N2 : Append(c = nuevo commit)
+N1 -> N3 : Append(c = nuevo commit)
+N2 -> N2 : aplica la misma alerta
+N3 -> N3 : aplica la misma alerta
+
+== Lectura por el agregador y las interfaces ==
+POLL -> N1 : GET /estado · /log?desde · /sucesos · /alertas
+POLL -> POLL : arma la foto: nodos[], log[], alertas[], sucesos[]
+POLL -> UI : SSE event: estado\n(evento y alerta visibles)
+UI -> UI : ADMIN muestra alerta y sismogramas;\nCLIENTE muestra el aviso
+
+note over P1, N1
+  La duración del pulso es la única entrada:
+  el sistema NO mide aceleración; el PGA es
+  una escala de simulación.
+  POST /pulsar {"ms":N} replica esto desde el
+  panel (80-60000 ms) y devuelve
+  aceptada | pendiente | duplicada.
+  (detector.ino:508-524, 618-638)
+end note
+
+note over N1
+  Incidente T1 documentado (no es un fallo de este
+  flujo): un solo detector generó dos eventos cortos
+  (301 y 174 ms, separados 3,2 s). Se replicaron y
+  confirmaron correctamente y NO se creó alerta,
+  porque la alerta exige dos detectores distintos.
+  El cálculo de nivel/PGA coincidió con la fórmula;
+  la anomalía fue la entrada física.
+end note
+
+@enduml

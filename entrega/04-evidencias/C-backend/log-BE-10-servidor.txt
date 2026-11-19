@@ -1,0 +1,9 @@
+== BE-10 Log de arranque del servidor del panel (docker compose logs panel)
+== fecha: 2026-11-18T11:20:32-05:00  commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c
+
+sismo-panel  | Servidores de datos: S1 http://servidor1:8100 · S2 http://servidor2:8100 · S3 http://servidor3:8100
+sismo-panel  | Panel: http://172.20.0.12:8090  Vista pública: http://172.20.0.12:8090/publico
+sismo-panel  | Si el firewall bloquea el celular: sudo ufw allow from <tu subred>/24 to any port 8090 proto tcp
+sismo-panel  | Servidores de datos: S1 http://servidor1:8100 · S2 http://servidor2:8100 · S3 http://servidor3:8100
+sismo-panel  | Panel: http://172.20.0.5:8090  Vista pública: http://172.20.0.5:8090/publico
+sismo-panel  | Si el firewall bloquea el celular: sudo ufw allow from <tu subred>/24 to any port 8090 proto tcp

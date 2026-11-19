@@ -1,0 +1,49 @@
+COD-26 — Poller: estado interno, pedirJson() y sondeo de /estado con fallos para caído
+Fuente: web/poller.js
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 25-67   (rango del inventario original: 25-58)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   25  export function crearPoller({ nodos, intervaloMs = 300, timeoutMs = 250, fallosParaCaido = 3, fetchImpl = fetch }) {
+   26    const emisor = new EventEmitter();
+   27    const timeoutSecundario = Math.max(timeoutMs, 500); // /log, /sucesos y /alertas pesan más
+   28  
+   29    const info = nodos.map((nodo) => ({
+   30      n: nodo.n,
+   31      url: nodo.url.replace(/\/+$/, ''),
+   32      alcanzable: false,
+   33      fallos: 0,
+   34      estado: null,
+   35      enCurso: false,      // hay un pedido en vuelo a este nodo
+   36      sucesos: [],         // sucesos acumulados de este nodo (con n)
+   37      ultimaSeq: 0,        // último seq de suceso recibido
+   38    }));
+   39  
+   40    // Copia del log y las alertas de la fuente actual.
+   41    const fuenteLog = { n: null, log: [], alertas: [], clave: null };
+   42    let enSincronizacion = false;
+   43    let temporizador = null;
+   44    let ultimaClave = null;
+   45  
+   46    async function pedirJson(nodo, ruta, ms) {
+   47      const r = await fetchImpl(nodo.url + ruta, { signal: AbortSignal.timeout(ms) });
+   48      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+   49      return r.json();
+   50    }
+   51  
+   52    // Sondea /estado (y /sucesos si hay nuevos) de un nodo.
+   53    async function sondear(nodo) {
+   54      nodo.enCurso = true;
+   55      try {
+   56        const estado = await pedirJson(nodo, '/estado', timeoutMs);
+   57        nodo.estado = estado;
+   58        nodo.fallos = 0;
+   59        nodo.alcanzable = true;
+   60        await sincronizarSucesos(nodo, estado);
+   61      } catch {
+   62        nodo.fallos = Math.min(nodo.fallos + 1, fallosParaCaido); // tope: si no, la foto cambiaría en cada ciclo
+   63        if (nodo.fallos >= fallosParaCaido) nodo.alcanzable = false;
+   64      } finally {
+   65        nodo.enCurso = false;
+   66      }
+   67    }

@@ -1,0 +1,116 @@
+# FIG-NOD-01 — Nodo simulado 1 · API HTTP real (127.0.0.1:9001)
+# fecha: 2026-11-18T13:01:59-05:00
+# fuente: Salida real de curl/jq contra http://127.0.0.1:9001 en el stack Docker, renderizada con Chromium sobre HTML monoespaciado.
+
+$ curl -sS -m 5 http://127.0.0.1:9001/estado | jq .
+{
+  "nodo": 1,
+  "rol": "lider",
+  "caido": false,
+  "termino": 3,
+  "votado_por": 1,
+  "lider_conocido": 1,
+  "log_len": 25,
+  "commit_index": 25,
+  "pendientes": 0,
+  "log_lleno": false,
+  "sucesos_seq": 2,
+  "con_hora": true,
+  "ip": "172.20.0.2",
+  "rssi": 0,
+  "uptime_ms": 8428491,
+  "movido": false,
+  "con_huella": false,
+  "situacion": "funcionando"
+}
+
+$ curl -sS -m 5 http://127.0.0.1:9001/sucesos | jq .
+{
+  "seq": 2,
+  "sucesos": [
+    {
+      "seq": 1,
+      "t": 1795016488899,
+      "tipo": "postulo",
+      "texto": "Servidor 1 no recibió latidos y se postuló",
+      "termino": 3
+    },
+    {
+      "seq": 2,
+      "t": 1795016488899,
+      "tipo": "gano",
+      "texto": "Servidor 1 ganó la elección y es el líder",
+      "termino": 3
+    }
+  ]
+}
+
+$ curl -sS -m 5 http://127.0.0.1:9001/alertas | jq '{alertas: .alertas[-2:]}'
+{
+  "alertas": [
+    {
+      "id": 23,
+      "promedio": 5.5,
+      "nivel": "media",
+      "eventos": [
+        "nodo-2-9ef7b678-11",
+        "nodo-1-7f5258bd-11"
+      ],
+      "termino": 3,
+      "lider": 1
+    },
+    {
+      "id": 25,
+      "promedio": 5.5,
+      "nivel": "media",
+      "eventos": [
+        "nodo-2-9ef7b678-12",
+        "nodo-1-7f5258bd-12"
+      ],
+      "termino": 3,
+      "lider": 1
+    }
+  ]
+}
+
+$ curl -sS -m 5 http://127.0.0.1:9001/log | jq '{desde, log_len, commit_index, entradas: .entradas[-2:]}'
+{
+  "desde": 1,
+  "log_len": 25,
+  "commit_index": 25,
+  "entradas": [
+    {
+      "i": 24,
+      "T": 3,
+      "clase": "evento",
+      "ev": {
+        "id": "nodo-1-7f5258bd-12",
+        "nodo": 1,
+        "nivel": 6,
+        "pga": 0.183,
+        "duracion_ms": 2475,
+        "t": 1795024908378,
+        "t_lider": 1795024908378,
+        "recibido_por": 1
+      },
+      "en_alerta": true
+    },
+    {
+      "i": 25,
+      "T": 3,
+      "clase": "evento",
+      "ev": {
+        "id": "nodo-2-9ef7b678-12",
+        "nodo": 2,
+        "nivel": 5,
+        "pga": 0.155,
+        "duracion_ms": 2025,
+        "t": 1795024909888,
+        "t_lider": 1795024909908,
+        "recibido_por": 2
+      },
+      "en_alerta": true
+    }
+  ]
+}
+

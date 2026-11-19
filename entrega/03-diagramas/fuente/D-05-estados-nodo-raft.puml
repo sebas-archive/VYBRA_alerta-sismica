@@ -1,0 +1,61 @@
+@startuml D-05-estados-nodo-raft
+title D-05 · Estados del nodo Raft\n(incluye la caída simulada)
+scale max 1300 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam stateBorderColor #244B5A
+
+left to right direction
+state "Seguidor\nrol = Seguidor" as SEG
+state "Candidato\nrol = Candidato" as CAND
+state "Líder\nrol = Lider" as LID
+state "Caído (simulado)\ncaido_ = true" as CAIDO
+
+[*] -right-> SEG
+SEG -right-> CAND : vence timeout 5000-9000 ms
+CAND -right-> LID : mayoría 2 de 3 VoteResp
+CAND -up-> SEG : Append o término mayor
+LID -up-> SEG : término mayor
+SEG -down-> CAIDO : caer
+CAND -down-> CAIDO : caer
+LID -down-> CAIDO : caer
+CAIDO -left-> SEG : recuperar
+
+note top of SEG
+  Situación publicada en /estado:
+  funcionando, sincronizando o caido.
+  - sincronizando: sin líder, candidato,
+    seguidor detrás del commit del líder,
+    o líder con entradas sin confirmar.
+  (api.cpp:27-32)
+end note
+
+note bottom of CAND
+  Al postularse: termino++ y votadoPor = yo,
+  guardado en NVS ANTES de pedir votos; el voto
+  propio cuenta (1 de 2). Sin mayoría se repostula
+  con un nuevo plazo. (raft.cpp:52-70)
+end note
+
+note right of LID
+  Al ganar: crea la entrada InicioTermino del
+  término nuevo, inicializa nextIdx/matchIdx
+  y envía latidos. Cada 500 ms (300 ms por
+  defecto en nodo-sim) late y reenvía lo
+  no confirmado. (raft.cpp:72-103, 313-325)
+end note
+
+note bottom of CAIDO
+  Caída lógica del software: no corta la corriente.
+  En Docker se para el contenedor nodoN; con ESP32
+  físicos, el panel envía POST /control caer.
+  Mientras está caído, recibir() y tick() se ignoran.
+  No hay pre-vote ni check-quorum (limitación).
+end note
+
+@enduml

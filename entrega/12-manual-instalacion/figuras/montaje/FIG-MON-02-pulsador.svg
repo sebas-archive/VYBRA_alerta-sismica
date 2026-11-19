@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="1500" height="920" viewBox="0 0 1500 920">
+<style>text{font-family:"DejaVu Sans",sans-serif;}.mono{font-family:"DejaVu Sans Mono",monospace;}</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="60" y="58" font-size="32" fill="#1a1a1a" text-anchor="start" font-weight="bold">Pulsador B3F-4055: posición y conexión en diagonal</text>
+<text x="60" y="96" font-size="18" fill="#444444" text-anchor="start">El montaje usa una pata de cada lado del pulsador: d24 a GND y g26 a D4. Sin resistencia externa.</text>
+<rect x="60" y="130" width="840" height="690" rx="14" fill="#ffffff" stroke="#cfd8dc" stroke-width="2"/>
+<text x="90" y="178" font-size="21" fill="#1a1a1a" text-anchor="start" font-weight="bold">Vista superior sobre el canal de la protoboard</text>
+<rect x="100" y="205" width="760" height="545" rx="10" fill="#f4f6f7" stroke="#90a4ae" stroke-width="2"/>
+<rect x="120" y="375" width="720" height="80" rx="8" fill="#e0e5e8" stroke="none" stroke-width="1"/>
+<text x="650" y="425" font-size="15" fill="#546e7a" text-anchor="middle">canal central</text>
+<text x="180" y="715" font-size="15" fill="#37474f" text-anchor="middle">22</text>
+<text x="250" y="715" font-size="15" fill="#37474f" text-anchor="middle">23</text>
+<text x="320" y="715" font-size="15" fill="#37474f" text-anchor="middle">24</text>
+<text x="390" y="715" font-size="15" fill="#37474f" text-anchor="middle">25</text>
+<text x="460" y="715" font-size="15" fill="#37474f" text-anchor="middle">26</text>
+<text x="530" y="715" font-size="15" fill="#37474f" text-anchor="middle">27</text>
+<text x="600" y="715" font-size="15" fill="#37474f" text-anchor="middle">28</text>
+<circle cx="180" cy="290" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="250" cy="290" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="320" cy="290" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="390" cy="290" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="460" cy="290" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="530" cy="290" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="600" cy="290" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="180" cy="355" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="250" cy="355" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="320" cy="355" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="390" cy="355" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="460" cy="355" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="530" cy="355" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="600" cy="355" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="180" cy="475" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="250" cy="475" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="320" cy="475" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="390" cy="475" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="460" cy="475" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="530" cy="475" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="600" cy="475" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="180" cy="540" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="250" cy="540" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="320" cy="540" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="390" cy="540" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="460" cy="540" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="530" cy="540" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<circle cx="600" cy="540" r="6" fill="#b0bec5" stroke="#78909c" stroke-width="1"/>
+<text x="155" y="296" font-size="18" fill="#1a1a1a" text-anchor="end" font-weight="bold">d</text>
+<text x="155" y="361" font-size="18" fill="#1a1a1a" text-anchor="end" font-weight="bold">e</text>
+<text x="155" y="481" font-size="18" fill="#1a1a1a" text-anchor="end" font-weight="bold">f</text>
+<text x="155" y="546" font-size="18" fill="#1a1a1a" text-anchor="end" font-weight="bold">g</text>
+<rect x="320" y="342" width="140" height="140" rx="12" fill="#37474f" stroke="#1a1a1a" stroke-width="3"/>
+<circle cx="390" cy="412" r="40" fill="#616161" stroke="#263238" stroke-width="3"/>
+<circle cx="390" cy="412" r="25" fill="#757575" stroke="none" stroke-width="1"/>
+<text x="390" y="418" font-size="13" fill="#eeeeee" text-anchor="middle" font-weight="bold">B3F</text>
+<line x1="320" y1="342" x2="320" y2="290" stroke="#90a4ae" stroke-width="7" stroke-linecap="butt"/>
+<line x1="460" y1="342" x2="460" y2="290" stroke="#90a4ae" stroke-width="7" stroke-linecap="butt"/>
+<line x1="320" y1="482" x2="320" y2="540" stroke="#90a4ae" stroke-width="7" stroke-linecap="butt"/>
+<line x1="460" y1="482" x2="460" y2="540" stroke="#90a4ae" stroke-width="7" stroke-linecap="butt"/>
+<circle cx="320" cy="290" r="7" fill="#b0bec5" stroke="#37474f" stroke-width="2"/>
+<circle cx="460" cy="290" r="7" fill="#b0bec5" stroke="#37474f" stroke-width="2"/>
+<circle cx="320" cy="540" r="7" fill="#b0bec5" stroke="#37474f" stroke-width="2"/>
+<circle cx="460" cy="540" r="7" fill="#b0bec5" stroke="#37474f" stroke-width="2"/>
+<line x1="320" y1="290" x2="460" y2="540" stroke="#c62828" stroke-width="4" stroke-linecap="butt" opacity="0.85" stroke-dasharray="9 8"/>
+<circle cx="320" cy="290" r="13" fill="#ffd23f" stroke="none" stroke-width="1" opacity="0.7"/>
+<circle cx="320" cy="290" r="8" fill="#ffd23f" stroke="#333333" stroke-width="2.5"/>
+<circle cx="460" cy="540" r="13" fill="#ffd23f" stroke="none" stroke-width="1" opacity="0.7"/>
+<circle cx="460" cy="540" r="8" fill="#ffd23f" stroke="#333333" stroke-width="2.5"/>
+<line x1="320" y1="290" x2="320" y2="205" stroke="#111111" stroke-width="8" stroke-linecap="butt"/>
+<text x="320" y="196" font-size="15" fill="#1a1a1a" text-anchor="middle" font-weight="bold">viene de a24 (GND)</text>
+<line x1="460" y1="540" x2="460" y2="660" stroke="#1565c0" stroke-width="8" stroke-linecap="butt"/>
+<text x="460" y="684" font-size="15" fill="#1a1a1a" text-anchor="middle" font-weight="bold">viene de j26 (D4)</text>
+<text x="474" y="274" font-size="13" fill="#777777" text-anchor="start">d26: sin cable</text>
+<text x="308" y="566" font-size="13" fill="#777777" text-anchor="end">g24: sin cable</text>
+<text x="334" y="272" font-size="13" fill="#1a1a1a" text-anchor="start" font-weight="bold">d24: GND</text>
+<text x="970" y="178" font-size="21" fill="#1a1a1a" text-anchor="start" font-weight="bold">Las tres orientaciones posibles</text>
+<line x1="965" y1="235" x2="1055" y2="235" stroke="#78909c" stroke-width="2" stroke-linecap="butt" stroke-dasharray="5 5"/>
+<line x1="965" y1="355" x2="1055" y2="355" stroke="#78909c" stroke-width="2" stroke-linecap="butt" stroke-dasharray="5 5"/>
+<rect x="965" y="280" width="90" height="30" rx="0" fill="#e0e5e8" stroke="none" stroke-width="1"/>
+<text x="958" y="241" font-size="14" fill="#1a1a1a" text-anchor="end" font-weight="bold">d</text>
+<text x="958" y="361" font-size="14" fill="#1a1a1a" text-anchor="end" font-weight="bold">g</text>
+<rect x="986" y="257" width="48" height="76" rx="6" fill="#37474f" stroke="none" stroke-width="1"/>
+<circle cx="1010" cy="295" r="13" fill="#616161" stroke="none" stroke-width="1"/>
+<line x1="998" y1="257" x2="998" y2="235" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1022" y1="257" x2="1022" y2="235" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="998" y1="333" x2="998" y2="355" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1022" y1="333" x2="1022" y2="355" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<circle cx="998" cy="235" r="6" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<circle cx="1022" cy="355" r="6" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<text x="1080" y="277" font-size="18" fill="#1a1a1a" text-anchor="start" font-weight="bold">Como se dibuja</text>
+<text x="1080" y="301" font-size="14" fill="#444444" text-anchor="start">Patas en d y g; una pata de cada lado.</text>
+<rect x="1080" y="313" width="120" height="26" rx="6" fill="#2e7d32" stroke="none" stroke-width="1"/>
+<text x="1140" y="332" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="bold">Funciona</text>
+<line x1="965" y1="455" x2="1055" y2="455" stroke="#78909c" stroke-width="2" stroke-linecap="butt" stroke-dasharray="5 5"/>
+<line x1="965" y1="575" x2="1055" y2="575" stroke="#78909c" stroke-width="2" stroke-linecap="butt" stroke-dasharray="5 5"/>
+<rect x="965" y="500" width="90" height="30" rx="0" fill="#e0e5e8" stroke="none" stroke-width="1"/>
+<text x="958" y="461" font-size="14" fill="#1a1a1a" text-anchor="end" font-weight="bold">d</text>
+<text x="958" y="581" font-size="14" fill="#1a1a1a" text-anchor="end" font-weight="bold">g</text>
+<rect x="986" y="477" width="48" height="76" rx="6" fill="#37474f" stroke="none" stroke-width="1"/>
+<circle cx="1010" cy="515" r="13" fill="#616161" stroke="none" stroke-width="1"/>
+<line x1="998" y1="477" x2="998" y2="455" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1022" y1="477" x2="1022" y2="455" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="998" y1="553" x2="998" y2="575" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1022" y1="553" x2="1022" y2="575" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<circle cx="998" cy="455" r="6" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<circle cx="1022" cy="575" r="6" fill="#ffd23f" stroke="#333" stroke-width="2"/>
+<text x="1010" y="521" font-size="12" fill="#fff" text-anchor="middle">180</text>
+<text x="1080" y="497" font-size="18" fill="#1a1a1a" text-anchor="start" font-weight="bold">Girada 180 grados</text>
+<text x="1080" y="521" font-size="14" fill="#444444" text-anchor="start">Sigue en d y g; la diagonal no cambia.</text>
+<rect x="1080" y="533" width="120" height="26" rx="6" fill="#2e7d32" stroke="none" stroke-width="1"/>
+<text x="1140" y="552" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="bold">Funciona</text>
+<line x1="965" y1="675" x2="1055" y2="675" stroke="#78909c" stroke-width="2" stroke-linecap="butt" stroke-dasharray="5 5"/>
+<line x1="965" y1="795" x2="1055" y2="795" stroke="#78909c" stroke-width="2" stroke-linecap="butt" stroke-dasharray="5 5"/>
+<rect x="965" y="720" width="90" height="30" rx="0" fill="#e0e5e8" stroke="none" stroke-width="1"/>
+<text x="958" y="681" font-size="14" fill="#1a1a1a" text-anchor="end" font-weight="bold">d</text>
+<text x="958" y="801" font-size="14" fill="#1a1a1a" text-anchor="end" font-weight="bold">g</text>
+<rect x="990" y="709" width="40" height="52" rx="6" fill="#37474f" stroke="none" stroke-width="1"/>
+<circle cx="1010" cy="735" r="11" fill="#616161" stroke="none" stroke-width="1"/>
+<line x1="990" y1="717" x2="966" y2="717" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1030" y1="717" x2="1054" y2="717" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="990" y1="753" x2="966" y2="753" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="1030" y1="753" x2="1054" y2="753" stroke="#90a4ae" stroke-width="5" stroke-linecap="butt"/>
+<line x1="980" y1="695" x2="1040" y2="775" stroke="#c62828" stroke-width="3" stroke-linecap="butt" stroke-dasharray="6 6"/>
+<text x="1080" y="717" font-size="18" fill="#1a1a1a" text-anchor="start" font-weight="bold">Girada 90 grados</text>
+<text x="1080" y="741" font-size="14" fill="#444444" text-anchor="start">Las patas no cruzan el canal.</text>
+<rect x="1080" y="753" width="120" height="26" rx="6" fill="#c62828" stroke="none" stroke-width="1"/>
+<text x="1140" y="772" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="bold">No funciona</text>
+<rect x="950" y="130" width="490" height="690" rx="14" fill="none" stroke="#cfd8dc" stroke-width="2"/>
+<text x="60" y="866" font-size="16" fill="#444444" text-anchor="start">No hay resistencia: el firmware activa INPUT_PULLUP (detector.ino:707). Antirrebote de 20 ms por software (detector.ino:54).</text>
+</svg>

@@ -1,0 +1,151 @@
+@startuml D-14-modelo-er-postgresql
+title D-14 · Modelo entidad-relación de PostgreSQL\n(una base por servidor de datos · esquema de web/servidor/bd.js)
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam classBorderColor #244B5A
+skinparam entityBorderColor #244B5A
+
+package "Tablas activas" {
+  entity "muestras" as MUESTRAS {
+    * id : bigserial <<PK>>
+    --
+    t : timestamptz = now()
+    nodo : int
+    alcanzable : boolean
+    rol : text
+    termino : int
+    log_len : int
+    commit_index : int
+    pendientes : int
+    rssi : int
+    uptime_ms : bigint
+    situacion : text
+    estado : jsonb
+  }
+
+  entity "log_entradas" as LOG {
+    * clave : text <<PK>>
+    --
+    indice : int
+    termino : int
+    clase : text
+    datos : jsonb
+    confirmada : boolean = false
+    guardado : timestamptz = now()
+  }
+
+  entity "eventos" as EVENTOS {
+    * id : text <<PK>>
+    --
+    nodo : int
+    nivel : int
+    pga : double precision
+    duracion_ms : int
+    t_ms : bigint
+    t_lider_ms : bigint
+    recibido_por : int
+    indice : int
+    termino : int
+    confirmado : boolean = false
+    datos : jsonb
+    guardado : timestamptz = now()
+  }
+
+  entity "alertas" as ALERTAS {
+    * clave : text <<PK>>
+    --
+    alerta_id : int
+    promedio : double precision
+    nivel : text
+    eventos : text[]
+    termino : int
+    lider : int
+    datos : jsonb
+    guardado : timestamptz = now()
+    t_ms : bigint
+  }
+
+  entity "sucesos" as SUCESOS {
+    * clave : text <<PK>>
+    --
+    nodo : int
+    seq : int
+    t_ms : bigint
+    tipo : text
+    texto : text
+    termino : int
+    guardado : timestamptz = now()
+  }
+
+  entity "acciones" as ACCIONES {
+    * id : bigserial <<PK>>
+    --
+    t : timestamptz = now()
+    tipo : text
+    nodo : int
+    parametros : jsonb
+    estado_http : int
+    resultado : jsonb
+    origen : text
+    ref : text <<UNIQUE parcial>>
+  }
+}
+
+package "Tablas de archivo (retención)" {
+  entity "archivo_muestras" as AMU { }
+  entity "archivo_log_entradas" as ALOG { }
+  entity "archivo_eventos" as AEV { }
+  entity "archivo_alertas" as AAL { }
+  entity "archivo_sucesos" as ASU { }
+  entity "archivo_acciones" as AAC { }
+}
+
+LOG ||--o| EVENTOS : "entrada de evento\n(datos->ev->id = eventos.id)"
+EVENTOS }o--o{ ALERTAS : "alertas.eventos[]\ncontiene ids de eventos"
+MUESTRAS }o..|| EVENTOS : "mismo nodo y momento\n(sin FK; series temporales)"
+SUCESOS }o..|| MUESTRAS : "mismo nodo\n(sin FK)"
+ACCIONES }o..|| EVENTOS : "pruebas/órdenes\n(sin FK)"
+
+AMU ..|> MUESTRAS : "LIKE ... INCLUDING"
+ALOG ..|> LOG
+AEV ..|> EVENTOS
+AAL ..|> ALERTAS
+ASU ..|> SUCESOS
+AAC ..|> ACCIONES
+
+note right of LOG
+  Claves únicas:
+  - log_entradas.clave = indice|termino|clase|id_evento
+  - eventos.id = id del evento
+  - alertas.clave = alerta_id|ids de eventos ordenados
+  - sucesos.clave = nodo|seq|t
+  - acciones.ref único (índice parcial WHERE ref IS NOT NULL)
+  No hay claves foráneas declaradas: la integridad
+  se mantiene con claves únicas y UPSERT.
+  (bd.js:11-52, 85-138)
+end note
+
+note bottom of EVENTOS
+  Un evento se guarda como confirmado = false y se
+  actualiza a true cuando indice <= commit_index del
+  nodo. Las alertas usan t_ms = hora del último de
+  sus eventos (calculada con una subconsulta).
+  Los índices de eventos/alertas ordenan por
+  COALESCE(to_timestamp(t_ms/1000.0), guardado).
+end note
+
+note bottom of ACCIONES
+  Cada orden del panel (pulsar, control, infra) se
+  escribe aquí; `ref` evita duplicados si se reintenta.
+  La retención nunca toca eventos críticos
+  (nivel >= 6 o incluidos en una alerta) ni elimina
+  alertas automáticamente.
+end note
+
+@enduml

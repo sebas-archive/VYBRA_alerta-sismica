@@ -1,0 +1,21 @@
+== RES-10 Consumo real de los contenedores (docker stats)
+== fecha: 2026-11-18T11:41:27.744841-05:00
+== comando: docker stats --format "{{.Name}};{{.CPUPerc}};{{.MemUsage}};{{.MemPerc}}" durante 21 s
+== stack: proyecto detectordesismosenreddistribuida (11 servicios); commit 0ee5ed4
+== muestras por contenedor: 39-40 (una por segundo)
+
+contenedor               n CPU medio % CPU máx % RAM media MiB RAM máx MiB
+sismo-controlador       39        2.13     10.57         18.75       19.59
+sismo-db-1              39        0.98      4.71         33.48       33.98
+sismo-db-2              39        0.92      3.65         31.67       31.86
+sismo-db-3              39        1.02      4.46         26.69       27.08
+sismo-nodo-1            39        0.83      3.31          4.10        4.79
+sismo-nodo-2            39        0.82      3.46          1.24        2.41
+sismo-nodo-3            39        0.80      2.99          1.68        7.28
+sismo-panel             40        0.38      2.77         92.41       93.10
+sismo-servidor-1        39        3.90     18.97         99.04      109.00
+sismo-servidor-2        39        2.25     10.10        100.47      100.90
+sismo-servidor-3        39        5.09     25.88         99.54      111.50
+
+== datos completos: entrega/05-pruebas/datos/RES-10-consumo-docker.csv
+== gráfica: entrega/04-evidencias/I-resultados/cap-RES-10-grafica-consumo.png

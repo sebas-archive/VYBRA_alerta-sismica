@@ -1,0 +1,25 @@
+COD-01 — Raft: el candidato incrementa término, se vota a sí mismo, persiste y pide votos
+Fuente: firmware/detector/src/nucleo/raft.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 52-70   (rango del inventario original: 52-70)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   52  void Raft::postularse(uint64_t ahoraMs) {
+   53    termino_++;
+   54    votadoPor_ = cfg_.yo;
+   55    guardar();  // antes de pedir votos
+   56    rol_ = Rol::Candidato;
+   57    lider_ = 0;
+   58    commitLider_ = 0;
+   59    votos_.clear();
+   60    votos_.insert(cfg_.yo);
+   61    reiniciarTemporizador(ahoraMs);
+   62    suceso("postulo", servidor() + " no recibió latidos y se postuló");
+   63    for (int p = kPrimerNodo; p <= kUltimoNodo; p++) {
+   64      if (p == cfg_.yo) continue;
+   65      Msg m(Tipo::VoteReq);
+   66      m.last_idx = ultimoIndice();
+   67      m.last_term = terminoEn(m.last_idx);
+   68      enviar(p, m);
+   69    }
+   70  }

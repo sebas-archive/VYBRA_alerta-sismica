@@ -93,6 +93,12 @@ NODOS="http://IP1,http://IP2,http://IP3" npm start
   `firmware/detector/secretos.h`, que **no está versionado**. Plantilla: `secretos.ejemplo.h`.
 - Si la red cambia, no hace falta recompilar: abre el portal (sección 3) y guarda la nueva red.
 
+> **Importante: lo compilado es solo el valor por defecto.** Si la placa ya se configuró alguna vez
+> por el portal, sus credenciales quedaron en NVS (namespace `wifi`, `detector.ino:138-148`) y **mandan
+> sobre** `config.h`/`secretos.h`. Para pasar una placa a la red `Apt_105` hay que reconfigurarla por
+> el portal (sección 3) o borrar la NVS (`esptool.py --chip esp32 erase_region 0x9000 0x5000`, regla 4
+> de la sección 6); **reflashear no basta**.
+
 ---
 
 ## 2. Carga del firmware (USB, una placa a la vez)

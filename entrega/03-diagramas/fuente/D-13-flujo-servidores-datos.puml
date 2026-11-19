@@ -1,0 +1,61 @@
+@startuml D-13-flujo-servidores-datos
+title D-13 · Flujo ESP32 → servidor de datos → PostgreSQL → panel\nun recolector por ESP32, su propia base y el histórico del panel
+scale max 1400 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam activityBorderColor #244B5A
+
+|ESP32 (nodo N)|
+start
+:Atiende HTTP :80: /estado, /log, /sucesos y /alertas;
+:No guarda datos: el log Raft vive en RAM\ny solo término y voto en NVS;
+|Servidor de datos N (Node.js :8100)|
+:Cada 1000 ms el recolector consulta GET /estado\n(timeout 3000 ms);
+if (¿responde?) then (no)
+  :Guarda muestra con alcanzable = false;
+  :Espera al siguiente ciclo;
+  stop
+else (sí)
+  :Marca alcanzable = true y ultimoContacto;
+endif
+:Calcula la clave de la muestra con rol, termino,\nlog_len, commit_index, pendientes, situacion, caido\ny lider_conocido;
+if (¿la clave cambió o pasaron 30 s?) then (sí)
+  :guardarMuestra() → INSERT en muestras;
+else (no)
+  :No repite la muestra;
+endif
+if (¿sucesos_seq cambió?) then (sí)
+  :GET /sucesos?desde=ultimo_seq;
+  :guardarSucesos() → INSERT en sucesos;
+endif
+if (¿log_len o commit_index cambiaron?) then (sí)
+  :GET /log?desde=... por páginas de 50;
+  :guardarLog() → UPSERT log_entradas y eventos;
+  :confirmada/confirmado = (indice <= commit);
+  :Relee la cola del log para marcar confirmadas;
+  :GET /alertas → UPSERT alertas;
+endif
+:POST /acciones: guarda la orden del panel\ncon ref única (un reintento no duplica);
+|PostgreSQL 16 (dbN)|
+:Tablas activas: muestras, log_entradas, eventos,\nalertas, sucesos y acciones (con índices);
+if (¿retención activa?) then (sí)
+  :Mueve registros antiguos a archivo_*;
+  :En modo eliminar exige confirmación explícita;
+else (no)
+  :No archiva ni elimina nada (por defecto);
+endif
+|Panel / ADMIN / CLIENTE|
+:Cada 5 s: GET /api/servidores → GET /info de cada servidor;
+:ADMIN: GET /api/historial con tipo, servidor,\npágina, límite y filtros;
+:El panel pide a cada base solo los primeros\npágina por límite registros y los mezcla;
+:Eventos, alertas y log replicados se muestran\nuna vez, con la lista de servidores[];
+:ADMIN: detalle de un registro con /api/registro;
+:CLIENTE: GET /api/publico/historial, solo\nalertas y lecturas confirmadas;
+stop
+
+@enduml

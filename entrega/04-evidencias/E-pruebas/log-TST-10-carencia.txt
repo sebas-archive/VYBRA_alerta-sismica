@@ -1,0 +1,16 @@
+== TST-10 Carencia estructural: sin coverage, sin ASan/UBSan, sin CI
+== fecha: 2026-11-18T11:40:44-05:00
+== comando: búsqueda de configuración de cobertura/sanitizers/CI en el repositorio
+
+--- archivos de CI/cobertura encontrados ---
+  (sin resultados = no existe)
+
+--- flags de sanitizers/coverage en Makefile y package.json ---
+  (sin resultados)
+
+--- dependencias de cobertura en package.json ---
+  (sin resultados)
+
+--- conclusión ---
+No hay medición de cobertura, ni compilación con ASan/UBSan, ni integración continua.
+Las pruebas son funcionales (node:test y arnés C++ propio) y quedan documentadas en este archivo.

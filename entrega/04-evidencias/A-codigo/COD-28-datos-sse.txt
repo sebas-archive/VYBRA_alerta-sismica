@@ -1,0 +1,52 @@
+COD-28 — Interfaz clásica: suscribir() a /api/stream con reconexión y latido vivo
+Fuente: web/public/datos.js
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 22-65   (rango del inventario original: 22-65)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+Nota: web/public/datos.js pertenece al panel clásico (respaldo); la SPA ADMIN vigente se compila desde web/admin-src/.
+----------------------------------------------------------------------------------------------------
+   22  export function suscribir(alRecibir, alCambiarConexion = () => {}, alVivo = () => {}) {
+   23    let fuente = null;
+   24    let temporizador = null;
+   25    let estado = null;
+   26    let cerrado = false;
+   27  
+   28    const avisar = (nuevo) => {
+   29      if (nuevo === estado) return;
+   30      estado = nuevo;
+   31      alCambiarConexion(nuevo);
+   32    };
+   33  
+   34    function abrir() {
+   35      if (cerrado) return;
+   36      fuente = new EventSource('/api/stream');
+   37      fuente.addEventListener('estado', (e) => {
+   38        let foto;
+   39        try { foto = JSON.parse(e.data); } catch { return; }
+   40        avisar('conectado');
+   41        alRecibir(foto);
+   42      });
+   43      fuente.addEventListener('vivo', (e) => {
+   44        let d;
+   45        try { d = JSON.parse(e.data); } catch { return; }
+   46        avisar('conectado');
+   47        alVivo(typeof d?.t === 'number' ? d.t : Date.now());
+   48      });
+   49      fuente.onerror = () => {
+   50        avisar('reconectando');
+   51        // EventSource reintenta solo mientras está CONNECTING; si quedó CLOSED se reabre a mano.
+   52        if (fuente.readyState === EventSource.CLOSED) {
+   53          clearTimeout(temporizador);
+   54          temporizador = setTimeout(abrir, REINTENTO_MS);
+   55        }
+   56      };
+   57    }
+   58  
+   59    abrir();
+   60    return () => {
+   61      cerrado = true;
+   62      clearTimeout(temporizador);
+   63      if (fuente) fuente.close();
+   64    };
+   65  }

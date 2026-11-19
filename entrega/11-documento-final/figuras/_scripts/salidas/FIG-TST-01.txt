@@ -1,0 +1,22 @@
+# FIG-TST-01 — Pruebas C++ · 5 binarios, 78 casos [ok]
+# fecha: 2026-11-18T13:02:03-05:00
+# fuente: Extracto literal de entrega/05-pruebas/logs/TST-01-cpp.log (commit 0ee5ed4, 2026-11-18), renderizado con Chromium sobre HTML monoespaciado.
+
+$ head -4 entrega/05-pruebas/logs/TST-01-cpp.log
+# commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4) — 2026-11-18
+# host: Linux 7.3.3-1-cachyos x86_64
+# git status: árbol limpio salvo docs/ARQUITECTURA-ACTUAL.md no versionado (documentación en curso)
+# C++ test run 2026-11-18T11:11:31-05:00 host=Linux 7.3.3-1-cachyos x86_64 g++=g++ (GCC) 16.2.1 20260810
+
+$ grep -E '^(== bin|[0-9]+ ok, 0 fallas)' entrega/05-pruebas/logs/TST-01-cpp.log
+== bin/test_api
+9 ok, 0 fallas
+== bin/test_huella
+17 ok, 0 fallas
+== bin/test_mensajes
+9 ok, 0 fallas
+== bin/test_raft
+32 ok, 0 fallas
+== bin/test_sismo
+11 ok, 0 fallas
+

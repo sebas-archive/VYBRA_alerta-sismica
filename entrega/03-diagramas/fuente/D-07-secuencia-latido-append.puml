@@ -1,0 +1,73 @@
+@startuml D-07-secuencia-latido-append
+title D-07 · Secuencia de latido y Append\nréplica del log cada 500 ms · lotes de hasta 8 entradas
+scale max 1600 width
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam TitleFontSize 17
+skinparam ArrowColor #244B5A
+skinparam sequenceLifeLineBorderColor #244B5A
+
+participant "Nodo 1\nLíder (término T)" as L
+participant "Nodo 2\nSeguidor" as F2
+participant "Nodo 3\nSeguidor" as F3
+
+== Latido periódico (sin entradas nuevas) ==
+L -> L : tick(): ahora >= proximoLatido\n→ enviarLatidos()
+L -> F2 : Append(pi=último, pt=término\nc=commitIndex, e=[])
+L -> F3 : Append(pi=último, pt=término\nc=commitIndex, e=[])
+L -> L : proximoLatido = ahora + 500 ms
+note over L
+  Firmware real: RAFT_LATIDO_MS = 500 (config.h:16).
+  nodo-sim usa 300 ms por defecto.
+  El líder también reenvía lo no confirmado:
+  si nextIdx > matchIdx + 1, retrocede.
+  (raft.cpp:313-325)
+end note
+
+F2 -> F2 : alAppend(): ¿T >= término?\n¿prev_idx <= ultimoIndice?\n¿prev_term coincide?
+F2 -> L : AppendResp(o=true, m=último índice)
+F3 -> F3 : mismas comprobaciones
+F3 -> L : AppendResp(o=true, m=último índice)
+
+== Replicación de entradas nuevas ==
+L -> L : agregarComoLider(ev)\nlog_.push_back(Entrada)\nclase = Evento · líder = 1
+L -> F2 : Append(e = hasta 8 entradas)
+L -> F3 : Append(e = hasta 8 entradas)
+note right of L
+  maxPorAppend = 8 entradas por lote;
+  kLotesEnVuelo = 4 lotes sin respuesta
+  por seguidor (raft.h:57, raft.cpp:327-346).
+end note
+
+F2 -> F2 : copia entradas nuevas;\nsi choca con una no confirmada,\ncorta el log desde ahí;\nnunca toca entradas confirmadas
+F2 -> L : AppendResp(o=true, m=último nuevo)
+F3 -> F3 : copia entradas
+F3 -> L : AppendResp(o=true, m=último nuevo)
+
+== Commit por mayoría ==
+L -> L : alAppendResp():\nmatchIdx[p] = m\nnextIdx[p] = m + 1\navanzarCommit()
+L -> L : avanzarCommit(): busca el mayor N del\nTÉRMINO ACTUAL con 2 de 3\n→ commitIndex = N · aplicarConfirmadas()
+L -> F2 : Append(c = commitIndex nuevo)
+L -> F3 : Append(c = commitIndex nuevo)
+F2 -> F2 : commitIndex = min(c, últimoNuevo)\naplicarConfirmadas() → Sismo::aplicar()
+F3 -> F3 : idem
+
+== Fallo de consistencia (retroceso) ==
+note over L, F2
+  Si el seguidor responde o=false, envía en m una
+  pista (su último índice, o el índice anterior al
+  término en conflicto). El líder hace:
+  nextIdx[p] = pista + 1 y reenvía ese lote ya.
+  (raft.cpp:276-299)
+end note
+
+note over L
+  Las entradas de términos viejos no se confirman
+  solas: se confirman de arrastre cuando el commit
+  de un término nuevo las incluye (raft.cpp:394-406).
+end note
+
+@enduml

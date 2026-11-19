@@ -1,8 +1,326 @@
-== INF-05 Logs completos
-== fecha: 2026-11-17T16:24:46-05:00
+== INF-05 Logs del stack (docker compose logs, últimas 500 líneas)
+== fecha: 2026-11-18T11:20:23-05:00  commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c  host: Linux 7.3.3-1-cachyos x86_64
 
-sismo-nodo-3  | Servidor 3 (Ubuntu 24.04.5 LTS, Node v18.19.1) escuchando en 0.0.0.0:8080
-sismo-panel   | Panel: http://172.20.0.5:8090  Vista pública: http://172.20.0.5:8090/publico
-sismo-panel   | Si el firewall bloquea el celular: sudo ufw allow from <tu subred>/24 to any port 8090 proto tcp
-sismo-nodo-2  | Servidor 2 (openSUSE Leap 16.0, Node v22.23.4) escuchando en 0.0.0.0:8080
-sismo-nodo-1  | Servidor 1 (Fedora Linux 42 (Container Image), Node v22.22.0) escuchando en 0.0.0.0:8080
+sismo-nodo-3  | Nodo 3 simulado (núcleo Raft del firmware) · HTTP :8080 · UDP :4210 · término guardado 0
+sismo-nodo-3  | Nodo 3: apagado ordenado
+sismo-nodo-3  | Nodo 3 simulado (núcleo Raft del firmware) · HTTP :8080 · UDP :4210 · término guardado 2
+sismo-servidor-3  | AVISO: la base usa la clave de DESARROLLO. Solo válida en desarrollo; en producción usa DB_PASSWORD_FILE y VYBRA_ENTORNO=produccion.
+sismo-servidor-3  | Retención desactivada: no se archiva ni se elimina nada.
+sismo-servidor-3  | Servidor 3 (Ubuntu 24.04.5 LTS, Node v18.19.1): ESP32 http://nodo3:8080 → PostgreSQL. API en :8100
+sismo-servidor-3  | AVISO: la base usa la clave de DESARROLLO. Solo válida en desarrollo; en producción usa DB_PASSWORD_FILE y VYBRA_ENTORNO=produccion.
+sismo-servidor-3  | Retención desactivada: no se archiva ni se elimina nada.
+sismo-servidor-3  | Servidor 3 (Ubuntu 24.04.5 LTS, Node v18.19.1): ESP32 http://nodo3:8080 → PostgreSQL. API en :8100
+sismo-panel       | Servidores de datos: S1 http://servidor1:8100 · S2 http://servidor2:8100 · S3 http://servidor3:8100
+sismo-panel       | Panel: http://172.20.0.12:8090  Vista pública: http://172.20.0.12:8090/publico
+sismo-servidor-1  | AVISO: la base usa la clave de DESARROLLO. Solo válida en desarrollo; en producción usa DB_PASSWORD_FILE y VYBRA_ENTORNO=produccion.
+sismo-panel       | Si el firewall bloquea el celular: sudo ufw allow from <tu subred>/24 to any port 8090 proto tcp
+sismo-servidor-1  | Retención desactivada: no se archiva ni se elimina nada.
+sismo-servidor-1  | Servidor 1 (Fedora Linux 42 (Container Image), Node v22.22.0): ESP32 http://nodo1:8080 → PostgreSQL. API en :8100
+sismo-servidor-1  | AVISO: la base usa la clave de DESARROLLO. Solo válida en desarrollo; en producción usa DB_PASSWORD_FILE y VYBRA_ENTORNO=produccion.
+sismo-servidor-1  | Retención desactivada: no se archiva ni se elimina nada.
+sismo-servidor-1  | Servidor 1 (Fedora Linux 42 (Container Image), Node v22.22.0): ESP32 http://nodo1:8080 → PostgreSQL. API en :8100
+sismo-controlador  | Controlador de infraestructura · proyecto "detectordesismosenreddistribuida" · puerto 8200
+sismo-panel       | Servidores de datos: S1 http://servidor1:8100 · S2 http://servidor2:8100 · S3 http://servidor3:8100
+sismo-panel        | Panel: http://172.20.0.5:8090  Vista pública: http://172.20.0.5:8090/publico
+sismo-panel        | Si el firewall bloquea el celular: sudo ufw allow from <tu subred>/24 to any port 8090 proto tcp
+sismo-servidor-2   | AVISO: la base usa la clave de DESARROLLO. Solo válida en desarrollo; en producción usa DB_PASSWORD_FILE y VYBRA_ENTORNO=produccion.
+sismo-servidor-2   | Retención desactivada: no se archiva ni se elimina nada.
+sismo-servidor-2   | Servidor 2 (openSUSE Leap 15.6, Node v22.22.0): ESP32 http://nodo2:8080 → PostgreSQL. API en :8100
+sismo-servidor-2   | AVISO: la base usa la clave de DESARROLLO. Solo válida en desarrollo; en producción usa DB_PASSWORD_FILE y VYBRA_ENTORNO=produccion.
+sismo-servidor-2   | Retención desactivada: no se archiva ni se elimina nada.
+sismo-servidor-2   | Servidor 2 (openSUSE Leap 15.6, Node v22.22.0): ESP32 http://nodo2:8080 → PostgreSQL. API en :8100
+sismo-nodo-2       | Nodo 2 simulado (núcleo Raft del firmware) · HTTP :8080 · UDP :4210 · término guardado 0
+sismo-nodo-2       | Nodo 2: apagado ordenado
+sismo-nodo-2       | Nodo 2 simulado (núcleo Raft del firmware) · HTTP :8080 · UDP :4210 · término guardado 2
+sismo-controlador  | Controlador de infraestructura · proyecto "detectordesismosenreddistribuida" · puerto 8200
+sismo-nodo-1       | Nodo 1 simulado (núcleo Raft del firmware) · HTTP :8080 · UDP :4210 · término guardado 0
+sismo-nodo-1       | Nodo 1: apagado ordenado
+sismo-nodo-1       | Nodo 1 simulado (núcleo Raft del firmware) · HTTP :8080 · UDP :4210 · término guardado 2
+sismo-db-2         | The files belonging to this database system will be owned by user "postgres".
+sismo-db-2         | This user must also own the server process.
+sismo-db-2         | 
+sismo-db-2         | The database cluster will be initialized with locale "en_US.utf8".
+sismo-db-2         | The default database encoding has accordingly been set to "UTF8".
+sismo-db-2         | The default text search configuration will be set to "english".
+sismo-db-2         | 
+sismo-db-2         | Data page checksums are disabled.
+sismo-db-2         | 
+sismo-db-2         | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+sismo-db-2         | creating subdirectories ... ok
+sismo-db-2         | selecting dynamic shared memory implementation ... posix
+sismo-db-2         | selecting default max_connections ... 100
+sismo-db-2         | selecting default shared_buffers ... 128MB
+sismo-db-2         | selecting default time zone ... UTC
+sismo-db-2         | creating configuration files ... ok
+sismo-db-2         | running bootstrap script ... ok
+sismo-db-2         | sh: locale: not found
+sismo-db-2         | 2026-11-18 09:27:14.022 UTC [35] WARNING:  no usable system locales were found
+sismo-db-2         | performing post-bootstrap initialization ... ok
+sismo-db-2         | syncing data to disk ... ok
+sismo-db-2         | 
+sismo-db-2         | 
+sismo-db-2         | Success. You can now start the database server using:
+sismo-db-2         | 
+sismo-db-2         |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+sismo-db-2         | 
+sismo-db-2         | initdb: warning: enabling "trust" authentication for local connections
+sismo-db-2         | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+sismo-db-2         | waiting for server to start....2026-11-18 09:27:16.249 UTC [41] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-2         | 2026-11-18 09:27:16.251 UTC [41] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-2         | 2026-11-18 09:27:16.257 UTC [44] LOG:  database system was shut down at 2026-11-18 09:27:14 UTC
+sismo-db-2         | 2026-11-18 09:27:16.265 UTC [41] LOG:  database system is ready to accept connections
+sismo-db-2         |  done
+sismo-db-2         | server started
+sismo-db-2         | CREATE DATABASE
+sismo-db-2         | 
+sismo-db-2         | 
+sismo-db-2         | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+sismo-db-2         | 
+sismo-db-2         | waiting for server to shut down....2026-11-18 09:27:16.408 UTC [41] LOG:  received fast shutdown request
+sismo-db-2         | 2026-11-18 09:27:16.409 UTC [41] LOG:  aborting any active transactions
+sismo-db-2         | 2026-11-18 09:27:16.413 UTC [41] LOG:  background worker "logical replication launcher" (PID 47) exited with exit code 1
+sismo-db-2         | 2026-11-18 09:27:16.413 UTC [42] LOG:  shutting down
+sismo-db-2         | 2026-11-18 09:27:16.414 UTC [42] LOG:  checkpoint starting: shutdown immediate
+sismo-db-2         | 2026-11-18 09:27:16.893 UTC [42] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.056 s, sync=0.411 s, total=0.480 s; sync files=301, longest=0.005 s, average=0.002 s; distance=4283 kB, estimate=4283 kB; lsn=0/1925D58, redo lsn=0/1925D58
+sismo-db-2         | 2026-11-18 09:27:16.902 UTC [41] LOG:  database system is shut down
+sismo-db-2         |  done
+sismo-db-2         | server stopped
+sismo-db-2         | 
+sismo-db-2         | PostgreSQL init process complete; ready for start up.
+sismo-db-2         | 
+sismo-db-2         | 2026-11-18 09:27:16.941 UTC [1] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-2         | 2026-11-18 09:27:16.941 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+sismo-db-2         | 2026-11-18 09:27:16.941 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+sismo-db-2         | 2026-11-18 09:27:16.945 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-2         | 2026-11-18 09:27:16.950 UTC [57] LOG:  database system was shut down at 2026-11-18 09:27:16 UTC
+sismo-db-2         | 2026-11-18 09:27:16.957 UTC [1] LOG:  database system is ready to accept connections
+sismo-db-2         | 2026-11-18 09:32:17.050 UTC [55] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 09:32:32.767 UTC [55] LOG:  checkpoint complete: wrote 159 buffers (1.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=15.645 s, sync=0.067 s, total=15.718 s; sync files=111, longest=0.003 s, average=0.001 s; distance=768 kB, estimate=768 kB; lsn=0/19E76D8, redo lsn=0/19E5D70
+sismo-db-2         | 2026-11-18 09:37:17.867 UTC [55] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 09:37:18.482 UTC [55] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.008 s, total=0.616 s; sync files=6, longest=0.003 s, average=0.002 s; distance=13 kB, estimate=692 kB; lsn=0/19E9248, redo lsn=0/19E9210
+sismo-db-2         | 2026-11-18 09:42:17.582 UTC [55] LOG:  checkpoint starting: time
+sismo-db-3         | The files belonging to this database system will be owned by user "postgres".
+sismo-db-3         | This user must also own the server process.
+sismo-db-1         | The files belonging to this database system will be owned by user "postgres".
+sismo-db-1         | This user must also own the server process.
+sismo-db-2         | 2026-11-18 09:42:17.998 UTC [55] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.402 s, sync=0.006 s, total=0.416 s; sync files=5, longest=0.003 s, average=0.002 s; distance=10 kB, estimate=624 kB; lsn=0/19EBC70, redo lsn=0/19EBC38
+sismo-db-2         | 2026-11-18 09:47:18.097 UTC [55] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 09:47:18.711 UTC [55] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.006 s, total=0.614 s; sync files=6, longest=0.003 s, average=0.001 s; distance=15 kB, estimate=563 kB; lsn=0/19EFC00, redo lsn=0/19EFBC8
+sismo-db-2         | 2026-11-18 09:47:34.232 UTC [1] LOG:  received fast shutdown request
+sismo-db-2         | 2026-11-18 09:47:34.285 UTC [1] LOG:  aborting any active transactions
+sismo-db-2         | 2026-11-18 09:47:34.299 UTC [1] LOG:  background worker "logical replication launcher" (PID 60) exited with exit code 1
+sismo-db-2         | 2026-11-18 09:47:34.312 UTC [55] LOG:  shutting down
+sismo-db-2         | 2026-11-18 09:47:34.325 UTC [55] LOG:  checkpoint starting: shutdown immediate
+sismo-db-2         | 2026-11-18 09:47:34.364 UTC [55] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.018 s, total=0.052 s; sync files=5, longest=0.006 s, average=0.004 s; distance=6 kB, estimate=507 kB; lsn=0/19F1670, redo lsn=0/19F1670
+sismo-db-2         | 2026-11-18 09:47:34.374 UTC [1] LOG:  database system is shut down
+sismo-db-2         | 
+sismo-db-2         | PostgreSQL Database directory appears to contain a database; Skipping initialization
+sismo-db-2         | 
+sismo-db-2         | 2026-11-18 15:41:27.458 UTC [1] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-2         | 2026-11-18 15:41:27.458 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+sismo-db-3         | 
+sismo-db-3         | The database cluster will be initialized with locale "en_US.utf8".
+sismo-db-3         | The default database encoding has accordingly been set to "UTF8".
+sismo-db-3         | The default text search configuration will be set to "english".
+sismo-db-3         | 
+sismo-db-3         | Data page checksums are disabled.
+sismo-db-3         | 
+sismo-db-3         | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+sismo-db-3         | creating subdirectories ... ok
+sismo-db-3         | selecting dynamic shared memory implementation ... posix
+sismo-db-3         | selecting default max_connections ... 100
+sismo-db-3         | selecting default shared_buffers ... 128MB
+sismo-db-3         | selecting default time zone ... UTC
+sismo-db-3         | creating configuration files ... ok
+sismo-db-3         | running bootstrap script ... ok
+sismo-db-3         | sh: locale: not found
+sismo-db-3         | 2026-11-18 09:27:14.187 UTC [34] WARNING:  no usable system locales were found
+sismo-db-3         | performing post-bootstrap initialization ... ok
+sismo-db-2         | 2026-11-18 15:41:27.458 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+sismo-db-2         | 2026-11-18 15:41:27.462 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-2         | 2026-11-18 15:41:27.470 UTC [29] LOG:  database system was shut down at 2026-11-18 09:47:34 UTC
+sismo-db-3         | syncing data to disk ... ok
+sismo-db-3         | initdb: warning: enabling "trust" authentication for local connections
+sismo-db-3         | 
+sismo-db-3         | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+sismo-db-3         | 
+sismo-db-3         | Success. You can now start the database server using:
+sismo-db-3         | 
+sismo-db-3         |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+sismo-db-3         | 
+sismo-db-3         | waiting for server to start....2026-11-18 09:27:16.480 UTC [40] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-3         | 2026-11-18 09:27:16.481 UTC [40] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-3         | 2026-11-18 09:27:16.488 UTC [43] LOG:  database system was shut down at 2026-11-18 09:27:14 UTC
+sismo-db-3         | 2026-11-18 09:27:16.495 UTC [40] LOG:  database system is ready to accept connections
+sismo-db-3         |  done
+sismo-db-3         | server started
+sismo-db-3         | CREATE DATABASE
+sismo-db-3         | 
+sismo-db-3         | 
+sismo-db-3         | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+sismo-db-3         | 
+sismo-db-3         | waiting for server to shut down....2026-11-18 09:27:16.637 UTC [40] LOG:  received fast shutdown request
+sismo-db-3         | 2026-11-18 09:27:16.639 UTC [40] LOG:  aborting any active transactions
+sismo-db-3         | 2026-11-18 09:27:16.642 UTC [40] LOG:  background worker "logical replication launcher" (PID 46) exited with exit code 1
+sismo-db-3         | 2026-11-18 09:27:16.642 UTC [41] LOG:  shutting down
+sismo-db-3         | 2026-11-18 09:27:16.644 UTC [41] LOG:  checkpoint starting: shutdown immediate
+sismo-db-2         | 2026-11-18 15:41:27.480 UTC [1] LOG:  database system is ready to accept connections
+sismo-db-2         | 2026-11-18 15:46:27.570 UTC [27] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 15:46:29.699 UTC [27] LOG:  checkpoint complete: wrote 24 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=2.107 s, sync=0.017 s, total=2.130 s; sync files=19, longest=0.003 s, average=0.001 s; distance=33 kB, estimate=33 kB; lsn=0/19F9AD0, redo lsn=0/19F9A98
+sismo-db-2         | 2026-11-18 15:51:27.748 UTC [27] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 15:51:28.158 UTC [27] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.402 s, sync=0.004 s, total=0.410 s; sync files=5, longest=0.002 s, average=0.001 s; distance=12 kB, estimate=30 kB; lsn=0/19FCAF0, redo lsn=0/19FCAB8
+sismo-db-2         | 2026-11-18 15:56:27.230 UTC [27] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 15:56:27.842 UTC [27] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.005 s, total=0.613 s; sync files=6, longest=0.002 s, average=0.001 s; distance=17 kB, estimate=29 kB; lsn=0/1A010C8, redo lsn=0/1A01090
+sismo-db-1         | 
+sismo-db-1         | The database cluster will be initialized with locale "en_US.utf8".
+sismo-db-1         | The default database encoding has accordingly been set to "UTF8".
+sismo-db-1         | The default text search configuration will be set to "english".
+sismo-db-1         | 
+sismo-db-1         | Data page checksums are disabled.
+sismo-db-1         | 
+sismo-db-1         | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+sismo-db-1         | creating subdirectories ... ok
+sismo-db-1         | selecting dynamic shared memory implementation ... posix
+sismo-db-1         | selecting default max_connections ... 100
+sismo-db-1         | selecting default shared_buffers ... 128MB
+sismo-db-1         | selecting default time zone ... UTC
+sismo-db-1         | creating configuration files ... ok
+sismo-db-1         | running bootstrap script ... ok
+sismo-db-1         | sh: locale: not found
+sismo-db-1         | 2026-11-18 09:27:14.615 UTC [35] WARNING:  no usable system locales were found
+sismo-db-1         | performing post-bootstrap initialization ... ok
+sismo-db-1         | initdb: warning: enabling "trust" authentication for local connections
+sismo-db-2         | 2026-11-18 16:01:27.942 UTC [27] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 16:01:28.553 UTC [27] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.005 s, total=0.612 s; sync files=6, longest=0.002 s, average=0.001 s; distance=15 kB, estimate=28 kB; lsn=0/1A04E18, redo lsn=0/1A04DE0
+sismo-db-2         | 2026-11-18 16:06:27.653 UTC [27] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 16:06:28.063 UTC [27] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.402 s, sync=0.004 s, total=0.411 s; sync files=5, longest=0.002 s, average=0.001 s; distance=13 kB, estimate=26 kB; lsn=0/1A082E8, redo lsn=0/1A082B0
+sismo-db-2         | 2026-11-18 16:11:27.140 UTC [27] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 16:11:28.353 UTC [27] LOG:  checkpoint complete: wrote 13 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.203 s, sync=0.006 s, total=1.213 s; sync files=9, longest=0.001 s, average=0.001 s; distance=20 kB, estimate=26 kB; lsn=0/1A0D5C0, redo lsn=0/1A0D588
+sismo-db-2         | 2026-11-18 16:16:27.453 UTC [27] LOG:  checkpoint starting: time
+sismo-db-2         | 2026-11-18 16:16:31.483 UTC [27] LOG:  checkpoint complete: wrote 41 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.010 s, sync=0.018 s, total=4.031 s; sync files=29, longest=0.001 s, average=0.001 s; distance=48 kB, estimate=48 kB; lsn=0/1A1BA18, redo lsn=0/1A195E8
+sismo-db-3         | 2026-11-18 09:27:17.094 UTC [41] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.054 s, sync=0.385 s, total=0.452 s; sync files=301, longest=0.007 s, average=0.002 s; distance=4283 kB, estimate=4283 kB; lsn=0/1925D58, redo lsn=0/1925D58
+sismo-db-3         | 2026-11-18 09:27:17.103 UTC [40] LOG:  database system is shut down
+sismo-db-3         |  done
+sismo-db-3         | server stopped
+sismo-db-3         | 
+sismo-db-3         | PostgreSQL init process complete; ready for start up.
+sismo-db-3         | 
+sismo-db-3         | 2026-11-18 09:27:17.171 UTC [1] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-3         | 2026-11-18 09:27:17.171 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+sismo-db-1         | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+sismo-db-1         | syncing data to disk ... ok
+sismo-db-1         | 
+sismo-db-1         | 
+sismo-db-1         | Success. You can now start the database server using:
+sismo-db-1         | 
+sismo-db-1         |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+sismo-db-1         | 
+sismo-db-1         | waiting for server to start....2026-11-18 09:27:16.779 UTC [41] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-1         | 2026-11-18 09:27:16.782 UTC [41] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-1         | 2026-11-18 09:27:16.790 UTC [44] LOG:  database system was shut down at 2026-11-18 09:27:15 UTC
+sismo-db-1         | 2026-11-18 09:27:16.797 UTC [41] LOG:  database system is ready to accept connections
+sismo-db-1         |  done
+sismo-db-1         | server started
+sismo-db-1         | CREATE DATABASE
+sismo-db-1         | 
+sismo-db-1         | 
+sismo-db-1         | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+sismo-db-1         | 
+sismo-db-1         | waiting for server to shut down....2026-11-18 09:27:16.944 UTC [41] LOG:  received fast shutdown request
+sismo-db-1         | 2026-11-18 09:27:16.946 UTC [41] LOG:  aborting any active transactions
+sismo-db-1         | 2026-11-18 09:27:16.950 UTC [41] LOG:  background worker "logical replication launcher" (PID 47) exited with exit code 1
+sismo-db-1         | 2026-11-18 09:27:16.950 UTC [42] LOG:  shutting down
+sismo-db-1         | 2026-11-18 09:27:16.952 UTC [42] LOG:  checkpoint starting: shutdown immediate
+sismo-db-1         | 2026-11-18 09:27:17.306 UTC [42] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.052 s, sync=0.295 s, total=0.357 s; sync files=301, longest=0.005 s, average=0.001 s; distance=4283 kB, estimate=4283 kB; lsn=0/1925D58, redo lsn=0/1925D58
+sismo-db-1         | 2026-11-18 09:27:17.315 UTC [41] LOG:  database system is shut down
+sismo-db-1         |  done
+sismo-db-1         | server stopped
+sismo-db-1         | 
+sismo-db-1         | PostgreSQL init process complete; ready for start up.
+sismo-db-1         | 
+sismo-db-1         | 2026-11-18 09:27:17.375 UTC [1] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-1         | 2026-11-18 09:27:17.376 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+sismo-db-1         | 2026-11-18 09:27:17.376 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+sismo-db-1         | 2026-11-18 09:27:17.378 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-1         | 2026-11-18 09:27:17.382 UTC [57] LOG:  database system was shut down at 2026-11-18 09:27:17 UTC
+sismo-db-1         | 2026-11-18 09:27:17.392 UTC [1] LOG:  database system is ready to accept connections
+sismo-db-1         | 2026-11-18 09:32:17.481 UTC [55] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 09:32:33.188 UTC [55] LOG:  checkpoint complete: wrote 159 buffers (1.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=15.644 s, sync=0.057 s, total=15.708 s; sync files=111, longest=0.002 s, average=0.001 s; distance=767 kB, estimate=767 kB; lsn=0/19E7500, redo lsn=0/19E5AF0
+sismo-db-1         | 2026-11-18 09:37:17.288 UTC [55] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 09:37:17.905 UTC [55] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.603 s, sync=0.007 s, total=0.617 s; sync files=6, longest=0.003 s, average=0.002 s; distance=13 kB, estimate=692 kB; lsn=0/19E9100, redo lsn=0/19E90C8
+sismo-db-1         | 2026-11-18 09:42:18.004 UTC [55] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 09:42:18.417 UTC [55] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.402 s, sync=0.007 s, total=0.414 s; sync files=5, longest=0.003 s, average=0.002 s; distance=11 kB, estimate=623 kB; lsn=0/19EBE08, redo lsn=0/19EBDD0
+sismo-db-1         | 2026-11-18 09:47:18.517 UTC [55] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 09:47:19.030 UTC [55] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.502 s, sync=0.006 s, total=0.513 s; sync files=6, longest=0.003 s, average=0.001 s; distance=9 kB, estimate=562 kB; lsn=0/19EE2A8, redo lsn=0/19EE270
+sismo-db-1         | 2026-11-18 09:47:34.233 UTC [1] LOG:  received fast shutdown request
+sismo-db-1         | 2026-11-18 09:47:34.283 UTC [1] LOG:  aborting any active transactions
+sismo-db-1         | 2026-11-18 09:47:34.289 UTC [1] LOG:  background worker "logical replication launcher" (PID 60) exited with exit code 1
+sismo-db-1         | 2026-11-18 09:47:34.290 UTC [55] LOG:  shutting down
+sismo-db-1         | 2026-11-18 09:47:34.305 UTC [55] LOG:  checkpoint starting: shutdown immediate
+sismo-db-1         | 2026-11-18 09:47:34.358 UTC [55] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.025 s, total=0.068 s; sync files=5, longest=0.010 s, average=0.005 s; distance=7 kB, estimate=506 kB; lsn=0/19F01B0, redo lsn=0/19F01B0
+sismo-db-1         | 2026-11-18 09:47:34.365 UTC [1] LOG:  database system is shut down
+sismo-db-1         | 
+sismo-db-1         | PostgreSQL Database directory appears to contain a database; Skipping initialization
+sismo-db-1         | 
+sismo-db-1         | 2026-11-18 15:41:27.460 UTC [1] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-1         | 2026-11-18 15:41:27.460 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+sismo-db-1         | 2026-11-18 15:41:27.460 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+sismo-db-1         | 2026-11-18 15:41:27.465 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-1         | 2026-11-18 15:41:27.473 UTC [29] LOG:  database system was shut down at 2026-11-18 09:47:34 UTC
+sismo-db-1         | 2026-11-18 15:41:27.482 UTC [1] LOG:  database system is ready to accept connections
+sismo-db-1         | 2026-11-18 15:46:27.572 UTC [27] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 15:46:29.699 UTC [27] LOG:  checkpoint complete: wrote 24 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=2.106 s, sync=0.017 s, total=2.128 s; sync files=19, longest=0.003 s, average=0.001 s; distance=34 kB, estimate=34 kB; lsn=0/19F8A30, redo lsn=0/19F89C0
+sismo-db-1         | 2026-11-18 15:51:27.799 UTC [27] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 15:51:28.415 UTC [27] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.007 s, total=0.616 s; sync files=6, longest=0.002 s, average=0.002 s; distance=13 kB, estimate=31 kB; lsn=0/19FBF30, redo lsn=0/19FBEF8
+sismo-db-1         | 2026-11-18 15:56:27.515 UTC [27] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 15:56:27.931 UTC [27] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.402 s, sync=0.007 s, total=0.417 s; sync files=5, longest=0.002 s, average=0.002 s; distance=10 kB, estimate=29 kB; lsn=0/19FEA20, redo lsn=0/19FE9E8
+sismo-db-1         | 2026-11-18 16:01:28.031 UTC [27] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 16:01:28.646 UTC [27] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.008 s, total=0.616 s; sync files=6, longest=0.002 s, average=0.002 s; distance=16 kB, estimate=28 kB; lsn=0/1A02A28, redo lsn=0/1A029F0
+sismo-db-1         | 2026-11-18 16:06:28.746 UTC [27] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 16:06:29.156 UTC [27] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.402 s, sync=0.005 s, total=0.411 s; sync files=5, longest=0.002 s, average=0.001 s; distance=13 kB, estimate=26 kB; lsn=0/1A05FF0, redo lsn=0/1A05FB8
+sismo-db-1         | 2026-11-18 16:11:28.256 UTC [27] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 16:11:29.467 UTC [27] LOG:  checkpoint complete: wrote 13 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.203 s, sync=0.006 s, total=1.212 s; sync files=9, longest=0.001 s, average=0.001 s; distance=20 kB, estimate=26 kB; lsn=0/1A0B350, redo lsn=0/1A0B318
+sismo-db-1         | 2026-11-18 16:16:28.567 UTC [27] LOG:  checkpoint starting: time
+sismo-db-1         | 2026-11-18 16:16:32.603 UTC [27] LOG:  checkpoint complete: wrote 41 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.009 s, sync=0.024 s, total=4.037 s; sync files=29, longest=0.002 s, average=0.001 s; distance=45 kB, estimate=45 kB; lsn=0/1A18760, redo lsn=0/1A169D8
+sismo-db-3         | 2026-11-18 09:27:17.172 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+sismo-db-3         | 2026-11-18 09:27:17.176 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-3         | 2026-11-18 09:27:17.182 UTC [56] LOG:  database system was shut down at 2026-11-18 09:27:17 UTC
+sismo-db-3         | 2026-11-18 09:27:17.189 UTC [1] LOG:  database system is ready to accept connections
+sismo-db-3         | 2026-11-18 09:32:17.281 UTC [54] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 09:32:32.991 UTC [54] LOG:  checkpoint complete: wrote 159 buffers (1.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=15.644 s, sync=0.060 s, total=15.711 s; sync files=111, longest=0.002 s, average=0.001 s; distance=767 kB, estimate=767 kB; lsn=0/19E7680, redo lsn=0/19E5C70
+sismo-db-3         | 2026-11-18 09:37:18.091 UTC [54] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 09:37:18.708 UTC [54] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.603 s, sync=0.010 s, total=0.618 s; sync files=6, longest=0.004 s, average=0.002 s; distance=13 kB, estimate=692 kB; lsn=0/19E9280, redo lsn=0/19E9248
+sismo-db-3         | 2026-11-18 09:42:18.808 UTC [54] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 09:42:19.223 UTC [54] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.402 s, sync=0.007 s, total=0.415 s; sync files=5, longest=0.003 s, average=0.002 s; distance=11 kB, estimate=624 kB; lsn=0/19EBF88, redo lsn=0/19EBF50
+sismo-db-3         | 2026-11-18 09:47:18.322 UTC [54] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 09:47:18.833 UTC [54] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.502 s, sync=0.005 s, total=0.511 s; sync files=6, longest=0.003 s, average=0.001 s; distance=9 kB, estimate=562 kB; lsn=0/19EE428, redo lsn=0/19EE3F0
+sismo-db-3         | 2026-11-18 09:47:34.227 UTC [1] LOG:  received fast shutdown request
+sismo-db-3         | 2026-11-18 09:47:34.264 UTC [1] LOG:  aborting any active transactions
+sismo-db-3         | 2026-11-18 09:47:34.269 UTC [1] LOG:  background worker "logical replication launcher" (PID 59) exited with exit code 1
+sismo-db-3         | 2026-11-18 09:47:34.277 UTC [54] LOG:  shutting down
+sismo-db-3         | 2026-11-18 09:47:34.293 UTC [54] LOG:  checkpoint starting: shutdown immediate
+sismo-db-3         | 2026-11-18 09:47:34.350 UTC [54] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.028 s, total=0.074 s; sync files=5, longest=0.013 s, average=0.006 s; distance=7 kB, estimate=507 kB; lsn=0/19F0330, redo lsn=0/19F0330
+sismo-db-3         | 2026-11-18 09:47:34.355 UTC [1] LOG:  database system is shut down
+sismo-db-3         | 
+sismo-db-3         | PostgreSQL Database directory appears to contain a database; Skipping initialization
+sismo-db-3         | 
+sismo-db-3         | 2026-11-18 15:41:27.459 UTC [1] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+sismo-db-3         | 2026-11-18 15:41:27.459 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+sismo-db-3         | 2026-11-18 15:41:27.459 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+sismo-db-3         | 2026-11-18 15:41:27.463 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+sismo-db-3         | 2026-11-18 15:41:27.470 UTC [29] LOG:  database system was shut down at 2026-11-18 09:47:34 UTC
+sismo-db-3         | 2026-11-18 15:41:27.482 UTC [1] LOG:  database system is ready to accept connections
+sismo-db-3         | 2026-11-18 15:46:27.570 UTC [27] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 15:46:29.699 UTC [27] LOG:  checkpoint complete: wrote 24 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=2.106 s, sync=0.017 s, total=2.130 s; sync files=19, longest=0.003 s, average=0.001 s; distance=33 kB, estimate=33 kB; lsn=0/19F8B40, redo lsn=0/19F8AD0
+sismo-db-3         | 2026-11-18 15:51:27.799 UTC [27] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 15:51:28.414 UTC [27] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.008 s, total=0.616 s; sync files=6, longest=0.002 s, average=0.002 s; distance=13 kB, estimate=31 kB; lsn=0/19FC168, redo lsn=0/19FC130
+sismo-db-3         | 2026-11-18 15:56:27.514 UTC [27] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 15:56:27.932 UTC [27] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.402 s, sync=0.009 s, total=0.419 s; sync files=5, longest=0.003 s, average=0.002 s; distance=11 kB, estimate=29 kB; lsn=0/19FEEF8, redo lsn=0/19FEEC0
+sismo-db-3         | 2026-11-18 16:01:28.032 UTC [27] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 16:01:28.647 UTC [27] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.007 s, total=0.616 s; sync files=6, longest=0.002 s, average=0.002 s; distance=16 kB, estimate=28 kB; lsn=0/1A03290, redo lsn=0/1A03258
+sismo-db-3         | 2026-11-18 16:06:28.731 UTC [27] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 16:06:29.343 UTC [27] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.602 s, sync=0.006 s, total=0.613 s; sync files=6, longest=0.002 s, average=0.001 s; distance=14 kB, estimate=27 kB; lsn=0/1A06D68, redo lsn=0/1A06D30
+sismo-db-3         | 2026-11-18 16:11:28.443 UTC [27] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 16:11:29.554 UTC [27] LOG:  checkpoint complete: wrote 12 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.103 s, sync=0.005 s, total=1.112 s; sync files=8, longest=0.001 s, average=0.001 s; distance=14 kB, estimate=25 kB; lsn=0/1A0A7D8, redo lsn=0/1A0A7A0
+sismo-db-3         | 2026-11-18 16:16:28.654 UTC [27] LOG:  checkpoint starting: time
+sismo-db-3         | 2026-11-18 16:16:31.782 UTC [27] LOG:  checkpoint complete: wrote 32 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=3.107 s, sync=0.018 s, total=3.129 s; sync files=23, longest=0.003 s, average=0.001 s; distance=47 kB, estimate=47 kB; lsn=0/1A18E10, redo lsn=0/1A165F8

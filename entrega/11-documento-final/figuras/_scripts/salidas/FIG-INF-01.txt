@@ -1,0 +1,21 @@
+# FIG-INF-01 — Infraestructura · docker ps del stack real
+# fecha: 2026-11-18T13:02:01-05:00
+# fuente: Salida real de `docker ps` en el host de despliegue, renderizada con Chromium sobre HTML monoespaciado.
+
+$ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+NAMES               STATUS                 PORTS
+sismo-panel         Up 2 hours             0.0.0.0:8095->8090/tcp, [::]:8095->8090/tcp
+sismo-servidor-1    Up 2 hours (healthy)   0.0.0.0:8101->8100/tcp, [::]:8101->8100/tcp
+sismo-servidor-2    Up 2 hours (healthy)   0.0.0.0:8102->8100/tcp, [::]:8102->8100/tcp
+sismo-servidor-3    Up 2 hours (healthy)   0.0.0.0:8103->8100/tcp, [::]:8103->8100/tcp
+sismo-db-2          Up 2 hours (healthy)   5432/tcp
+sismo-db-3          Up 2 hours (healthy)   5432/tcp
+sismo-db-1          Up 2 hours (healthy)   5432/tcp
+sismo-controlador   Up 2 hours (healthy)   
+sismo-nodo-3        Up 2 hours (healthy)   0.0.0.0:9003->8080/tcp, [::]:9003->8080/tcp
+sismo-nodo-1        Up 2 hours (healthy)   0.0.0.0:9001->8080/tcp, [::]:9001->8080/tcp
+sismo-nodo-2        Up 2 hours (healthy)   0.0.0.0:9002->8080/tcp, [::]:9002->8080/tcp
+
+$ printf 'contenedores del proyecto: '; docker ps --format '{{.Names}}' | grep -c '^sismo-'
+contenedores del proyecto: 11
+

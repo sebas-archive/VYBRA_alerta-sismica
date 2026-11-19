@@ -1,0 +1,72 @@
+@startuml FIG-FW-01-flujo-loop-evento
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #F5F7F8
+  BorderColor #2F3B44
+  DiamondBackgroundColor #DCEFEF
+  DiamondBorderColor #0E6A76
+}
+title Flujo del loop() y ciclo completo de un evento
+
+partition "Arranque (setup)" {
+  :Serial 115200; pines GPIO4 y GPIO2;
+  :NVS: abrir "raft" y cargar término y voto;
+  :cargar huella WiFi de referencia;
+  :conectarWiFi() o abrir portal SISMO-D<N>-config;
+  :pedirHora() por NTP (UTC-5);
+  :crear Raft con semilla esp_random();
+  :abrir UDP 4210 y UDP 4211;
+  :iniciar HTTP 80 y ArduinoOTA (sismo-nodo-N);
+}
+
+partition "loop()" {
+  repeat
+    :vigilarWiFi(ahora);
+    :descubrirNodos(ahora)  broadcast SISMO-HOLA:N cada 2 s;
+    :recibirUdp(ahora)      Vote*/Append*/Forward*;
+    :raft->tick(ahora)      elección, latido y commit;
+    :leerBoton(ahora)       antirrebote de 20 ms;
+    :servidor.handleClient() atiende un cliente HTTP;
+    :enviarSalidas()        respuestas Raft pendientes;
+    :ArduinoOTA.handle();
+    :vigilarHuella(ahora);
+    if (¿venció NTP?) then (sí)
+      :pedirHora();
+    endif
+    :imprimirSucesos();
+    :actualizarLed(ahora);
+    :delay(1) cede CPU a WiFi;
+  repeat while (placa encendida)
+}
+
+partition "Ciclo de un evento simulado" {
+  :Pulsación en GPIO4 (activo en bajo);
+  :medir duración con millis();
+  if (¿duración >= 80 ms?) then (no)
+    :descartar;
+    stop
+  endif
+  :nivel = min(10, 1 + ms/450);
+  :pga = 0.028 * nivel + 0.015;
+  :evento con id único, nodo, duración y hora;
+  if (¿este nodo es líder?) then (sí)
+    :agregar la entrada al log;
+  else (no)
+    :enviar Forward al líder y reintentar cada 500 ms;
+  endif
+  :replicar con Append y confirmar con mayoría 2 de 3;
+  :aplicar la máquina sísmica en los tres nodos;
+  if (¿dos detectores distintos en 10 s?) then (sí)
+    :alerta con severidad por promedio de nivel;
+  else (no)
+    :evento registrado sin alerta;
+  endif
+  :publicar estado por HTTP y SSE al panel;
+  :el servidor de datos escribe en PostgreSQL;
+  stop
+}
+
+@enduml

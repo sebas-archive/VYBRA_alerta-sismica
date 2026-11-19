@@ -1,0 +1,35 @@
+COD-13 — API del nodo: situacion() y jsonEstado()
+Fuente: firmware/detector/src/nucleo/api.cpp
+Commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c (0ee5ed4), 2026-11-18
+Líneas vigentes: 27-55   (rango del inventario original: 27-55)
+Extraído: 2026-11-18T11:20:00-05:00 America/Bogota
+----------------------------------------------------------------------------------------------------
+   27  const char* situacion(const Raft& r) {
+   28    if (r.caido()) return "caido";
+   29    if (r.lider() == 0 || r.rol() == Rol::Candidato) return "sincronizando";
+   30    if (r.rol() == Rol::Lider) return r.commitIndex() < r.logLen() ? "sincronizando" : "funcionando";
+   31    return r.commitIndex() < r.commitLider() ? "sincronizando" : "funcionando";
+   32  }
+   33  
+   34  std::string jsonEstado(const Raft& r, int nodo, const InfoRed& red) {
+   35    JsonDocument doc;
+   36    doc["nodo"] = nodo;
+   37    doc["rol"] = nombreRol(r.rol());
+   38    doc["caido"] = r.caido();
+   39    doc["termino"] = r.termino();
+   40    doc["votado_por"] = r.votadoPor();
+   41    doc["lider_conocido"] = r.lider();
+   42    doc["log_len"] = r.logLen();
+   43    doc["commit_index"] = r.commitIndex();
+   44    doc["pendientes"] = (uint32_t)r.pendientes();
+   45    doc["log_lleno"] = r.logLleno();
+   46    doc["sucesos_seq"] = r.sucesosSeq();
+   47    doc["con_hora"] = red.conHora;
+   48    doc["ip"] = red.ip;
+   49    doc["rssi"] = red.rssi;
+   50    doc["uptime_ms"] = red.uptimeMs;
+   51    doc["movido"] = red.movido;
+   52    doc["con_huella"] = red.conHuella;
+   53    doc["situacion"] = situacion(r);
+   54    return texto(doc);
+   55  }

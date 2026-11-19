@@ -1,0 +1,16 @@
+== RES-04 Flujo SSE de /api/stream (eventos estado/vivo, 12 s de escucha)
+== fecha: 2026-11-18T11:20:32-05:00  commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c
+== comando: timeout 12 curl -sN http://127.0.0.1:8095/api/stream
+
+event: estado
+data: {"t":1795018833643,"quorum":true,"lider":1,"fuente":1,"nodos":[{"n":1,"url":"http://nodo1:8080","alcanzable":true,"fallos":0,"estado":{"nodo":1,"rol":"lider","caido":false,"termino":3,"votado_por":1,"lider_conocido":1,"log_len":5,"commit_index":5,"pendientes":0,"log_lleno":false,"sucesos_seq":2,"con_hora":true,"ip":"172.20.0.2","rssi":0,"uptime_ms":2346942,"movido":false,"con_huella":false,"situacion":"funcionando"}},{"n":2,"url":"http://nodo2:8080","alcanzable":true,"fallos":0,"estado":{"nodo":2,"rol":"seguidor","caido":false,"termino":3,"votado_por":1,"lider_conocido":1,"log_len":5,"commit_index":5,"pendientes":0,"log_lleno":false,"sucesos_seq":1,"con_hora":true,"ip":"172.20.0.6","rssi":0,"uptime_ms":2346846,"movido":false,"con_huella":false,"situacion":"funcionando"}},{"n":3,"url":"http://nodo3:8080","alcanzable":true,"fallos":0,"estado":{"nodo":3,"rol":"seguidor","caido":false,"termino":3,"votado_por":1,"lider_conocido":1,"log_len":5,"commit_index":5,"pendientes":0,"log_lleno":false,"sucesos_seq":1,"con_hora":true,"ip":"172.20.0.3","rssi":0,"uptime_ms":2346923,"movido":false,"con_huella":false,"situacion":"funcionando"}}],"log":[{"i":1,"T":3,"clase":"inicio_termino","lider":1},{"i":2,"T":3,"clase":"evento","ev":{"id":"nodo-1-7f5258bd-1","nodo":1,"nivel":6,"pga":0.183,"duracion_ms":2475,"t":1795018497985,"t_lider":1795018497985,"recibido_por":1},"en_alerta":false},{"i":3,"T":3,"clase":"evento","ev":{"id":"nodo-2-9ef7b678-1","nodo":2,"nivel":5,"pga":0.155,"duracion_ms":2025,"t":1795018500000,"t_lider":1795018500020,"recibido_por":2},"en_alerta":true},{"i":4,"T":3,"clase":"evento","ev":{"id":"nodo-1-7f5258bd-2","nodo":1,"nivel":7,"pga":0.211,"duracion_ms":2925,"t":1795018671254,"t_lider":1795018671254,"recibido_por":1},"en_alerta":false},{"i":5,"T":3,"clase":"evento","ev":{"id":"nodo-2-9ef7b678-2","nodo":2,"nivel":4,"pga":0.127,"duracion_ms":1575,"t":1795018673269,"t_lider":1795018673289,"recibido_por":2},"en_alerta":true}],"alertas":[{"id":3,"promedio":5.5,"nivel":"media","eventos":["nodo-2-9ef7b678-1","nodo-1-7f5258bd-1"],"termino":3,"lider":1},{"id":5,"promedio":5.5,"nivel":"media","eventos":["nodo-2-9ef7b678-2","nodo-1-7f5258bd-2"],"termino":3,"lider":1}],"sucesos":[{"n":1,"seq":2,"t":1795016488899,"tipo":"gano","texto":"Servidor 1 ganó la elección y es el líder","termino":3},{"n":1,"seq":1,"t":1795016488899,"tipo":"postulo","texto":"Servidor 1 no recibió latidos y se postuló","termino":3},{"n":2,"seq":1,"t":1795016488899,"tipo":"voto","texto":"Servidor 2 votó por Servidor 1","termino":3},{"n":3,"seq":1,"t":1795016488899,"tipo":"voto","texto":"Servidor 3 votó por Servidor 1","termino":3}],"ubicaciones":{"1":{"lat":4.64811,"lon":-74.05669},"2":{"lat":4.648176,"lon":-74.056661},"3":{"lat":4.648177,"lon":-74.056703}}}
+
+event: vivo
+data: {"t":1795018838645}
+
+event: vivo
+data: {"t":1795018843648}
+
+
+
+== fin: 2026-11-18T11:20:45-05:00

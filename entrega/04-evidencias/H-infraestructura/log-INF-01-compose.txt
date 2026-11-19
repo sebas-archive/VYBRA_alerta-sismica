@@ -1,0 +1,46 @@
+== INF-01 Servicios, perfiles e imágenes del compose (stack real)
+== fecha: 2026-11-18T11:20:23-05:00  commit: 0ee5ed4a626c28904db55ab6e436e040c03f046c  host: Linux 7.3.3-1-cachyos x86_64
+== comando: docker compose config --services / --profiles / --images / ps
+
+--- servicios (por defecto) ---
+controlador
+db1
+db2
+db3
+nodo1
+nodo2
+nodo3
+panel
+servidor1
+servidor2
+servidor3
+
+--- perfiles ---
+https
+
+--- imágenes ---
+detectordesismosenreddistribuida-controlador
+detectordesismosenreddistribuida-nodo1
+detectordesismosenreddistribuida-nodo2
+detectordesismosenreddistribuida-nodo3
+detectordesismosenreddistribuida-panel
+detectordesismosenreddistribuida-servidor1
+detectordesismosenreddistribuida-servidor2
+detectordesismosenreddistribuida-servidor3
+postgres:16-alpine
+postgres:16-alpine
+postgres:16-alpine
+
+--- contenedores en ejecución ---
+NAME                IMAGE                                          COMMAND                  SERVICE       CREATED       STATUS                    PORTS
+sismo-controlador   detectordesismosenreddistribuida-controlador   "docker-entrypoint.s…"   controlador   7 hours ago   Up 38 minutes (healthy)   
+sismo-db-1          postgres:16-alpine                             "docker-entrypoint.s…"   db1           7 hours ago   Up 38 minutes (healthy)   5432/tcp
+sismo-db-2          postgres:16-alpine                             "docker-entrypoint.s…"   db2           7 hours ago   Up 38 minutes (healthy)   5432/tcp
+sismo-db-3          postgres:16-alpine                             "docker-entrypoint.s…"   db3           7 hours ago   Up 38 minutes (healthy)   5432/tcp
+sismo-nodo-1        detectordesismosenreddistribuida-nodo1         "nodo-sim"               nodo1         7 hours ago   Up 38 minutes (healthy)   0.0.0.0:9001->8080/tcp, [::]:9001->8080/tcp
+sismo-nodo-2        detectordesismosenreddistribuida-nodo2         "nodo-sim"               nodo2         7 hours ago   Up 38 minutes (healthy)   0.0.0.0:9002->8080/tcp, [::]:9002->8080/tcp
+sismo-nodo-3        detectordesismosenreddistribuida-nodo3         "nodo-sim"               nodo3         7 hours ago   Up 38 minutes (healthy)   0.0.0.0:9003->8080/tcp, [::]:9003->8080/tcp
+sismo-panel         detectordesismosenreddistribuida-panel         "docker-entrypoint.s…"   panel         7 hours ago   Up 38 minutes             0.0.0.0:8095->8090/tcp, [::]:8095->8090/tcp
+sismo-servidor-1    detectordesismosenreddistribuida-servidor1     "node servidor/servi…"   servidor1     7 hours ago   Up 38 minutes (healthy)   0.0.0.0:8101->8100/tcp, [::]:8101->8100/tcp
+sismo-servidor-2    detectordesismosenreddistribuida-servidor2     "node servidor/servi…"   servidor2     7 hours ago   Up 38 minutes (healthy)   0.0.0.0:8102->8100/tcp, [::]:8102->8100/tcp
+sismo-servidor-3    detectordesismosenreddistribuida-servidor3     "node servidor/servi…"   servidor3     7 hours ago   Up 38 minutes (healthy)   0.0.0.0:8103->8100/tcp, [::]:8103->8100/tcp
