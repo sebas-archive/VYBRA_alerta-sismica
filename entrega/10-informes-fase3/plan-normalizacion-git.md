@@ -92,7 +92,7 @@ El historial actual **no es** el que se documentó el 2026-11-17:
 | Indicio | Valor actual |
 |---|---|
 | Commits | 102 (el plan del 2026-11-17 describía 53 históricos + 6 nuevos = 59) |
-| Autoría | `sebas-archive` en todos (el bundle antiguo tiene 59 commits con `t1an <seferevelo123@umariana.edu.co>`) |
+| Autoría | `sebas-archive` en todos (el bundle antiguo tiene 59 commits con una identidad de autor anterior a la normalización) |
 | Hashes citados en la documentación de esa fecha (`3a274da`, `7cd7f53`, `16fc9b0`, `43aa2d5`, `1977662`, `3e30729`) | **No existen** en el repositorio actual (`git cat-file -e` falla) |
 | Tag | Recreado el 2026-11-18 04:41:39 sobre `f567487` |
 | Objetos no alcanzables | **61 commits** más 1 objeto, según `git fsck --unreachable --no-reflogs` |
