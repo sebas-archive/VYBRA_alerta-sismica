@@ -1,6 +1,10 @@
 <div align="center">
 
-<img src="docs/img/banner.png" alt="VYBRA — Alerta Sísmica" width="720">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/banner-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/img/banner-light.png">
+  <img src="docs/img/banner-light.png" alt="VYBRA — Alerta Sísmica" width="720">
+</picture>
 
 <h1 align="center">VYBRA · Alerta Sísmica</h1>
 
